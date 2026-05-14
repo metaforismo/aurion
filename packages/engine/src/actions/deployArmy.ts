@@ -9,7 +9,7 @@ import type {
   GameState,
   MilitaryDeployment,
 } from '../types.js';
-import { withCountry } from './helpers.js';
+import { getRelation, withCountry } from './helpers.js';
 
 export type DeployArmyAction = Extract<Action, { type: 'deployArmy' }>;
 
@@ -24,6 +24,30 @@ function findHostCountry(state: GameState, regionId: string): CountryId | null {
     if (c.regionId === regionId) return c.id;
   }
   return null;
+}
+
+/**
+ * Returns true if `actor` is allowed to deploy units into `regionId` given the
+ * current diplomatic state. A country may always deploy on its own territory.
+ * A country may deploy on a foreign region if it is at war with the host or
+ * has an alliance with the host (military access). Otherwise the deployment
+ * is rejected — countries do not casually walk armies across borders.
+ */
+export function isDeployAllowed(
+  state: GameState,
+  actor: CountryId,
+  regionId: string,
+): { ok: true } | { ok: false; reason: string } {
+  // Find which country this region belongs to (territorial owner).
+  const host = findHostCountry(state, regionId);
+  // Region with no owner (e.g. uncharted / sea) — always allowed.
+  if (host === null) return { ok: true };
+  // Own territory: always allowed.
+  if (host === actor) return { ok: true };
+  const rel = getRelation(state, actor, host);
+  if (rel?.atWar) return { ok: true };
+  if (rel?.treaties.includes('alliance')) return { ok: true };
+  return { ok: false, reason: 'errors.deploy.foreignRegionNoAccess' };
 }
 
 export function applyDeployArmy(
@@ -48,6 +72,10 @@ export function applyDeployArmy(
   if (typeof action.target !== 'string' || action.target.length === 0) {
     errors.push('errors.deploy.invalidRegion');
     return { state, errors };
+  }
+  const allowed = isDeployAllowed(state, countryId, action.target);
+  if (!allowed.ok) {
+    return { state, errors: [allowed.reason] };
   }
 
   const newDep: MilitaryDeployment = {

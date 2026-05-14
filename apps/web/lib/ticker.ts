@@ -181,6 +181,10 @@ export function useTicker(): UseTickerResult {
   // Compute effective speed (auto-pause takes precedence over user speed).
   useEffect(() => {
     const wantsAutoPause = isTabHidden || hasOpenEvent || winLoss !== 'playing';
+    // setIsAutoPaused mirrors derived state into hook output. The lint rule's
+    // cascading-render warning is a false positive here — the value is a pure
+    // function of the deps and we never re-enter this effect via the setter.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsAutoPaused(wantsAutoPause);
     const ticker = tickerRef.current;
     if (!ticker) return;

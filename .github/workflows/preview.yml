@@ -1,0 +1,65 @@
+# Vercel preview deployment on PR.
+#
+# Opt-in template: this workflow is intentionally a no-op until the secrets
+# below are added to the repo and the `if: false` guard is removed.
+#
+# Setup:
+#   1. Create a Vercel project linked to this repo (or `vercel link` locally).
+#   2. Add the following secrets under Settings → Secrets and variables → Actions:
+#        VERCEL_TOKEN          (https://vercel.com/account/tokens)
+#        VERCEL_ORG_ID         (from .vercel/project.json after `vercel link`)
+#        VERCEL_PROJECT_ID     (same file)
+#   3. Remove the `if: false` line on the `deploy` job.
+#
+# Note: Vercel's GitHub integration already provides preview deployments out
+# of the box. This workflow is only useful if you want CI-driven previews
+# (e.g. to attach a deployment URL comment after passing checks).
+#
+# Security: secrets are passed via `env:` and referenced as shell variables in
+# `run:` steps to avoid command-injection footguns. See
+# https://github.blog/security/vulnerability-research/how-to-catch-github-actions-workflow-injections-before-attackers-do/
+
+name: Preview Deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  deploy:
+    if: false # remove once secrets are configured
+    name: Deploy preview to Vercel
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel@latest
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+
+      - name: Build project artifacts
+        run: vercel build --token="$VERCEL_TOKEN"
+
+      - name: Deploy preview
+        run: vercel deploy --prebuilt --token="$VERCEL_TOKEN"

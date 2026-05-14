@@ -67,6 +67,8 @@ import {
 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 4;
+/** Pixel distance past which a single-pointer interaction becomes a drag (instead of a tap). */
+const DRAG_THRESHOLD_PX = 4;
 const FOCUS_TRANSITION_MS = 300;
 
 /** Locale code for scenario messages. We accept either; default to it. */
@@ -239,11 +241,17 @@ export default function WorldMap() {
 
   const handleSvgPointerDown = useCallback(
     (e: ReactPointerEvent<SVGSVGElement>) => {
-      // Ignore taps that originate on a nation; nation handlers deal with it
-      // themselves and bubble click. We still record the pointer for pinch.
       const ptrs = pointersRef.current;
       ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      e.currentTarget.setPointerCapture(e.pointerId);
+
+      // Pinch needs immediate capture (two pointers = clearly a gesture, not
+      // a tap). For single-pointer interactions we DO NOT capture yet — that
+      // would swallow click events on inner nation buttons. The capture is
+      // promoted to the SVG element only once the pointer has moved past the
+      // click-vs-drag threshold (see handleSvgPointerMove).
+      if (ptrs.size >= 2) {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }
 
       // Reset any in-progress focus transition the moment the user grabs.
       if (transitionTimer.current !== null) {
@@ -311,14 +319,21 @@ export default function WorldMap() {
         return;
       }
 
-      // Pan (1 pointer drag)
+      // Pan (1 pointer drag) — but only after the pointer has moved enough
+      // that we're sure the user is dragging, not tapping a nation.
       if (ptrs.size === 1 && dragStateRef.current) {
-        const dx =
-          ((e.clientX - dragStateRef.current.startClient.x) / rect.width) *
-          dragStateRef.current.startVB.w;
-        const dy =
-          ((e.clientY - dragStateRef.current.startClient.y) / rect.height) *
-          dragStateRef.current.startVB.h;
+        const totalDx = e.clientX - dragStateRef.current.startClient.x;
+        const totalDy = e.clientY - dragStateRef.current.startClient.y;
+        if (Math.hypot(totalDx, totalDy) < DRAG_THRESHOLD_PX) return;
+
+        // Cross the threshold → take pointer capture so the rest of the drag
+        // doesn't get hijacked by underlying elements. Safe to call repeatedly.
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }
+
+        const dx = (totalDx / rect.width) * dragStateRef.current.startVB.w;
+        const dy = (totalDy / rect.height) * dragStateRef.current.startVB.h;
         const start = dragStateRef.current.startVB;
         setViewBox({
           x: clampViewBoxX(start.x - dx, start.w),

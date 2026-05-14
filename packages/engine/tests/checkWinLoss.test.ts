@@ -122,5 +122,97 @@ describe('evaluateVictory', () => {
   });
 });
 
+describe('checkWinLoss — capital occupation', () => {
+  it('does NOT count peaceful neighbours sharing a region as occupiers', () => {
+    // Default fixture countries are not at war and have no deployments.
+    let s = freshState();
+    for (let i = 0; i < 30; i++) s = checkWinLoss(s);
+    expect(s.winLoss).toBe('playing');
+  });
+
+  it('does NOT count enemy units as occupation while defenders outnumber them', () => {
+    // Put khanate at war with aurion, with a small deployment in aurion's region.
+    // Aurion's home garrison (1000) is much larger.
+    const base = freshState();
+    const aurion = base.countries.aurion!;
+    const khanate = base.countries.khanate!;
+    // Make sure both sit in the same region for the test.
+    const sharedRegion = aurion.regionId;
+    const s: GameState = {
+      ...base,
+      relations: {
+        ...base.relations,
+        'aurion::khanate': {
+          ...base.relations['aurion::khanate']!,
+          atWar: true,
+        },
+      },
+      countries: {
+        ...base.countries,
+        khanate: {
+          ...khanate,
+          military: {
+            ...khanate.military,
+            deployedUnits: [
+              {
+                id: 'd1',
+                regionId: sharedRegion,
+                units: 50,
+                hostCountryId: aurion.id,
+                issuedAtTick: 0,
+              },
+            ],
+          },
+        },
+      },
+    };
+    let next = s;
+    for (let i = 0; i < 30; i++) next = checkWinLoss(next);
+    expect(next.winLoss).toBe('playing');
+  });
+
+  it('triggers loss only when enemy units outnumber defenders for 26 weeks', () => {
+    const base = freshState();
+    const aurion = base.countries.aurion!;
+    const khanate = base.countries.khanate!;
+    const sharedRegion = aurion.regionId;
+    // Empty Aurion's home garrison so defenders=0, then deploy 100 enemy units.
+    let s: GameState = {
+      ...base,
+      relations: {
+        ...base.relations,
+        'aurion::khanate': {
+          ...base.relations['aurion::khanate']!,
+          atWar: true,
+        },
+      },
+      countries: {
+        ...base.countries,
+        aurion: {
+          ...aurion,
+          military: { ...aurion.military, armySize: 0 },
+        },
+        khanate: {
+          ...khanate,
+          military: {
+            ...khanate.military,
+            deployedUnits: [
+              {
+                id: 'd1',
+                regionId: sharedRegion,
+                units: 100,
+                hostCountryId: aurion.id,
+                issuedAtTick: 0,
+              },
+            ],
+          },
+        },
+      },
+    };
+    for (let i = 0; i < 26; i++) s = checkWinLoss(s);
+    expect(s.winLoss).toBe('lost');
+  });
+});
+
 // Reference sampleTechs to avoid unused import lint
 void sampleTechs;

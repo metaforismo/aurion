@@ -5,11 +5,31 @@
 import type { Metadata } from 'next';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
+import { JetBrains_Mono, Space_Grotesk } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { routing } from '../../i18n/routing';
 import '../globals.css';
+
+// Editorial geometric sans for the UI. Slightly wider apertures than Inter,
+// which gives the geopolitical-thriller HUD a little more presence without
+// veering into "display" territory.
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-space-grotesk',
+});
+
+// Crisp monospace for treasury, dates, percentages — anywhere a digit
+// scrubs in real time. Tabular by default in globals.css.
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  display: 'swap',
+  variable: '--font-jetbrains-mono',
+});
 
 export const metadata: Metadata = {
   title: 'Aurion',
@@ -38,8 +58,11 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className="h-full">
-      <body className="min-h-full bg-slate-950 text-slate-100 antialiased">
+    <html
+      lang={locale}
+      className={`${spaceGrotesk.variable} ${jetBrainsMono.variable} h-full`}
+    >
+      <body className="min-h-full bg-bg font-sans text-fg antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>

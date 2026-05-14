@@ -9,6 +9,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules/.cache .turbo",
     "format": "prettier --write ."
   },
   "devDependencies": {

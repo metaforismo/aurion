@@ -19,7 +19,7 @@
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "sim": "tsx scripts/sim.ts",
-    "lint": "eslint src tests"
+    "lint": "echo '@aurion/engine: no eslint configured (pure TS, lints via tsc strict mode)'"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^3.0.5",

@@ -59,7 +59,7 @@ describe('createGame', () => {
     ]);
     // Check seeded relations preserved.
     expect(state.relations['aurion::borealis']?.attitude).toBe(30);
-    expect(state.relations['aurion::khanate']?.attitude).toBe(-20);
+    expect(state.relations['aurion::khanate']?.attitude).toBe(-40);
     // The unseeded pair defaulted to 0.
     expect(state.relations['borealis::khanate']?.attitude).toBe(0);
   });

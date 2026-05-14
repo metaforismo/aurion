@@ -150,7 +150,12 @@ export async function listSaves(): Promise<SaveSummary[]> {
     .saves.orderBy('savedAt')
     .reverse()
     .toArray();
-  return rows.map(({ state: _state, ...rest }) => rest);
+  // Strip the inflated GameState from each row before returning summaries.
+  return rows.map((row) => {
+    const { state: _state, ...rest } = row;
+    void _state;
+    return rest;
+  });
 }
 
 /** Load a single save (including its full GameState) by id. */

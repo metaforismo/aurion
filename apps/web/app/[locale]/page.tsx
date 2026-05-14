@@ -28,6 +28,10 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!isPersistenceAvailable()) {
+      // SSR/test environment: declare "no saves" up front rather than
+      // leaving the placeholder dangling. The cascading-render warning here
+      // is a false positive — this is a one-shot effect with no inputs.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSaves([]);
       return;
     }

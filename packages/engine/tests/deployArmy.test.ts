@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../src/createGame.js';
-import { applyDeployArmy } from '../src/actions/deployArmy.js';
+import { applyDeployArmy, isDeployAllowed } from '../src/actions/deployArmy.js';
+import { applyDiplomacy } from '../src/actions/diplomacy.js';
 import { makeScenario } from './fixtures.js';
 
 const scenario = makeScenario();
@@ -43,5 +44,58 @@ describe('applyDeployArmy', () => {
       'aurion',
     );
     expect(result.errors).toContain('errors.deploy.invalidUnits');
+  });
+
+  it('rejects deploying into a peaceful neighbour\'s region (no access)', () => {
+    // borealis is peaceful, no alliance, no war.
+    const result = applyDeployArmy(
+      baseState,
+      { type: 'deployArmy', target: 'region_borealis', units: 100 },
+      'aurion',
+    );
+    expect(result.errors).toContain('errors.deploy.foreignRegionNoAccess');
+  });
+
+  it('allows deploying into an enemy region during war', () => {
+    // khanate has attitude -40 in fixture; declare war first.
+    const warred = applyDiplomacy(
+      baseState,
+      { type: 'diplomacy', target: 'khanate', kind: 'declareWar' },
+      'aurion',
+    );
+    const result = applyDeployArmy(
+      warred.state,
+      { type: 'deployArmy', target: 'region_khanate', units: 100 },
+      'aurion',
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.state.countries.aurion!.military.deployedUnits).toHaveLength(1);
+  });
+
+  it('allows deploying into an allied region', () => {
+    const allied = applyDiplomacy(
+      baseState,
+      { type: 'diplomacy', target: 'borealis', kind: 'proposeAlliance' },
+      'aurion',
+    );
+    const result = applyDeployArmy(
+      allied.state,
+      { type: 'deployArmy', target: 'region_borealis', units: 100 },
+      'aurion',
+    );
+    expect(result.errors).toEqual([]);
+  });
+
+  it('isDeployAllowed: own region always allowed', () => {
+    expect(isDeployAllowed(baseState, 'aurion', 'region_aurion').ok).toBe(true);
+  });
+
+  it('isDeployAllowed: foreign peaceful region rejected', () => {
+    const r = isDeployAllowed(baseState, 'aurion', 'region_borealis');
+    expect(r.ok).toBe(false);
+  });
+
+  it('isDeployAllowed: unowned region allowed', () => {
+    expect(isDeployAllowed(baseState, 'aurion', 'no-mans-land').ok).toBe(true);
   });
 });

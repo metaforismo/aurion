@@ -1,46 +1,278 @@
 @import "tailwindcss";
 
-/*
- * Aurion base theme. Final visual polish lives in Wave 2 — this just gives the
- * skeleton a coherent dark palette so placeholders are readable.
- */
+/* ===========================================================================
+ * Aurion design tokens
+ * ---------------------------------------------------------------------------
+ * Geopolitical-thriller dark theme. All colours are expressed in OKLCH so
+ * they shift perceptually evenly when tinted or interpolated. Components do
+ * NOT need to be restyled in this pass — Tailwind utilities pick up the
+ * `@theme` block below, so any future component using `bg-surface-1`,
+ * `text-fg`, `text-accent`, etc. just works.
+ *
+ * Token taxonomy:
+ *   - `--color-bg`             page background (deepest base)
+ *   - `--color-surface`        first elevation (cards, sidebars)
+ *   - `--color-surface-1`      second elevation (popovers, sticky HUD)
+ *   - `--color-surface-2`      third elevation (modals, tooltips)
+ *   - `--color-border`         hairline divider on surfaces
+ *   - `--color-border-strong`  active / focused border
+ *   - `--color-fg`             primary text
+ *   - `--color-fg-muted`       secondary text (~70% perceived contrast)
+ *   - `--color-fg-faint`       tertiary text / hints / disabled
+ *   - `--color-accent`         brand accent (player nation, primary CTA)
+ *   - `--color-accent-strong`  accent hover / pressed / active speed
+ *   - `--color-success`        positive deltas (income, treaty, win)
+ *   - `--color-danger`         losses (sanctions, casualties, defeat)
+ *   - `--color-warning`        attention (overheating, low popularity)
+ *   - `--color-info`           neutral informational accents
+ *   - `--color-region-*`       five hand-tuned region accents that
+ *                              harmonise with the base palette
+ * =========================================================================== */
 
 :root {
-  --aurion-bg: #020617;          /* slate-950 */
-  --aurion-surface: #0f172a;     /* slate-900 */
-  --aurion-surface-elev: #1e293b;/* slate-800 */
-  --aurion-text: #f1f5f9;        /* slate-100 */
-  --aurion-text-muted: #94a3b8;  /* slate-400 */
-  --aurion-accent: #6366f1;      /* indigo-500 */
-  --aurion-success: #10b981;     /* emerald-500 */
-  --aurion-warning: #f59e0b;     /* amber-500 */
-  --aurion-danger: #f43f5e;      /* rose-500 */
+  /* --- Surface ladder -------------------------------------------------- */
+  --color-bg:            oklch(0.13 0.02 260);
+  --color-surface:       oklch(0.17 0.025 260);
+  --color-surface-1:     oklch(0.21 0.028 260);
+  --color-surface-2:     oklch(0.26 0.03  258);
+  --color-border:        oklch(0.30 0.02  255);
+  --color-border-strong: oklch(0.42 0.025 255);
+
+  /* --- Foreground ladder ----------------------------------------------- */
+  /* Slight warm tint (h ~ 80) so white-text feels "lit" rather than clinical. */
+  --color-fg:        oklch(0.97 0.012 85);
+  --color-fg-muted:  oklch(0.78 0.013 85);
+  --color-fg-faint:  oklch(0.58 0.012 85);
+
+  /* --- Brand accent (warm amber-gold) --------------------------------- */
+  --color-accent:        oklch(0.78 0.15 75);
+  --color-accent-strong: oklch(0.83 0.165 72);
+  --color-accent-soft:   oklch(0.78 0.15 75 / 0.16);
+
+  /* --- Semantic deltas ------------------------------------------------- */
+  --color-success: oklch(0.74 0.13 165);  /* cool emerald */
+  --color-danger:  oklch(0.66 0.13 18);   /* muted geopolitical rose */
+  --color-warning: oklch(0.79 0.14 60);   /* amber, distinct from accent */
+  --color-info:    oklch(0.74 0.10 235);  /* steel blue */
+
+  /* --- Region accents (harmonised with surface palette) --------------- */
+  --color-region-borealis: oklch(0.66 0.06 245);  /* cool grey-blue   */
+  --color-region-auriana:  oklch(0.72 0.07 145);  /* sage             */
+  --color-region-oriana:   oklch(0.70 0.10 195);  /* teal             */
+  --color-region-meridia:  oklch(0.74 0.11 70);   /* ochre            */
+  --color-region-sahel:    oklch(0.78 0.08 85);   /* sand             */
+
+  /* --- Motion scale ---------------------------------------------------- */
+  --motion-fast:   120ms;
+  --motion-normal: 240ms;
+  --motion-slow:   480ms;
+  --motion-cinematic: 800ms;
+  --ease-game: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- Radius scale ---------------------------------------------------- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+
+  /* --- Elevation (shadows tinted toward background) ------------------- */
+  --shadow-xs: 0 1px 2px 0 oklch(0.05 0.02 260 / 0.5);
+  --shadow-sm: 0 2px 6px -1px oklch(0.05 0.02 260 / 0.55),
+               0 1px 2px -1px oklch(0.05 0.02 260 / 0.4);
+  --shadow-md: 0 8px 24px -6px oklch(0.05 0.02 260 / 0.6),
+               0 2px 4px -2px oklch(0.05 0.02 260 / 0.45);
+  --shadow-lg: 0 18px 48px -12px oklch(0.04 0.02 260 / 0.7),
+               0 4px 8px -4px oklch(0.05 0.02 260 / 0.5);
+  --shadow-glow-accent: 0 0 0 1px oklch(0.78 0.15 75 / 0.55),
+                        0 0 24px -4px oklch(0.78 0.15 75 / 0.45);
+
+  /* --- Type scale ------------------------------------------------------ */
+  --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, -apple-system,
+               "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "JetBrains Mono",
+               "SF Mono", Consolas, "Liberation Mono", monospace;
 }
+
+/* ===========================================================================
+ * Tailwind 4 theme bridge
+ * ---------------------------------------------------------------------------
+ * Maps our semantic tokens to Tailwind 4 utility classes. With `@theme inline`,
+ * Tailwind reads the CSS variable lazily, so dark-mode overrides at :root would
+ * propagate. (We're dark-only for now.)
+ *
+ * Once this is in place, components can use:
+ *   `bg-bg`, `bg-surface`, `bg-surface-1`, `bg-surface-2`,
+ *   `text-fg`, `text-fg-muted`, `text-fg-faint`,
+ *   `text-accent`, `bg-accent`, `border-accent`,
+ *   `text-success`, `text-danger`, `text-warning`, `text-info`,
+ *   `bg-region-borealis` (etc.), `font-sans`, `font-mono`,
+ *   `rounded-md` (driven by --radius-md), `shadow-md`, etc.
+ * =========================================================================== */
 
 @theme inline {
-  --color-background: var(--aurion-bg);
-  --color-foreground: var(--aurion-text);
+  --color-bg:              var(--color-bg);
+  --color-background:      var(--color-bg);
+  --color-surface:         var(--color-surface);
+  --color-surface-1:       var(--color-surface-1);
+  --color-surface-2:       var(--color-surface-2);
+  --color-border:          var(--color-border);
+  --color-border-strong:   var(--color-border-strong);
+
+  --color-fg:              var(--color-fg);
+  --color-foreground:      var(--color-fg);
+  --color-fg-muted:        var(--color-fg-muted);
+  --color-fg-faint:        var(--color-fg-faint);
+
+  --color-accent:          var(--color-accent);
+  --color-accent-strong:   var(--color-accent-strong);
+  --color-accent-soft:     var(--color-accent-soft);
+
+  --color-success:         var(--color-success);
+  --color-danger:          var(--color-danger);
+  --color-warning:         var(--color-warning);
+  --color-info:            var(--color-info);
+
+  --color-region-borealis: var(--color-region-borealis);
+  --color-region-auriana:  var(--color-region-auriana);
+  --color-region-oriana:   var(--color-region-oriana);
+  --color-region-meridia:  var(--color-region-meridia);
+  --color-region-sahel:    var(--color-region-sahel);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --radius-xs:  var(--radius-xs);
+  --radius-sm:  var(--radius-sm);
+  --radius-md:  var(--radius-md);
+  --radius-lg:  var(--radius-lg);
+  --radius-xl:  var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
 }
 
-html,
+/* ===========================================================================
+ * Base layer
+ * =========================================================================== */
+
+html {
+  scroll-behavior: smooth;
+  /* Slim, themed scrollbar (Firefox). */
+  scrollbar-color: var(--color-border-strong) transparent;
+  scrollbar-width: thin;
+  /* Subtle radial spotlight, hand-tinted toward the accent so the scene
+   * feels lit from the upper-right rather than uniformly flat. Keep it
+   * faint — it must NEVER fight content. */
+  background-color: var(--color-bg);
+}
+
 body {
-  background: var(--aurion-bg);
-  color: var(--aurion-text);
-  font-family:
-    "Geist",
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Avoid double-scrollbar / invisible focus ring on dark surfaces. */
-*:focus-visible {
-  outline: 2px solid var(--aurion-accent);
+/* Mono utilities pick this up (e.g. tabular numerics in HUD badges). */
+code, kbd, samp, pre,
+.font-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* WebKit / Blink scrollbar (slim, themed, only visible on hover of the
+ * scrollable container). */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-border-strong);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Text selection — a dimmed accent so the highlight feels intentional but
+ * never overwhelming on long passages. */
+::selection {
+  background-color: oklch(0.78 0.15 75 / 0.32);
+  color: var(--color-fg);
+}
+
+/* Consistent focus ring across every focusable element. */
+:where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
+}
+
+/* Honour reduced motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===========================================================================
+ * Custom utilities
+ * ---------------------------------------------------------------------------
+ * Use sparingly. Each utility encapsulates a recurring pattern that would
+ * otherwise spawn a long Tailwind class soup.
+ * =========================================================================== */
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility text-pretty {
+  text-wrap: pretty;
+}
+
+/* Frosted-glass surface used for the HUD bar, tooltips, modals.
+ * Sits on top of the base background and blurs whatever's behind it. */
+@utility glass-surface {
+  background-color: oklch(0.17 0.025 260 / 0.72);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid var(--color-border);
+}
+
+/* Subtle inner glow — useful around the player nation halo or active CTA. */
+@utility ring-accent-soft {
+  box-shadow: 0 0 0 1px var(--color-accent-soft),
+              0 0 18px -4px var(--color-accent-soft);
+}
+
+/* Tabular numerics — every HUD readout that scrubs with time should opt in
+ * so digits don't dance. Named with the `numeric-` prefix so it doesn't
+ * collide with Tailwind's `tabular-*` family. */
+@utility numeric-tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }

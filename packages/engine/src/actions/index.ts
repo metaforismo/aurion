@@ -13,7 +13,7 @@ import type {
   TechDefinition,
 } from '../types.js';
 
-import { applyDeployArmy } from './deployArmy.js';
+import { applyDeployArmy, isDeployAllowed } from './deployArmy.js';
 import { applyDeploySpy, computeSpyProbabilities } from './deploySpy.js';
 import { applyDiplomacy, isDiplomacyAllowed } from './diplomacy.js';
 import { applyInvest } from './invest.js';
@@ -31,6 +31,7 @@ export {
   applySetTaxRate,
   applyStartResearch,
   computeSpyProbabilities,
+  isDeployAllowed,
   isDiplomacyAllowed,
 };
 
@@ -199,12 +200,21 @@ export function getAvailableActions(
     }
   }
 
-  // Army deploy: into own region or any region we already have a deployment in.
+  // Army deploy: into own region or any region we have legal access to (war or alliance
+  // with the territorial host). This keeps the AI from offering itself the option to
+  // walk into a peaceful neighbour's region — that would now be rejected anyway.
   if (country.military.armySize > 0) {
     const ownRegion = country.regionId;
     const candidates = new Set<string>([ownRegion]);
     for (const d of country.military.deployedUnits) candidates.add(d.regionId);
+    // Also offer deployments into enemies' regions (so the AI can actually project
+    // force after declaring war), without allowing peaceful trespass.
+    for (const other of Object.values(state.countries)) {
+      if (other.id === countryId) continue;
+      candidates.add(other.regionId);
+    }
     for (const r of candidates) {
+      if (!isDeployAllowed(state, countryId, r).ok) continue;
       const units = Math.max(1, Math.floor(country.military.armySize / 2));
       actions.push({ type: 'deployArmy', target: r, units });
     }

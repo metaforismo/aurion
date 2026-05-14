@@ -13,6 +13,14 @@ import { clamp, ensureRelation, withRelation } from './helpers.js';
 
 export type DiplomacyAction = Extract<Action, { type: 'diplomacy' }>;
 
+/**
+ * Maximum attitude (-100..+100) at which a country may still declare war.
+ * Above this, the relationship is too friendly to justify a casus belli unless
+ * sanctions are already in place. Tuned so the AI doesn't open random wars on
+ * neighbours with neutral / positive attitude.
+ */
+export const DECLARE_WAR_ATTITUDE_THRESHOLD = -25;
+
 function withTreaty(treaties: TreatyKind[], add: TreatyKind): TreatyKind[] {
   return treaties.includes(add) ? treaties : [...treaties, add];
 }
@@ -51,6 +59,13 @@ export function isDiplomacyAllowed(
       return { ok: true };
     case 'declareWar':
       if (relation.atWar) return { ok: false, reason: 'errors.diplomacy.alreadyAtWar' };
+      if (relation.treaties.includes('alliance'))
+        return { ok: false, reason: 'errors.diplomacy.alliedCannotWar' };
+      if (relation.treaties.includes('nonAggression'))
+        return { ok: false, reason: 'errors.diplomacy.nonAggressionPact' };
+      // Require a casus belli: attitudes must be at least cool, OR sanctions in place.
+      if (relation.attitude > DECLARE_WAR_ATTITUDE_THRESHOLD && !relation.treaties.includes('sanctions'))
+        return { ok: false, reason: 'errors.diplomacy.attitudeTooHighForWar' };
       return { ok: true };
     case 'sueForPeace':
       if (!relation.atWar) return { ok: false, reason: 'errors.diplomacy.notAtWar' };
@@ -122,8 +137,11 @@ export function applyDiplomacy(
         ...relation,
         atWar: true,
         treaties: withoutTreaty(
-          withoutTreaty(relation.treaties, 'alliance'),
-          'tradeDeal',
+          withoutTreaty(
+            withoutTreaty(relation.treaties, 'alliance'),
+            'tradeDeal',
+          ),
+          'nonAggression',
         ),
         attitude: clamp(relation.attitude - 50, -100, 100),
       };

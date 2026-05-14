@@ -199,9 +199,9 @@
       "isPlayer": false,
       "aiPersonality": {
         "archetype": "regional_bully",
-        "aggressiveness": 0.7,
-        "expansionism": 0.55,
-        "paranoia": 0.45,
+        "aggressiveness": 0.55,
+        "expansionism": 0.45,
+        "paranoia": 0.4,
         "pragmatism": 0.5
       },
       "initialCompletedTechs": []
@@ -1694,7 +1694,10 @@
     {
       "countryA": "aurion",
       "countryB": "korthia",
-      "attitude": -30
+      "attitude": -30,
+      "treaties": [
+        "nonAggression"
+      ]
     },
     {
       "countryA": "aurion",

@@ -145,6 +145,9 @@ function runOne(scenario: Scenario, seed: string): Result {
   const victoryRule = scenario.victoryConditions[0]?.rule;
 
   // Force-attach an AI personality to the "player" so all countries are AI-driven.
+  // Default archetype matches the scenario fantasy ("small nation rising peacefully"):
+  // a pacifist_trader baseline keeps the sim from immediately auto-declaring war on
+  // every neighbour, so we measure scenario balance rather than self-induced collapse.
   s = {
     ...s,
     countries: {
@@ -152,11 +155,11 @@ function runOne(scenario: Scenario, seed: string): Result {
       [playerId]: {
         ...s.countries[playerId]!,
         aiPersonality: s.countries[playerId]!.aiPersonality ?? {
-          archetype: 'opportunist',
-          aggressiveness: 0.5,
-          expansionism: 0.5,
-          paranoia: 0.5,
-          pragmatism: 0.5,
+          archetype: 'pacifist_trader',
+          aggressiveness: 0.2,
+          expansionism: 0.2,
+          paranoia: 0.4,
+          pragmatism: 0.7,
         },
       },
     },

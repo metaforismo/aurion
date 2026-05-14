@@ -71,22 +71,38 @@ export function checkWinLoss(state: GameState, victoryRule?: VictoryRule): GameS
   return { ...withStreaksState, winLoss };
 }
 
+/**
+ * The player capital region is "occupied" only if a hostile power has visibly
+ * landed forces there AND the player can no longer defend it — i.e. the
+ * enemy out-deployed garrison strength in the region. Two countries sharing
+ * a region in peacetime (or during a war where the player still has a strong
+ * local garrison) do NOT count as occupation. This keeps the loss condition
+ * meaningful (you need to actually lose the city) instead of triggering on
+ * the first hostile unit movement.
+ */
 function isCapitalOccupiedByEnemy(state: GameState, player: Country): boolean {
   const region = player.regionId;
+  // Sum hostile deployments in the region.
+  let hostileUnits = 0;
   for (const other of Object.values(state.countries)) {
     if (other.id === player.id) continue;
-    // Only enemies (at war) count as "occupying" — neighbours can have units
-    // in shared regions in peacetime without it being a capital occupation.
     const key = other.id < player.id
       ? `${other.id}::${player.id}`
       : `${player.id}::${other.id}`;
     const rel = state.relations[key as keyof typeof state.relations];
     if (!rel?.atWar) continue;
     for (const dep of other.military.deployedUnits) {
-      if (dep.regionId === region && dep.units > 0) return true;
+      if (dep.regionId === region) hostileUnits += dep.units;
     }
   }
-  return false;
+  if (hostileUnits <= 0) return false;
+  // Sum player's defenders: home garrison (armySize) + any deployments in own region.
+  let defenders = player.military.armySize;
+  for (const dep of player.military.deployedUnits) {
+    if (dep.regionId === region) defenders += dep.units;
+  }
+  // Capital is considered overrun only if hostile units outnumber the defense.
+  return hostileUnits > defenders;
 }
 
 export function evaluateVictory(state: GameState, rule: VictoryRule): boolean {

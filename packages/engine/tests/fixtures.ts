@@ -177,7 +177,8 @@ export function makeScenario(): Scenario {
     ],
     relations: [
       { countryA: 'aurion', countryB: 'borealis', attitude: 30 },
-      { countryA: 'aurion', countryB: 'khanate', attitude: -20 },
+      // attitude < DECLARE_WAR_ATTITUDE_THRESHOLD so war tests still work.
+      { countryA: 'aurion', countryB: 'khanate', attitude: -40 },
     ],
     techTree: sampleTechs,
     eventPool: sampleEvents,

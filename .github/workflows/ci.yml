@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Avoid burning Actions minutes on stale pushes to the same branch.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: typecheck / lint / test / build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test (engine)
+        run: pnpm --filter @aurion/engine test
+
+      - name: Build (web)
+        run: pnpm --filter @aurion/web build
+
+      # Playwright E2E intentionally omitted from CI (TODO):
+      #   - requires `pnpm exec playwright install` (downloads ~300MB of browsers)
+      #   - requires booting the Next.js dev server in CI
+      #   - first-pass flakiness while the suite is being set up isn't worth blocking PRs
+      # Run locally with: `pnpm --filter @aurion/web test:e2e`
+      # Re-enable here once the suite is stable across 5+ consecutive runs.

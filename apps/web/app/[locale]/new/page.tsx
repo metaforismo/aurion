@@ -42,6 +42,10 @@ export default function NewGamePage() {
   useEffect(() => {
     if (!scenarioId) return;
     let cancelled = false;
+    // Reset error state before kicking off the async load. Safe in this effect
+    // because the only writers are `then`/`catch` below and they all guard on
+    // `cancelled`.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setScenarioError(null);
     loadScenario(scenarioId)
       .then((s) => {
