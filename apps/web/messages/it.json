@@ -1,0 +1,146 @@
+{
+  "app": {
+    "name": "Aurion",
+    "tagline": "Strategia geopolitica in tempo reale"
+  },
+  "common": {
+    "back": "Indietro",
+    "next": "Avanti",
+    "cancel": "Annulla",
+    "confirm": "Conferma",
+    "close": "Chiudi",
+    "save": "Salva",
+    "load": "Carica",
+    "delete": "Elimina",
+    "export": "Esporta",
+    "import": "Importa",
+    "loading": "Caricamento…",
+    "yes": "Sì",
+    "no": "No"
+  },
+  "home": {
+    "title": "Aurion",
+    "subtitle": "Guida una piccola nazione fino al vertice mondiale",
+    "newGame": "Nuova partita",
+    "continue": "Continua",
+    "noSaves": "Nessuna partita salvata",
+    "settings": "Impostazioni",
+    "languageSwitch": "Cambia lingua",
+    "saveSavedAt": "Salvato il {date}",
+    "import": "Importa partita"
+  },
+  "setup": {
+    "title": "Nuova partita",
+    "stepOf": "Passo {current} di {total}",
+    "stepScenario": {
+      "title": "Scegli uno scenario",
+      "description": "Lo scenario definisce mondo, nazioni e tech tree."
+    },
+    "stepCountry": {
+      "title": "Scegli il tuo paese",
+      "description": "Inizierai come capo di stato di questa nazione."
+    },
+    "stepVictory": {
+      "title": "Scegli la condizione di vittoria",
+      "description": "Determina il tuo obiettivo a lungo termine."
+    },
+    "start": "Inizia partita",
+    "preparing": "Preparazione partita…"
+  },
+  "hud": {
+    "date": "Settimana {tick}",
+    "treasury": "Tesoreria",
+    "popularity": "Popolarità",
+    "speed": {
+      "label": "Velocità",
+      "paused": "In pausa",
+      "x1": "1×",
+      "x2": "2×",
+      "x4": "4×"
+    },
+    "menu": "Menu",
+    "save": "Salva partita",
+    "export": "Esporta",
+    "import": "Importa",
+    "exit": "Torna alla home",
+    "autoPaused": "Pausa automatica",
+    "winLoss": {
+      "playing": "In corso",
+      "won": "Vittoria",
+      "lost": "Sconfitta"
+    }
+  },
+  "panels": {
+    "economy": "Economia",
+    "research": "Ricerca",
+    "military": "Militare",
+    "spies": "Intelligence",
+    "diplomacy": "Diplomazia",
+    "politics": "Politica interna"
+  },
+  "victory": {
+    "economic": {
+      "name": "Vittoria economica",
+      "description": "Diventa la prima economia mondiale per PIL."
+    },
+    "military": {
+      "name": "Vittoria militare",
+      "description": "Sconfiggi o subordina ogni avversario credibile."
+    },
+    "scientific": {
+      "name": "Vittoria scientifica",
+      "description": "Completa il programma spaziale e supera tutti tecnologicamente."
+    },
+    "diplomatic": {
+      "name": "Vittoria diplomatica",
+      "description": "Costruisci una rete di alleanze che copra il mondo."
+    },
+    "domination": {
+      "name": "Dominio totale",
+      "description": "Conquista o vassallizza tutte le nazioni."
+    }
+  },
+  "difficulty": {
+    "normal": {
+      "name": "Normale"
+    }
+  },
+  "victoryScreen": {
+    "wonTitle": "Hai vinto!",
+    "lostTitle": "Hai perso",
+    "summary": "Riepilogo della partita",
+    "ticksPlayed": "Settimane giocate: {tick}",
+    "backHome": "Torna alla home"
+  },
+  "errors": {
+    "engineNotReady": "L'engine di gioco non è ancora disponibile.",
+    "noActiveGame": "Nessuna partita attiva.",
+    "saveNotFound": "Salvataggio non trovato.",
+    "loadFailed": "Impossibile caricare il salvataggio.",
+    "newGameFailed": "Impossibile avviare una nuova partita.",
+    "importFailed": "Importazione del salvataggio non riuscita.",
+    "quotaExceeded": "Spazio di archiviazione esaurito. Esporta una partita o liberane spazio.",
+    "insufficientTreasury": "Tesoreria insufficiente.",
+    "prereqsNotMet": "Prerequisiti non soddisfatti.",
+    "alreadyAtWar": "Sei già in guerra con questa nazione.",
+    "notAtWar": "Non sei in guerra con questa nazione.",
+    "invalidTarget": "Obiettivo non valido.",
+    "invalidAmount": "Quantità non valida.",
+    "researchInProgress": "Una ricerca è già in corso.",
+    "techAlreadyCompleted": "Tecnologia già completata.",
+    "scenarioNotFound": "Scenario non disponibile.",
+    "playerCountryUnselected": "Seleziona prima un paese giocabile.",
+    "victoryNotSelected": "Seleziona una condizione di vittoria.",
+    "unknown": "Errore inatteso."
+  },
+  "play": {
+    "placeholderMap": "MAPPA — sarà implementata nella Wave 2",
+    "placeholderPanels": "PANNELLI — saranno implementati nella Wave 2",
+    "placeholderNotifications": "NOTIFICHE — saranno implementate nella Wave 2",
+    "ticksThisSession": "Tick in questa sessione: {n}",
+    "saveOk": "Partita salvata.",
+    "exportOk": "Esportazione completata.",
+    "importOk": "Salvataggio importato.",
+    "loadingState": "Caricamento partita…"
+  }
+}

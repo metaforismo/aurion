@@ -1,26 +1,46 @@
 @import "tailwindcss";
 
+/*
+ * Aurion base theme. Final visual polish lives in Wave 2 — this just gives the
+ * skeleton a coherent dark palette so placeholders are readable.
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --aurion-bg: #020617;          /* slate-950 */
+  --aurion-surface: #0f172a;     /* slate-900 */
+  --aurion-surface-elev: #1e293b;/* slate-800 */
+  --aurion-text: #f1f5f9;        /* slate-100 */
+  --aurion-text-muted: #94a3b8;  /* slate-400 */
+  --aurion-accent: #6366f1;      /* indigo-500 */
+  --aurion-success: #10b981;     /* emerald-500 */
+  --aurion-warning: #f59e0b;     /* amber-500 */
+  --aurion-danger: #f43f5e;      /* rose-500 */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--aurion-bg);
+  --color-foreground: var(--aurion-text);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--aurion-bg);
+  color: var(--aurion-text);
+  font-family:
+    "Geist",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+/* Avoid double-scrollbar / invisible focus ring on dark surfaces. */
+*:focus-visible {
+  outline: 2px solid var(--aurion-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }

@@ -1,0 +1,146 @@
+{
+  "app": {
+    "name": "Aurion",
+    "tagline": "Real-time geopolitical strategy"
+  },
+  "common": {
+    "back": "Back",
+    "next": "Next",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "save": "Save",
+    "load": "Load",
+    "delete": "Delete",
+    "export": "Export",
+    "import": "Import",
+    "loading": "Loading…",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "home": {
+    "title": "Aurion",
+    "subtitle": "Lead a small nation to global supremacy",
+    "newGame": "New game",
+    "continue": "Continue",
+    "noSaves": "No saved games",
+    "settings": "Settings",
+    "languageSwitch": "Switch language",
+    "saveSavedAt": "Saved {date}",
+    "import": "Import save"
+  },
+  "setup": {
+    "title": "New game",
+    "stepOf": "Step {current} of {total}",
+    "stepScenario": {
+      "title": "Choose a scenario",
+      "description": "The scenario defines the world, nations and tech tree."
+    },
+    "stepCountry": {
+      "title": "Choose your country",
+      "description": "You will start as the head of state of this nation."
+    },
+    "stepVictory": {
+      "title": "Choose a victory condition",
+      "description": "Sets your long-term objective."
+    },
+    "start": "Start game",
+    "preparing": "Preparing game…"
+  },
+  "hud": {
+    "date": "Week {tick}",
+    "treasury": "Treasury",
+    "popularity": "Popularity",
+    "speed": {
+      "label": "Speed",
+      "paused": "Paused",
+      "x1": "1×",
+      "x2": "2×",
+      "x4": "4×"
+    },
+    "menu": "Menu",
+    "save": "Save game",
+    "export": "Export",
+    "import": "Import",
+    "exit": "Back to home",
+    "autoPaused": "Auto-paused",
+    "winLoss": {
+      "playing": "Playing",
+      "won": "Victory",
+      "lost": "Defeat"
+    }
+  },
+  "panels": {
+    "economy": "Economy",
+    "research": "Research",
+    "military": "Military",
+    "spies": "Intelligence",
+    "diplomacy": "Diplomacy",
+    "politics": "Politics"
+  },
+  "victory": {
+    "economic": {
+      "name": "Economic victory",
+      "description": "Become the world's largest economy by GDP."
+    },
+    "military": {
+      "name": "Military victory",
+      "description": "Defeat or subjugate every credible rival."
+    },
+    "scientific": {
+      "name": "Scientific victory",
+      "description": "Complete the space programme and out-tech the world."
+    },
+    "diplomatic": {
+      "name": "Diplomatic victory",
+      "description": "Build an alliance network spanning the globe."
+    },
+    "domination": {
+      "name": "Total domination",
+      "description": "Conquer or vassalise every nation."
+    }
+  },
+  "difficulty": {
+    "normal": {
+      "name": "Normal"
+    }
+  },
+  "victoryScreen": {
+    "wonTitle": "You won!",
+    "lostTitle": "You lost",
+    "summary": "Game summary",
+    "ticksPlayed": "Weeks played: {tick}",
+    "backHome": "Back to home"
+  },
+  "errors": {
+    "engineNotReady": "The game engine is not yet available.",
+    "noActiveGame": "No active game.",
+    "saveNotFound": "Save not found.",
+    "loadFailed": "Failed to load the save.",
+    "newGameFailed": "Failed to start a new game.",
+    "importFailed": "Failed to import the save.",
+    "quotaExceeded": "Storage quota exceeded. Export a game or free up space.",
+    "insufficientTreasury": "Insufficient treasury.",
+    "prereqsNotMet": "Prerequisites not met.",
+    "alreadyAtWar": "You are already at war with this nation.",
+    "notAtWar": "You are not at war with this nation.",
+    "invalidTarget": "Invalid target.",
+    "invalidAmount": "Invalid amount.",
+    "researchInProgress": "A research is already in progress.",
+    "techAlreadyCompleted": "Technology already completed.",
+    "scenarioNotFound": "Scenario not available.",
+    "playerCountryUnselected": "Pick a playable country first.",
+    "victoryNotSelected": "Pick a victory condition.",
+    "unknown": "Unexpected error."
+  },
+  "play": {
+    "placeholderMap": "MAP — to be implemented in Wave 2",
+    "placeholderPanels": "PANELS — to be implemented in Wave 2",
+    "placeholderNotifications": "NOTIFICATIONS — to be implemented in Wave 2",
+    "ticksThisSession": "Ticks this session: {n}",
+    "saveOk": "Game saved.",
+    "exportOk": "Export complete.",
+    "importOk": "Save imported.",
+    "loadingState": "Loading game…"
+  }
+}
