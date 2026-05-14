@@ -9,10 +9,12 @@ import type {
   WinLossState,
 } from './types.js';
 
+// Weeks each loss condition must persist before the game ends.
+// Tuned so the player has time to notice the trouble and react.
 export const LOSS_LOW_POPULARITY_WEEKS = 12;
 export const LOSS_NEGATIVE_TREASURY_WEEKS = 26;
-export const LOSS_CAPITAL_OCCUPIED_WEEKS = 4;
-export const LOSS_ALL_FACTIONS_ANGRY_WEEKS = 6;
+export const LOSS_CAPITAL_OCCUPIED_WEEKS = 26;
+export const LOSS_ALL_FACTIONS_ANGRY_WEEKS = 12;
 
 const ALL_FACTIONS_ANGRY_THRESHOLD = 20;
 const LOW_POP_THRESHOLD = 10;
