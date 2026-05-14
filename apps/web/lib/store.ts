@@ -10,6 +10,10 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   Action,
   CountryId,
+  Country,
+  EventDefinition,
+  EventEffect,
+  GameEvent,
   GameState,
   SaveId,
   Scenario,
@@ -37,6 +41,50 @@ import { loadScenario, type ScenarioId } from './scenarios';
 
 export type Speed = 0 | 1 | 2 | 4;
 
+/** The 6 game-system panels the player can switch between in the left rail. */
+export type PanelId =
+  | 'economy'
+  | 'research'
+  | 'military'
+  | 'spies'
+  | 'diplomacy'
+  | 'politics';
+
+export const PANEL_IDS: readonly PanelId[] = [
+  'economy',
+  'research',
+  'military',
+  'spies',
+  'diplomacy',
+  'politics',
+] as const;
+
+/** Reasons a player can lose. Mirrors the streak counters in `_loseStreaks`. */
+export type LossReason =
+  | 'popularity'
+  | 'bankruptcy'
+  | 'occupation'
+  | 'factionRevolt';
+
+/**
+ * A pending confirmation prompt. The UI renders a generic confirm modal when
+ * this is set; calling the resolver clears it.
+ */
+export type ConfirmRequest = {
+  /** i18n key for the modal title (e.g. "modals.confirm.title"). */
+  titleKey: string;
+  /** i18n key for the body description. */
+  descriptionKey: string;
+  /** i18n key for the confirm button label. Defaults to "common.confirm". */
+  confirmKey?: string;
+  /** i18n key for the cancel button label. Defaults to "common.cancel". */
+  cancelKey?: string;
+  /** Called when the player presses the confirm button. */
+  onConfirm: () => void | Promise<void>;
+  /** Visual style hint for the confirm button. */
+  tone?: 'primary' | 'danger';
+};
+
 export type StartNewGameParams = {
   scenarioId: ScenarioId;
   playerCountryId: CountryId;
@@ -62,6 +110,12 @@ export type GameStoreState = {
   lastErrors: string[];
   /** Toggled by `loadGame` / `startNewGame` while async work is in flight. */
   isLoading: boolean;
+  /** Currently focused country on the map / panels. Null when nothing selected. */
+  selectedCountryId: CountryId | null;
+  /** A pending confirm-modal request. Null when no confirm is open. */
+  pendingConfirm: ConfirmRequest | null;
+  /** Which of the 6 game-system panels is currently active in the left rail. */
+  selectedPanel: PanelId;
 
   // ---- Actions ------------------------------------------------------------
   loadGame: (saveId: SaveId) => Promise<void>;
@@ -74,6 +128,25 @@ export type GameStoreState = {
   setState: (state: GameState, saveId: SaveId, scenario: Scenario, name: string) => void;
   /** Clear everything (used after returning to the home screen). */
   reset: () => void;
+  /** Select a country on the map. Pass null to clear. */
+  selectCountry: (id: CountryId | null) => void;
+  /** Open a generic confirmation modal. */
+  confirm: (request: ConfirmRequest) => void;
+  /** Clear any pending confirmation request without invoking its callback. */
+  cancelConfirm: () => void;
+  /** Switch the active panel in the left rail. */
+  setSelectedPanel: (panel: PanelId) => void;
+  /**
+   * Resolve the most recent open narrative event by selecting a choice index.
+   * Marks the event resolved and applies the choice's effects in a best-effort
+   * manner so the loop can resume.
+   */
+  resolveCurrentEvent: (choiceIndex: number) => void;
+  /**
+   * Dismiss the current event by picking choice index 0 (the conventional
+   * "default" / safe fallback). Useful for ESC handlers if we ever allow it.
+   */
+  dismissCurrentEvent: () => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -106,6 +179,36 @@ function getInitialSpeed(): Speed {
 }
 
 // ---------------------------------------------------------------------------
+// Selected-panel preference (also persisted to localStorage so the player's
+// last open panel is restored across sessions).
+// ---------------------------------------------------------------------------
+
+type PanelPrefSlice = { preferredPanel: PanelId };
+
+const usePreferredPanel = create<
+  PanelPrefSlice & { setPreferredPanel: (p: PanelId) => void }
+>()(
+  persist(
+    (set) => ({
+      preferredPanel: 'economy',
+      setPreferredPanel: (preferredPanel) => set({ preferredPanel }),
+    }),
+    {
+      name: 'aurion:panel-pref',
+      storage: createJSONStorage(() => localStorage),
+    },
+  ),
+);
+
+function getInitialPanel(): PanelId {
+  try {
+    return usePreferredPanel.getState().preferredPanel;
+  } catch {
+    return 'economy';
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
 
@@ -118,6 +221,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   ticksThisSession: 0,
   lastErrors: [],
   isLoading: false,
+  selectedCountryId: null,
+  pendingConfirm: null,
+  selectedPanel: getInitialPanel(),
 
   reset: () => {
     set({
@@ -128,6 +234,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       ticksThisSession: 0,
       lastErrors: [],
       speed: 0,
+      selectedCountryId: null,
+      pendingConfirm: null,
     });
   },
 
@@ -139,7 +247,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       saveName: name,
       ticksThisSession: 0,
       lastErrors: [],
+      selectedCountryId: null,
+      pendingConfirm: null,
     });
+  },
+
+  selectCountry: (id) => {
+    set({ selectedCountryId: id });
   },
 
   setSpeed: (speed) => {
@@ -171,6 +285,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         ticksThisSession: 0,
         speed: 0,
         isLoading: false,
+        selectedCountryId: null,
+        pendingConfirm: null,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -208,6 +324,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         ticksThisSession: 0,
         speed: 0,
         isLoading: false,
+        selectedCountryId: null,
+        pendingConfirm: null,
       });
       return saveId;
     } catch (err) {
@@ -221,9 +339,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
 
   applyAction: async (action) => {
-    const { state } = get();
+    const { state, scenario } = get();
     if (!state) return ['errors.noActiveGame'];
-    const result = await engineApplyAction(state, action);
+    const result = engineApplyAction(
+      state,
+      action,
+      state.playerCountryId,
+      scenario?.techTree ?? [],
+    );
     set({ state: result.state, lastErrors: result.errors });
     return result.errors;
   },
@@ -231,10 +354,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   advanceTick: async () => {
     const current = get();
     if (!current.state) return;
-    const next = await engineTick(current.state);
-    const winLoss = await engineCheckWinLoss(next);
-    const reconciled: GameState =
-      winLoss === next.winLoss ? next : { ...next, winLoss };
+    const scenario = current.scenario;
+    const victoryRule = scenario?.victoryConditions.find(
+      (v) => v.id === current.state!.selectedVictoryCondition,
+    )?.rule;
+    const next = engineTick(current.state, {
+      techCatalog: scenario?.techTree ?? [],
+      eventPool: scenario?.eventPool ?? [],
+      ...(victoryRule ? { victoryRule } : {}),
+    });
+    const reconciled = engineCheckWinLoss(next, victoryRule);
 
     set({
       state: reconciled,
@@ -272,6 +401,68 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({ saveId: entry.id, saveName: entry.name });
     return entry.id;
   },
+
+  confirm: (request) => {
+    set({ pendingConfirm: request });
+  },
+
+  cancelConfirm: () => {
+    set({ pendingConfirm: null });
+  },
+
+  setSelectedPanel: (panel) => {
+    set({ selectedPanel: panel });
+    try {
+      usePreferredPanel.getState().setPreferredPanel(panel);
+    } catch {
+      // localStorage may be unavailable (SSR) — non-fatal.
+    }
+  },
+
+  resolveCurrentEvent: (choiceIndex) => {
+    const { state, scenario } = get();
+    if (!state || state.events.length === 0) return;
+    const lastIdx = state.events.length - 1;
+    const last = state.events[lastIdx];
+    if (!last || last.resolvedChoiceIndex !== null) return;
+
+    const definition = findEventDefinition(scenario, last.definitionId);
+    const choices = definition?.choices ?? [];
+    const safeIdx =
+      choices.length > 0
+        ? Math.max(0, Math.min(choiceIndex, choices.length - 1))
+        : choiceIndex;
+    const choice = choices[safeIdx];
+
+    // Update events ring buffer immutably with the resolved choice index.
+    const events = state.events.slice();
+    events[lastIdx] = { ...last, resolvedChoiceIndex: safeIdx };
+
+    // Apply the chosen effects best-effort. The engine remains the source of
+    // truth — if/when it ships a dedicated `applyEventChoice` we should defer
+    // to it. For now we handle the common `modifyStat` effect against the
+    // player country so events have a visible impact in the UI.
+    let countries = state.countries;
+    if (choice) {
+      countries = applyEventEffectsToCountries(
+        countries,
+        state.playerCountryId,
+        choice.effects,
+      );
+    }
+
+    set({
+      state: {
+        ...state,
+        events,
+        countries,
+      },
+    });
+  },
+
+  dismissCurrentEvent: () => {
+    get().resolveCurrentEvent(0);
+  },
 }));
 
 // ---------------------------------------------------------------------------
@@ -292,5 +483,129 @@ export function selectPlayerCountry(s: GameStoreState) {
   return s.state.countries[s.state.playerCountryId] ?? null;
 }
 
+/**
+ * The most recent unresolved narrative event, or null. Returned as-is so the
+ * caller can render the event modal (and look up the matching definition in
+ * the active scenario).
+ */
+export function selectOpenEvent(s: GameStoreState): GameEvent | null {
+  const events = s.state?.events;
+  if (!events || events.length === 0) return null;
+  const last = events[events.length - 1];
+  if (!last || last.resolvedChoiceIndex !== null) return null;
+  return last;
+}
+
+/**
+ * Derive the loss reason from the engine's `_loseStreaks` counters. Returns
+ * null when the player isn't in a `lost` state. Mirrors the thresholds in
+ * `packages/engine/src/checkWinLoss.ts`.
+ */
+export function selectLossReason(s: GameStoreState): LossReason | null {
+  const state = s.state;
+  if (!state || state.winLoss !== 'lost') return null;
+  const streaks = state._loseStreaks;
+  if (!streaks) return null;
+  if (streaks.capitalOccupiedWeeks >= 4) return 'occupation';
+  if (streaks.allFactionsAngryWeeks >= 6) return 'factionRevolt';
+  if (streaks.lowPopularityWeeks >= 12) return 'popularity';
+  if (streaks.negativeTreasuryWeeks >= 26) return 'bankruptcy';
+  // Fallback: pick whichever streak is highest (the engine may have tipped the
+  // game into a loss via a future code path before any single counter hit).
+  const entries: Array<[LossReason, number]> = [
+    ['occupation', streaks.capitalOccupiedWeeks],
+    ['factionRevolt', streaks.allFactionsAngryWeeks],
+    ['popularity', streaks.lowPopularityWeeks],
+    ['bankruptcy', streaks.negativeTreasuryWeeks],
+  ];
+  entries.sort((a, b) => b[1] - a[1]);
+  const top = entries[0];
+  return top && top[1] > 0 ? top[0] : null;
+}
+
 /** Re-export the autosave id so callers don't have to import persistence directly. */
 export { AUTOSAVE_ID };
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+function findEventDefinition(
+  scenario: Scenario | null,
+  id: string,
+): EventDefinition | null {
+  if (!scenario) return null;
+  return scenario.eventPool.find((e) => e.id === id) ?? null;
+}
+
+/**
+ * Best-effort applier for an event choice's effects against the country map.
+ * Currently handles `modifyStat` for a small allowlist of common stats; other
+ * effect kinds are left for the engine to interpret on its next tick. Always
+ * returns a new countries record (never mutates input).
+ */
+function applyEventEffectsToCountries(
+  countries: Record<CountryId, Country>,
+  playerCountryId: CountryId,
+  effects: readonly EventEffect[],
+): Record<CountryId, Country> {
+  let next = countries;
+  for (const effect of effects) {
+    if (effect.type !== 'modifyStat') continue;
+    const targetId = effect.target === 'player' ? playerCountryId : effect.target;
+    const country = next[targetId];
+    if (!country) continue;
+    const updated = applyModifyStat(country, effect.stat, effect.delta);
+    if (updated === country) continue;
+    next = { ...next, [targetId]: updated };
+  }
+  return next;
+}
+
+function applyModifyStat(country: Country, stat: string, delta: number): Country {
+  switch (stat) {
+    case 'treasury':
+      return {
+        ...country,
+        economy: { ...country.economy, treasury: country.economy.treasury + delta },
+      };
+    case 'popularity':
+      return {
+        ...country,
+        politics: {
+          ...country.politics,
+          popularity: clamp(country.politics.popularity + delta, 0, 100),
+        },
+      };
+    case 'taxRate':
+      return {
+        ...country,
+        economy: {
+          ...country.economy,
+          taxRate: clamp(country.economy.taxRate + delta, 0, 100),
+        },
+      };
+    case 'armySize':
+      return {
+        ...country,
+        military: {
+          ...country.military,
+          armySize: Math.max(0, country.military.armySize + delta),
+        },
+      };
+    case 'spyCount':
+      return {
+        ...country,
+        intelligence: {
+          ...country.intelligence,
+          spyCount: Math.max(0, country.intelligence.spyCount + delta),
+        },
+      };
+    default:
+      return country;
+  }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}

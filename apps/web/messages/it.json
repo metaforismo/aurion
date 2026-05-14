@@ -49,7 +49,10 @@
   },
   "hud": {
     "date": "Settimana {tick}",
+    "dateLabel": "Data",
+    "dateValue": "Settimana {week} · Anno {year}",
     "treasury": "Tesoreria",
+    "perWeek": "alla settimana",
     "popularity": "Popolarità",
     "speed": {
       "label": "Velocità",
@@ -60,14 +63,61 @@
     },
     "menu": "Menu",
     "save": "Salva partita",
-    "export": "Esporta",
-    "import": "Importa",
-    "exit": "Torna alla home",
+    "load": "Carica partita",
+    "savesList": "Salvataggi disponibili",
+    "noSaves": "Nessun salvataggio",
+    "export": "Esporta JSON",
+    "import": "Importa JSON",
+    "exit": "Esci dalla partita",
     "autoPaused": "Pausa automatica",
     "winLoss": {
       "playing": "In corso",
       "won": "Vittoria",
       "lost": "Sconfitta"
+    },
+    "toast": {
+      "saveOk": "Partita salvata.",
+      "exportOk": "Esportazione completata.",
+      "importOk": "Salvataggio importato."
+    }
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "empty": "Nessuna notifica recente",
+    "actionRequired": "Decisione richiesta",
+    "chose": "Scelto: {label}",
+    "justNow": "ora",
+    "ticksAgo": "{n, plural, one {1 settimana fa} other {# settimane fa}}"
+  },
+  "modals": {
+    "event": {
+      "unknownDefinition": "Evento sconosciuto: {id}"
+    },
+    "confirm": {
+      "exitGame": {
+        "title": "Uscire dalla partita?",
+        "description": "Le modifiche non salvate andranno perse. Vuoi tornare alla home?",
+        "confirm": "Esci"
+      }
+    },
+    "winLoss": {
+      "wonTitle": "Vittoria!",
+      "lostTitle": "Sconfitta",
+      "summary": "Riepilogo della partita",
+      "wonReason": "Hai raggiunto la condizione di vittoria: {condition}.",
+      "lossReason": {
+        "popularity": "La popolarità è scesa troppo a lungo: il governo è stato rovesciato.",
+        "bankruptcy": "Le casse dello stato sono rimaste vuote troppo a lungo: la nazione è in bancarotta.",
+        "occupation": "La capitale è stata occupata da una potenza nemica.",
+        "factionRevolt": "Tutte le fazioni hanno ritirato il loro appoggio: colpo di stato."
+      },
+      "ticksPlayed": "Settimane: {tick}",
+      "peakPopularity": "Popolarità",
+      "peakTreasury": "Tesoreria",
+      "techsUnlocked": "Tecnologie",
+      "spyOpsLaunched": "Operazioni di spionaggio",
+      "newGame": "Nuova partita",
+      "backHome": "Torna alla home"
     }
   },
   "panels": {
@@ -77,6 +127,252 @@
     "spies": "Intelligence",
     "diplomacy": "Diplomazia",
     "politics": "Politica interna"
+  },
+  "panelRail": {
+    "label": "Pannelli di sistema",
+    "tablistLabel": "Sistemi di gioco"
+  },
+  "panelShared": {
+    "noPlayer": "Nessun paese giocatore selezionato.",
+    "insufficientTreasury": "Tesoreria insufficiente.",
+    "enterAmount": "Inserisci un importo valido.",
+    "prereqsMissing": "Prerequisiti mancanti.",
+    "cancel": "Annulla"
+  },
+  "panelEconomy": {
+    "treasury": "Tesoreria",
+    "weeklyIncome": "Entrate settimanali",
+    "gdp": "PIL",
+    "taxRate": "Aliquota fiscale",
+    "sectors": {
+      "title": "Composizione del PIL",
+      "agriculture": "Agricoltura",
+      "industry": "Industria",
+      "services": "Servizi",
+      "tech": "Tecnologia"
+    },
+    "tax": {
+      "title": "Politica fiscale",
+      "label": "Aliquota fiscale",
+      "preview": "Entrate previste: {income}/sett."
+    },
+    "invest": {
+      "title": "Investimenti",
+      "amountLabel": "Importo da investire",
+      "infra": "Investi in infrastrutture",
+      "economy": "Investi nell'economia"
+    },
+    "history": {
+      "title": "Andamento entrate",
+      "label": "Andamento delle entrate settimanali",
+      "empty": "Raccogliendo dati… le entrate appariranno con i prossimi tick.",
+      "note": "Mostra le ultime ~12 osservazioni mentre questo pannello è aperto."
+    }
+  },
+  "panelResearch": {
+    "active": {
+      "title": "Ricerca in corso",
+      "empty": "Nessuna ricerca attiva. Avviane una qui sotto.",
+      "outputPerTick": "{n} pt/sett.",
+      "progressLabel": "Progresso",
+      "progressPct": "{pct}% completo",
+      "eta": "≈ {ticks} settimane",
+      "etaUnknown": "ETA sconosciuto"
+    },
+    "filter": {
+      "label": "Filtra per ramo",
+      "all": "Tutti",
+      "civil": "Civili",
+      "military": "Militari",
+      "intelligence": "Intelligence",
+      "space": "Spaziali"
+    },
+    "branch": {
+      "civil": "Ramo civile",
+      "military": "Ramo militare",
+      "intelligence": "Ramo intelligence",
+      "space": "Ramo spaziale"
+    },
+    "status": {
+      "completed": "Completata",
+      "inProgress": "In corso",
+      "available": "Disponibile",
+      "locked": "Bloccata"
+    },
+    "disabled": {
+      "otherActive": "Una ricerca è già in corso."
+    },
+    "cost": "Costo: {n}",
+    "noPrereqs": "Nessun prerequisito",
+    "start": "Avvia ricerca",
+    "emptyBranch": "Nessuna tecnologia in questo ramo."
+  },
+  "panelMilitary": {
+    "armySize": "Esercito",
+    "navy": "Marina",
+    "airforce": "Aviazione",
+    "doctrineLevel": "Dottrina",
+    "train": {
+      "title": "Addestramento",
+      "amountLabel": "Importo per addestramento",
+      "cta": "Addestra unità",
+      "hint": "Ogni 100k investiti aggiungono 1 unità."
+    },
+    "deploy": {
+      "title": "Schieramento",
+      "regionLabel": "Regione",
+      "regionPlaceholder": "Seleziona una regione…",
+      "unitsLabel": "Unità da schierare",
+      "cta": "Schiera unità",
+      "pickRegion": "Seleziona una regione.",
+      "notEnough": "Unità insufficienti."
+    },
+    "deployed": {
+      "title": "Unità schierate",
+      "empty": "Nessuna unità attualmente schierata.",
+      "units": "unità",
+      "age": "Schierate da {weeks} sett."
+    },
+    "wars": {
+      "title": "Guerre attive",
+      "empty": "Nessuna guerra in corso."
+    }
+  },
+  "panelSpies": {
+    "spyCount": "Spie disponibili",
+    "counterIntel": "Controspionaggio",
+    "composer": {
+      "title": "Lancia operazione",
+      "open": "Lancia operazione",
+      "type": "Tipo di operazione",
+      "target": "Paese bersaglio",
+      "targetPlaceholder": "Seleziona un paese…",
+      "noEligibleTargets": "Nessun bersaglio con intel sufficiente. Aumenta le spie per acquisire informazioni.",
+      "stealTech": "Tecnologia da rubare",
+      "stealTechPlaceholder": "Seleziona una tecnologia…",
+      "noStealable": "Il bersaglio non possiede tecnologie che ti mancano.",
+      "sabotageTarget": "Obiettivo del sabotaggio",
+      "propagandaFaction": "Fazione bersaglio",
+      "propagandaAny": "Qualsiasi fazione",
+      "assassinateRole": "Ruolo bersaglio (chiave i18n)",
+      "successPreview": "Probabilità successo",
+      "detectionPreview": "Rischio rilevamento",
+      "submit": "Avvia operazione",
+      "pickTarget": "Seleziona un bersaglio.",
+      "pickPayload": "Completa i parametri dell'operazione."
+    },
+    "type": {
+      "steal_tech": "Furto di tecnologia",
+      "sabotage": "Sabotaggio",
+      "propaganda": "Propaganda",
+      "destabilize": "Destabilizzazione",
+      "assassinate": "Assassinio mirato"
+    },
+    "sabotage": {
+      "agriculture": "Agricoltura",
+      "industry": "Industria",
+      "services": "Servizi",
+      "tech": "Tecnologia",
+      "military": "Militare",
+      "science": "Scienza"
+    },
+    "faction": {
+      "army": "Militari",
+      "business": "Imprenditori",
+      "religious": "Religiosi",
+      "populist": "Populisti",
+      "reformist": "Riformisti"
+    },
+    "active": {
+      "title": "Operazioni in corso",
+      "empty": "Nessuna operazione attiva.",
+      "progressLabel": "Progresso",
+      "eta": "≈ {ticks} sett.",
+      "success": "Successo",
+      "detection": "Rilevamento"
+    },
+    "intelSummary": {
+      "title": "Riepilogo intelligence"
+    },
+    "intel": {
+      "none": "Nessuna",
+      "rumors": "Voci",
+      "partial": "Parziale",
+      "full": "Completa"
+    }
+  },
+  "panelDiplomacy": {
+    "countries": {
+      "title": "Nazioni"
+    },
+    "sort": {
+      "label": "Ordinamento",
+      "alpha": "A-Z",
+      "attitude": "Attitudine",
+      "treaties": "Trattati"
+    },
+    "atWar": "In guerra",
+    "noTreaties": "Nessun trattato attivo.",
+    "treaty": {
+      "alliance": "Alleanza",
+      "tradeDeal": "Commercio",
+      "nonAggression": "Non-aggressione",
+      "sanctions": "Sanzioni"
+    },
+    "action": {
+      "proposeAlliance": "Proponi alleanza",
+      "breakAlliance": "Rompi alleanza",
+      "imposeSanction": "Imponi sanzioni",
+      "liftSanction": "Rimuovi sanzioni",
+      "tradeDeal": "Proponi accordo commerciale",
+      "declareWar": "Dichiara guerra",
+      "sueForPeace": "Chiedi pace"
+    },
+    "reason": {
+      "attitudeTooLow": "Attitudine troppo bassa per un'alleanza."
+    },
+    "hint": {
+      "relation": "{player} ↔ {other}"
+    },
+    "confirm": {
+      "war": {
+        "title": "Dichiarare guerra?",
+        "description": "L'azione è irreversibile e provocherà conseguenze diplomatiche e militari."
+      },
+      "peace": {
+        "title": "Chiedere la pace?",
+        "description": "L'avversario potrebbe rifiutare. Procedere?"
+      }
+    }
+  },
+  "panelPolitics": {
+    "popularity": "Popolarità",
+    "governmentType": "Forma di governo",
+    "government": {
+      "democracy": "Democrazia",
+      "autocracy": "Autocrazia",
+      "oligarchy": "Oligarchia",
+      "theocracy": "Teocrazia",
+      "monarchy": "Monarchia"
+    },
+    "factions": {
+      "title": "Fazioni",
+      "satisfaction": "Soddisfazione",
+      "influence": "Influenza {n}",
+      "placate": "Placa la fazione"
+    },
+    "faction": {
+      "army": "Militari",
+      "business": "Imprenditori",
+      "religious": "Religiosi",
+      "populist": "Populisti",
+      "reformist": "Riformisti"
+    },
+    "events": {
+      "title": "Eventi politici recenti",
+      "empty": "Nessun evento politico recente.",
+      "atTick": "Sett. {tick}"
+    }
   },
   "victory": {
     "economic": {
@@ -142,5 +438,48 @@
     "exportOk": "Esportazione completata.",
     "importOk": "Salvataggio importato.",
     "loadingState": "Caricamento partita…"
+  },
+  "map": {
+    "label": "Mappa del mondo di Aurion",
+    "loading": "Caricamento mappa…",
+    "overlay": {
+      "label": "Strato informativo",
+      "none": "Nessuno",
+      "tension": "Tensione",
+      "alliances": "Alleanze",
+      "intel": "Intelligence"
+    },
+    "zoom": {
+      "in": "Ingrandisci",
+      "out": "Riduci",
+      "reset": "Vista iniziale"
+    },
+    "tooltip": {
+      "capital": "Capitale",
+      "gdp": "PIL",
+      "army": "Esercito",
+      "attitude": "Attitudine",
+      "intel": "Intel",
+      "intelHidden": "Sconosciuto",
+      "player": "Tua nazione",
+      "selected": "Selezionata",
+      "region": "Regione"
+    },
+    "intel": {
+      "none": "Nessuna",
+      "rumors": "Voci",
+      "partial": "Parziale",
+      "full": "Completa"
+    },
+    "regions": {
+      "borealis": "Borealis",
+      "auriana": "Auriana",
+      "oriana": "Oriana",
+      "meridia": "Meridia",
+      "sahel-karoun": "Sahel-Karoun"
+    },
+    "nation": {
+      "aria": "{name}, regione {region}, PIL {gdp}, esercito {army}"
+    }
   }
 }
