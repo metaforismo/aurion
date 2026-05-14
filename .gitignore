@@ -1,0 +1,12 @@
+node_modules
+.next
+.turbo
+dist
+coverage
+*.log
+.DS_Store
+.env*.local
+.vercel
+playwright-report
+test-results
+.superpowers
