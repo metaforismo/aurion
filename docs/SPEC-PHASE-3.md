@@ -1435,3 +1435,32 @@ Considero la Fase 3 "fatta" quando tutti questi check passano. Liste lunghe perc
 
 > Spec scritto contro lo stato del repo a `ee78a80 feat(wave7): Mondo Contemporaneo, Iron Man, Tutorial, sim balance`. Se l'engine evolve fra spec e implementazione, prevalgono i tipi reali in `packages/engine/src/types.ts`.
 > Reference: la User Story originale del maintainer per la Fase 3 è "diventare *e mantenere* lo status di superpotenza, no quick end. Decisioni impattano: guerra / nucleare / ricerca + spionaggio (costa reputazione), o alleanze NATO-vs-counter-blocs. Programmi spaziali come power projection. ONU. Opinione pubblica." Lo spec è una decomposizione strutturata di questa visione in nove sistemi tipizzati e implementabili wave per wave.
+
+---
+
+## Decisioni risolte (post-Wave 8)
+
+Le 13 open questions sopra sono state risolte dal maintainer. Le risposte qui elencate sono **vincolanti** per Wave 9-12.
+
+| # | Domanda | Decisione | Impatto |
+|---|---|---|---|
+| 1 | Visibilità bloc membership | **Sempre visibile** | Notifica nello stream + overlay alleanze aggiornato in tempo reale. No intel gating. |
+| 2 | Trigger risoluzioni ONU | **Hardcoded + trigger sottili contestuali** *(non-default)* | Più ricco emergentemente: `signTradeDeal` con paese povero può triggerare humanitarian aid; tensione alta → climate accord. Wave 9 deve mappare ~10 azioni → trigger ONU possibili e bilanciare la frequenza. |
+| 3 | Era-paced — set globale o per scenario | **Per scenario, definite nel JSON** | Aggiungere campo `eras?: Era[]` a `Scenario`. Quick-start e Aurion senza ere; Mondo Contemporaneo + Guerra Fredda ne dichiarano. Più authoring ma rispetta identità. |
+| 4 | Disarmo nucleare volontario | **Sì, ma rep boost pieno solo con trattato ONU non-proliferation in vigore** | Senza trattato: dismantling permesso, rep boost dimezzato. Con trattato: pieno (+30 tutti i blocchi). Achievement `disarmer`. Spinge il giocatore a partecipare al trattato ONU prima di disarmare. |
+| 5 | Achievement reward | **Puramente cosmetici per Fase 3** | Niente sblocco contenuto. Niente asimmetria nuovi/veterani. Sblocco contenuto come opzione futura (Fase 4) gated dietro setting "Progression mode". |
+| 6 | Eternal — milestone screen | **Toast non-bloccante con suono opzionale** | Eccezione: la **prima** vittoria della partita apre un modal celebrativo che spiega "Continua a giocare, le altre saranno toast". Le successive sono toast in basso a destra. |
+| 7 | Dethrone-loss — trigger isolamento | **Default-on per scenari con blocchi** (Mondo Contemporaneo + Guerra Fredda) | Ascesa di Aurion (mondo fittizio senza blocchi) e Quick-start non lo applicano. Non c'è opzione user-controllata: il trigger è dichiarato a livello scenario. |
+| 8 | AI proposal frequenza ONU | **5%/tick se political capital >= 50** | ~1 risoluzione AI ogni 20 tick. Tunabile per difficoltà nel modifier `eventChanceMultiplier` (Hard amplifica). |
+| 9 | Replay opt-in | **Default-on, switchabile in Settings** | Ogni partita registra l'action log da Wave 9 in poi. Settings global toggle "Registra replay". Quando Wave 11 atterra, le partite esistenti hanno il log pronto. |
+| 10 | Mod system sandboxing | **Solo dati JSON, niente eval mai** | Wave 12: `.json` import → validator → load. Niente DSL per logica in Fase 3. Eventuale rule-modding via DSL (JsonLogic) come opzione Fase 4. |
+| 11 | Visualizzazione vittorie multiple Eternal | **Counter HUD '3/5 vittorie'** | Posizione: a destra dei badge reputazione. Click apre lista dettagliata (quale vittoria, quando). Indicatore di progresso visibile. |
+| 12 | AI può lanciare nukes contro player | **Sì, ma solo con soglie alte** | Soglie: warhead >= 1, war attiva da > 50 tick OR ha già subito uno strike, aggressiveness > 0.7. Sim deve verificare frequenza nuke AI-iniziati < 5% partite a Hard. |
+| 13 | Toggle "modalità Phase 2" | **On-by-default, niente toggle** | Phase 3 è il modo "normale" di giocare gli scenari che la supportano (Mondo Contemporaneo, Guerra Fredda). Quick-start rimane senza Phase 3 (è corto). Niente complicazioni nel wizard. |
+
+### Note di implementazione derivate
+
+- **Q2** è la decisione più impattante per Wave 9. Il "trigger sottile contestuale" non è il default proposto — richiede una mappa esplicita azione→trigger nello scenario. Suggerimento: aggiungere a ogni `Scenario` un campo `unTriggerMap?: Record<ActionTriggerKey, UNResolutionTemplate>` per personalizzare per scenario, con un default in engine se non dichiarato. Bilanciare la frequenza con `eventChanceMultiplier`.
+- **Q7** vincola lo schema scenario: aggiungere `dethroneIsolationOnByDefault?: boolean` (default false) — Mondo Contemporaneo e Guerra Fredda settano `true`. Wizard mostra una nota informativa quando il giocatore sceglie Dethrone su uno di questi scenari.
+- **Q11** richiede una nuova selettrice `selectVictoryProgress(state, scenario): { unlocked: VictoryConditionId[], total: number }` che alimenta il counter HUD. Aggiungere `state.unlockedVictories: VictoryConditionId[]` al GameState (additivo, retrocompat).
+- **Q12** richiede di estendere l'AI scoring per `launchNuclear*` con soglie esplicite (vedi sistema 4 per i gating). Aggiungere test sim: 200 partite Hard, conteggio nuke AI-iniziati < 10.
