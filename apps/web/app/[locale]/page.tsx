@@ -16,6 +16,7 @@ import {
   listSaves,
   type SaveSummary,
 } from '../../lib/persistence';
+import { getScenarioMeta } from '../../lib/scenarios';
 
 export default function HomePage() {
   const t = useTranslations('home');
@@ -107,27 +108,7 @@ export default function HomePage() {
           <ul className="flex flex-col gap-2">
             {saves.map((save) => (
               <li key={save.id}>
-                <Link
-                  href={`/play/${encodeURIComponent(save.id)}`}
-                  className={cn(
-                    'flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3',
-                    'transition-colors hover:border-slate-700 hover:bg-slate-900',
-                  )}
-                >
-                  <span
-                    aria-hidden
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: save.thumbnailColor }}
-                  />
-                  <span className="flex-1 truncate text-slate-100">
-                    {save.name}
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    {t('saveSavedAt', {
-                      date: new Date(save.savedAt).toLocaleString(),
-                    })}
-                  </span>
-                </Link>
+                <SaveRow save={save} />
               </li>
             ))}
           </ul>
@@ -158,6 +139,49 @@ function LanguageSwitcher() {
         </button>
       ))}
     </div>
+  );
+}
+
+/**
+ * A single row in the "Continue" list. Resolves the save's scenario id to a
+ * localised name through the registry; the difficulty preset is intentionally
+ * not displayed here because `SaveSummary` omits the heavy `state` field that
+ * carries `state.difficultyId` (the cheapest path that avoids a per-save load
+ * is to widen the summary type, which is out of scope for the wizard refactor).
+ */
+function SaveRow({ save }: { save: SaveSummary }) {
+  const t = useTranslations('home');
+  const tAll = useTranslations();
+  const meta = getScenarioMeta(save.scenarioId);
+  const rawScenarioName = meta ? tAll(meta.nameKey) : null;
+  const scenarioName =
+    rawScenarioName && rawScenarioName !== meta?.nameKey
+      ? rawScenarioName
+      : save.scenarioId;
+
+  return (
+    <Link
+      href={`/play/${encodeURIComponent(save.id)}`}
+      className={cn(
+        'flex items-center gap-3 rounded-xl border border-border bg-surface-1 px-4 py-3',
+        'transition-colors hover:border-border-strong hover:bg-surface-2',
+      )}
+    >
+      <span
+        aria-hidden
+        className="h-3 w-3 rounded-full"
+        style={{ backgroundColor: save.thumbnailColor }}
+      />
+      <span className="flex flex-1 flex-col truncate">
+        <span className="truncate text-fg">{save.name}</span>
+        <span className="truncate text-xs text-fg-muted">{scenarioName}</span>
+      </span>
+      <span className="text-xs text-fg-faint">
+        {t('saveSavedAt', {
+          date: new Date(save.savedAt).toLocaleString(),
+        })}
+      </span>
+    </Link>
   );
 }
 

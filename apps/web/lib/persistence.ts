@@ -162,7 +162,36 @@ export async function listSaves(): Promise<SaveSummary[]> {
 export async function loadSave(id: SaveId): Promise<SaveEntry | null> {
   if (!isPersistenceAvailable()) return null;
   const row = await db().saves.get(id);
-  return row ?? null;
+  if (!row) return null;
+  return migrateSaveEntry(row);
+}
+
+/**
+ * Default difficulty applied to legacy saves that were written before the
+ * Phase 2 wizard stamped a `difficultyId` into the GameState. Phase 1 only
+ * shipped the `normal` preset, so this preserves observed behaviour.
+ */
+export const LEGACY_DIFFICULTY_ID = 'normal';
+
+/**
+ * Light, in-place migration for save entries loaded from disk. Currently
+ * handles a single concern: ensuring `state.difficultyId` is present on
+ * Phase 1 saves that were written before the wizard collected the choice.
+ * Returns the (possibly patched) entry.
+ *
+ * Kept as a pure function so persistence tests can exercise it directly
+ * without spinning up Dexie.
+ */
+export function migrateSaveEntry(entry: SaveEntry): SaveEntry {
+  const state = entry.state as GameState | undefined;
+  if (!state) return entry;
+  if (typeof state.difficultyId === 'string' && state.difficultyId.length > 0) {
+    return entry;
+  }
+  return {
+    ...entry,
+    state: { ...state, difficultyId: LEGACY_DIFFICULTY_ID },
+  };
 }
 
 export type SaveGameInput = {
@@ -224,7 +253,7 @@ export async function importSave(file: File): Promise<SaveEntry> {
   } catch {
     throw new InvalidSaveError('File is not valid JSON');
   }
-  const entry = normalizeImportedSave(parsed);
+  const entry = migrateSaveEntry(normalizeImportedSave(parsed));
   await withWriteGuard(() => db().saves.put(entry));
   return entry;
 }

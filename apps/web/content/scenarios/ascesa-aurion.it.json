@@ -322,5 +322,7 @@
   "victory.domination.name": "Dominio totale",
   "victory.domination.description": "Controlla 20 nazioni, oppure la prima economia mondiale insieme ad almeno 15 nazioni sotto la tua bandiera.",
 
-  "difficulty.normal.name": "Normale"
+  "difficulty.easy.name": "Facile",
+  "difficulty.normal.name": "Normale",
+  "difficulty.hard.name": "Difficile"
 }

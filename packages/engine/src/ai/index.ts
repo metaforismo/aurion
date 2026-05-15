@@ -7,6 +7,7 @@ import type {
   Action,
   AiArchetype,
   CountryId,
+  DifficultyTuning,
   GameState,
   TechDefinition,
 } from '../types.js';
@@ -76,12 +77,17 @@ const EPSILON = 0.05;
 /**
  * Decide an action for `countryId`. Returns null if nothing scored above the
  * skip threshold (the country chooses to wait this turn).
+ *
+ * The optional `difficulty` parameter applies multipliers to specific action
+ * scores (aggression on declareWar/deployArmy; alliance bias on proposeAlliance)
+ * so the same AI feels different across Easy/Normal/Hard without changing logic.
  */
 export function decideAiAction(
   state: GameState,
   countryId: CountryId,
   rng: Rng,
   techCatalog: readonly TechDefinition[] = [],
+  difficulty?: DifficultyTuning,
 ): Action | null {
   const country = state.countries[countryId];
   if (!country) return null;
@@ -101,7 +107,15 @@ export function decideAiAction(
   let best: Action | null = null;
 
   for (const action of candidates) {
-    const score = scoreAction(state, country.id, action, base, personality, rng.next());
+    const score = scoreAction(
+      state,
+      country.id,
+      action,
+      base,
+      personality,
+      rng.next(),
+      difficulty,
+    );
     if (score > bestScore) {
       bestScore = score;
       best = action;
@@ -120,6 +134,7 @@ function scoreAction(
   base: Record<ActionType, number>,
   personality: NonNullable<GameState['countries'][string]['aiPersonality']>,
   noise: number,
+  difficulty?: DifficultyTuning,
 ): number {
   const country = state.countries[countryId];
   if (!country) return -1;
@@ -330,5 +345,38 @@ function scoreAction(
 
   // Random noise (small) so ties break deterministically per call.
   score += (noise - 0.5) * 0.05;
+
+  // Difficulty multipliers — applied AFTER score is otherwise final so the
+  // existing situational logic is untouched. We multiply (rather than add) so
+  // negative scores stay negative on Easy and grow on Hard.
+  if (difficulty) {
+    const aggression = difficulty.modifiers.aiAggression ?? 1;
+    const allianceBias = difficulty.modifiers.aiAllianceBias ?? 1;
+    if (action.type === 'deployArmy') {
+      score = scaleScore(score, aggression);
+    } else if (action.type === 'diplomacy') {
+      if (action.kind === 'declareWar') {
+        score = scaleScore(score, aggression);
+      } else if (action.kind === 'proposeAlliance') {
+        score = scaleScore(score, allianceBias);
+      }
+    }
+  }
+
   return score;
+}
+
+/**
+ * Multiply a score by a positive factor while preserving sign so that a
+ * very-negative score stays very-negative on Easy (factor < 1 dampens it less
+ * is fine) and a positive score grows on Hard. Sign-preserving scaling avoids
+ * flipping a "do not declare war" intuition into a "declare war" one.
+ */
+function scaleScore(score: number, factor: number): number {
+  if (factor === 1) return score;
+  if (score >= 0) return score * factor;
+  // Negative scores: dampening on Easy (factor<1) makes them less negative,
+  // amplifying on Hard (factor>1) makes them more negative. We invert to get
+  // the intended directionality (higher factor = MORE inclined to take it).
+  return score / factor;
 }

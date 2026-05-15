@@ -3,6 +3,7 @@
 import { getStreaks, withStreaks } from './internal.js';
 import type {
   Country,
+  DifficultyTuning,
   GameState,
   Scenario,
   VictoryRule,
@@ -26,8 +27,15 @@ const LOW_POP_THRESHOLD = 10;
  * The optional `victoryRule` lets callers supply the rule from the scenario;
  * when omitted, we look up the matching scenario victory in `state` lazily.
  * In the engine we don't keep the scenario, so callers (tick) pass the rule.
+ *
+ * The optional `difficulty` scales the four LOSS_*_WEEKS thresholds by
+ * `modifiers.lossToleranceWeeks`. Easy uses >1 (more forgiving), Hard <1.
  */
-export function checkWinLoss(state: GameState, victoryRule?: VictoryRule): GameState {
+export function checkWinLoss(
+  state: GameState,
+  victoryRule?: VictoryRule,
+  difficulty?: DifficultyTuning,
+): GameState {
   const player = state.countries[state.playerCountryId];
   if (!player) return { ...state, winLoss: state.winLoss };
 
@@ -53,13 +61,21 @@ export function checkWinLoss(state: GameState, victoryRule?: VictoryRule): GameS
   );
   next.allFactionsAngryWeeks = allAngry ? prev.allFactionsAngryWeeks + 1 : 0;
 
+  // Difficulty-scaled thresholds (multiply at the comparison site, not the
+  // constants themselves — keeps the constants the canonical baseline).
+  const tolerance = difficulty?.modifiers.lossToleranceWeeks ?? 1;
+  const popThr = LOSS_LOW_POPULARITY_WEEKS * tolerance;
+  const treasuryThr = LOSS_NEGATIVE_TREASURY_WEEKS * tolerance;
+  const capitalThr = LOSS_CAPITAL_OCCUPIED_WEEKS * tolerance;
+  const factionsThr = LOSS_ALL_FACTIONS_ANGRY_WEEKS * tolerance;
+
   let winLoss: WinLossState = state.winLoss;
   if (winLoss === 'playing') {
     if (
-      next.lowPopularityWeeks >= LOSS_LOW_POPULARITY_WEEKS ||
-      next.negativeTreasuryWeeks >= LOSS_NEGATIVE_TREASURY_WEEKS ||
-      next.capitalOccupiedWeeks >= LOSS_CAPITAL_OCCUPIED_WEEKS ||
-      next.allFactionsAngryWeeks >= LOSS_ALL_FACTIONS_ANGRY_WEEKS
+      next.lowPopularityWeeks >= popThr ||
+      next.negativeTreasuryWeeks >= treasuryThr ||
+      next.capitalOccupiedWeeks >= capitalThr ||
+      next.allFactionsAngryWeeks >= factionsThr
     ) {
       winLoss = 'lost';
     } else if (victoryRule && evaluateVictory(state, victoryRule)) {

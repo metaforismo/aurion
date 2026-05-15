@@ -185,6 +185,20 @@ export function makeScenario(): Scenario {
     victoryConditions: sampleVictoryConditions,
     difficulties: [
       {
+        id: 'easy',
+        nameKey: 'diff.easy',
+        modifiers: {
+          aiAggression: 0.7,
+          aiResearchSpeed: 0.85,
+          playerIncome: 1.3,
+          eventDifficulty: 0.8,
+          aiAllianceBias: 0.5,
+          spyDetectionAgainstPlayer: 0.7,
+          lossToleranceWeeks: 1.5,
+          eventChanceMultiplier: 0.9,
+        },
+      },
+      {
         id: 'normal',
         nameKey: 'diff.normal',
         modifiers: {
@@ -192,6 +206,20 @@ export function makeScenario(): Scenario {
           aiResearchSpeed: 1,
           playerIncome: 1,
           eventDifficulty: 1,
+        },
+      },
+      {
+        id: 'hard',
+        nameKey: 'diff.hard',
+        modifiers: {
+          aiAggression: 1.35,
+          aiResearchSpeed: 1.2,
+          playerIncome: 0.85,
+          eventDifficulty: 1.25,
+          aiAllianceBias: 1.5,
+          spyDetectionAgainstPlayer: 1.3,
+          lossToleranceWeeks: 0.75,
+          eventChanceMultiplier: 1.15,
         },
       },
     ],

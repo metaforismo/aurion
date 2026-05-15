@@ -89,6 +89,9 @@ export type StartNewGameParams = {
   scenarioId: ScenarioId;
   playerCountryId: CountryId;
   victory: VictoryConditionId;
+  /** Difficulty preset id (`easy`, `normal`, `hard`, `ironMan`). Required —
+   * the wizard always commits to a choice before calling `startNewGame`. */
+  difficultyId: string;
   /** Optional fixed seed for deterministic playthroughs / tests. */
   seed?: string;
   /** Optional human-friendly save name. Defaults to the scenario name + date. */
@@ -298,13 +301,21 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }
   },
 
-  startNewGame: async ({ scenarioId, playerCountryId, victory, seed, name }) => {
+  startNewGame: async ({
+    scenarioId,
+    playerCountryId,
+    victory,
+    difficultyId,
+    seed,
+    name,
+  }) => {
     set({ isLoading: true, lastErrors: [] });
     try {
       const scenario = await loadScenario(scenarioId);
       const state = await engineCreateGame(scenario, {
         playerCountryId,
         victory,
+        difficultyId,
         ...(seed !== undefined ? { seed } : {}),
       });
       const saveId = generateSaveId();
@@ -481,6 +492,27 @@ export function selectHasOpenEvent(s: GameStoreState): boolean {
 export function selectPlayerCountry(s: GameStoreState) {
   if (!s.state) return null;
   return s.state.countries[s.state.playerCountryId] ?? null;
+}
+
+/**
+ * The id of the currently active difficulty preset. Returns `null` when no
+ * game is loaded; otherwise reads it directly from the engine state (which
+ * stamps it at `createGame` time).
+ */
+export function selectDifficultyId(s: GameStoreState): string | null {
+  return s.state?.difficultyId ?? null;
+}
+
+/**
+ * The DifficultyTuning entry for the active game, looked up by id against the
+ * loaded scenario. Returns `null` if no game / scenario is loaded, or if the
+ * scenario does not declare the active id (which would indicate a save vs
+ * scenario mismatch).
+ */
+export function selectActiveDifficulty(s: GameStoreState) {
+  const id = s.state?.difficultyId;
+  if (!id || !s.scenario) return null;
+  return s.scenario.difficulties.find((d) => d.id === id) ?? null;
 }
 
 /**

@@ -10,12 +10,14 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean && rm -rf node_modules/.cache .turbo",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "new-scenario": "tsx scripts/new-scenario.ts"
   },
   "devDependencies": {
     "turbo": "^2.5.4",
     "typescript": "^5.6.3",
     "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
     "@types/node": "^22.10.5"
   },
   "engines": {

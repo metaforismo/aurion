@@ -19,6 +19,10 @@
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "sim": "tsx scripts/sim.ts",
+    "sim:easy": "SIM_DIFFICULTY=easy tsx scripts/sim.ts",
+    "sim:normal": "SIM_DIFFICULTY=normal tsx scripts/sim.ts",
+    "sim:hard": "SIM_DIFFICULTY=hard tsx scripts/sim.ts",
+    "sim:compare": "tsx scripts/sim-balance.ts",
     "lint": "echo '@aurion/engine: no eslint configured (pure TS, lints via tsc strict mode)'"
   },
   "devDependencies": {

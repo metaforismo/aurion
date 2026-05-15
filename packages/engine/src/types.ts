@@ -346,11 +346,30 @@ export type DifficultyTuning = {
   nameKey: string;
   /** Multipliers applied during balancing. */
   modifiers: {
+    // — Phase 1 (existing) —
+    /** >1 = AI more aggressive (multiplier on declareWar / deployArmy scoring). */
     aiAggression: number;
+    /** >1 = non-player nations research faster (multiplier on their researchOutput). */
     aiResearchSpeed: number;
+    /** >1 = player gets more weeklyIncome (player only, multiplied at tick time). */
     playerIncome: number;
+    /** >1 = event consequences hit harder. Reserved for narrative effect tuning. */
     eventDifficulty: number;
+
+    // — Phase 2 (new, optional in JSON, defaulted to 1.0 at consumption sites) —
+    /** Multiplier on AI utility for `proposeAlliance` actions (>1 = friendlier, alliance-bias). */
+    aiAllianceBias?: number;
+    /** Multiplier on detectionRisk computed for spy ops where the target is the player. */
+    spyDetectionAgainstPlayer?: number;
+    /** Multiplier on the four LOSS_*_WEEKS thresholds in checkWinLoss (>1 = more forgiving). */
+    lossToleranceWeeks?: number;
+    /** Multiplier on event trigger probability for `random` events (<1 = fewer events). */
+    eventChanceMultiplier?: number;
   };
+  /** If true: no autosave / no manual save / no import. UI-only flag; engine ignores. */
+  ironMan?: boolean;
+  /** Optional UI badge i18n key (e.g. "Insane"). */
+  badgeKey?: string;
 };
 
 export type Scenario = {

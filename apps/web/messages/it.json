@@ -32,6 +32,13 @@
   "setup": {
     "title": "Nuova partita",
     "stepOf": "Passo {current} di {total}",
+    "breadcrumbs": {
+      "label": "Configurazione partita",
+      "scenario": "Scenario",
+      "country": "Paese",
+      "victory": "Vittoria",
+      "difficulty": "Difficoltà"
+    },
     "stepScenario": {
       "title": "Scegli uno scenario",
       "description": "Lo scenario definisce mondo, nazioni e tech tree."
@@ -44,7 +51,51 @@
       "title": "Scegli la condizione di vittoria",
       "description": "Determina il tuo obiettivo a lungo termine."
     },
-    "start": "Inizia partita",
+    "stepDifficulty": {
+      "title": "Scegli la difficoltà",
+      "description": "Regola la sfida prima di iniziare. Potrai vedere ogni preset nel dettaglio.",
+      "recommended": "Consigliato",
+      "ironManWarning": "Modalità Iron Man: niente autosave, una sola occasione. Una sconfitta chiude la partita.",
+      "modifier": {
+        "aiAggression": "Aggressività IA",
+        "aiResearchSpeed": "Ricerca IA",
+        "playerIncome": "Reddito giocatore",
+        "eventDifficulty": "Severità eventi",
+        "aiAllianceBias": "Coalizioni IA",
+        "spyDetectionAgainstPlayer": "Rilevamento spie",
+        "lossToleranceWeeks": "Tolleranza alla sconfitta",
+        "eventChanceMultiplier": "Frequenza eventi",
+        "easierLabel": "facilitato",
+        "harderLabel": "più duro",
+        "neutralLabel": "invariato",
+        "deltaPositive": "+{percent}%",
+        "deltaNegative": "{percent}%",
+        "neutral": "—"
+      }
+    },
+    "scenario": {
+      "status": {
+        "available": "Disponibile",
+        "planned": "Prossimamente"
+      },
+      "fallback": {
+        "name": "Scenario {id}",
+        "description": "Anteprima non disponibile."
+      }
+    },
+    "country": {
+      "stats": {
+        "gdp": "PIL",
+        "popularity": "Popolarità",
+        "factions": "Fazioni"
+      }
+    },
+    "difficulty": {
+      "fallback": {
+        "name": "Preset {id}"
+      }
+    },
+    "start": "Avvia partita",
     "preparing": "Preparazione partita…"
   },
   "hud": {
@@ -397,8 +448,39 @@
     }
   },
   "difficulty": {
+    "easy": {
+      "name": "Facile",
+      "description": "AI meno aggressiva, +30% reddito iniziale, eventi negativi attenuati. Ideale per imparare."
+    },
     "normal": {
-      "name": "Normale"
+      "name": "Normale",
+      "description": "Bilanciamento di riferimento. Una sfida onesta senza concessioni."
+    },
+    "hard": {
+      "name": "Difficile",
+      "description": "AI aggressive che si coalizzano contro di te. Reddito ridotto e contatori di sconfitta accelerati."
+    },
+    "ironMan": {
+      "name": "Iron Man",
+      "description": "Come Difficile, ma senza autosave né salvataggi manuali. Una sola occasione."
+    }
+  },
+  "scenario": {
+    "ascesa-aurion": {
+      "name": "Ascesa di Aurion",
+      "description": "La campagna principale: una piccola repubblica industriale tra ambizioni delle grandi potenze."
+    },
+    "quick-start": {
+      "name": "Quick Start",
+      "description": "8 nazioni in un'unica regione. Tutorial-lite, 10–20 minuti reali."
+    },
+    "mondo-contemporaneo": {
+      "name": "Mondo Contemporaneo",
+      "description": "Anno 2026 fittizio. Eredita una potenza media e prova a salire al vertice globale."
+    },
+    "guerra-fredda": {
+      "name": "Guerra Fredda",
+      "description": "1962 fittizio. Mondo bipolare, decolonizzazione, corsa allo spazio."
     }
   },
   "victoryScreen": {

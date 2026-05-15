@@ -6,6 +6,7 @@ import type {
   ApplyActionResult,
   Country,
   CountryId,
+  DifficultyTuning,
   GameState,
   IntelLevel,
   SpyOperation,
@@ -70,6 +71,7 @@ export function applyDeploySpy(
   state: GameState,
   action: DeploySpyAction,
   countryId: CountryId,
+  difficulty?: DifficultyTuning,
 ): ApplyActionResult {
   const errors: string[] = [];
   const op = action.op;
@@ -103,6 +105,20 @@ export function applyDeploySpy(
   // Recompute probabilities even if caller pre-filled them, to keep them honest.
   const { successProbability, detectionRisk } = computeSpyProbabilities(owner, target, op.type);
 
+  // Difficulty-scaled detection: when a foreign (AI) spy targets the human
+  // player, apply `spyDetectionAgainstPlayer`. Easy reduces detection (player
+  // catches fewer of them; less harassment on the loss side); Hard increases.
+  // We only apply it for AI-vs-player ops; player-vs-AI is unaffected.
+  let finalDetection = detectionRisk;
+  if (
+    difficulty &&
+    op.targetCountryId === state.playerCountryId &&
+    op.ownerCountryId !== state.playerCountryId
+  ) {
+    const mul = difficulty.modifiers.spyDetectionAgainstPlayer ?? 1;
+    finalDetection = clampProb(detectionRisk * mul);
+  }
+
   const newOp: SpyOperation = {
     id: nextSpyOpId(state),
     type: op.type,
@@ -112,7 +128,7 @@ export function applyDeploySpy(
     progressTicks: 0,
     durationTicks: op.durationTicks,
     successProbability,
-    detectionRisk,
+    detectionRisk: finalDetection,
     status: 'active',
     startedAtTick: state.tick,
   };

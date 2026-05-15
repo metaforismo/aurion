@@ -8,6 +8,7 @@ import { createRng, type Rng } from './rng.js';
 import type {
   Country,
   CountryId,
+  DifficultyTuning,
   EventDefinition,
   GameEvent,
   GameState,
@@ -30,6 +31,8 @@ export type TickContext = {
   victoryRule?: VictoryRule;
   /** AI is consulted every N ticks per country (staggered). Default: 4. */
   aiCadenceTicks?: number;
+  /** Difficulty tuning. When omitted all multipliers default to 1.0 (Normal). */
+  difficulty?: DifficultyTuning;
 };
 
 const DEFAULT_AI_CADENCE = 4;
@@ -40,16 +43,21 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
 
   const techCatalog = ctx.techCatalog ?? [];
   const eventPool = ctx.eventPool ?? [];
+  const difficulty = ctx.difficulty;
+  const playerIncomeMul = difficulty?.modifiers.playerIncome ?? 1;
+  const aiResearchMul = difficulty?.modifiers.aiResearchSpeed ?? 1;
+  const eventChanceMul =
+    difficulty?.modifiers.eventChanceMultiplier ?? 1;
 
   const rng = createRng(`${state.rngSeed}::tick::${state.tick}`);
 
   let next: GameState = state;
 
-  // 1. Economy.
-  next = stepEconomy(next);
+  // 1. Economy. Player gets `playerIncome` multiplier.
+  next = stepEconomy(next, playerIncomeMul);
 
-  // 2. Research.
-  next = stepResearch(next, techCatalog);
+  // 2. Research. Non-player nations get `aiResearchSpeed` multiplier.
+  next = stepResearch(next, techCatalog, aiResearchMul);
 
   // 3. Spy operations.
   next = stepSpies(next, rng, techCatalog);
@@ -64,16 +72,22 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
   next = stepFactions(next);
 
   // 7. AI turn: each non-player country every aiCadenceTicks.
-  next = stepAi(next, rng, techCatalog, ctx.aiCadenceTicks ?? DEFAULT_AI_CADENCE);
+  next = stepAi(
+    next,
+    rng,
+    techCatalog,
+    ctx.aiCadenceTicks ?? DEFAULT_AI_CADENCE,
+    difficulty,
+  );
 
-  // 8. Events.
-  next = stepEvents(next, rng, eventPool);
+  // 8. Events. Random events scaled by `eventChanceMultiplier`.
+  next = stepEvents(next, rng, eventPool, eventChanceMul);
 
   // 9. World tension.
   next = stepWorldTension(next);
 
-  // 10. Win/loss.
-  next = checkWinLoss(next, ctx.victoryRule);
+  // 10. Win/loss. Loss-streak thresholds scaled by `lossToleranceWeeks`.
+  next = checkWinLoss(next, ctx.victoryRule, difficulty);
 
   // Finally bump tick.
   return { ...next, tick: next.tick + 1 };
@@ -81,10 +95,14 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
 
 // ---------- 1. Economy ----------
 
-function stepEconomy(state: GameState): GameState {
+function stepEconomy(state: GameState, playerIncomeMultiplier: number): GameState {
   const updated: Record<CountryId, Country> = {};
   for (const [id, country] of Object.entries(state.countries)) {
-    const weeklyIncome = computeWeeklyIncome(country, state);
+    const baseIncome = computeWeeklyIncome(country, state);
+    const weeklyIncome =
+      id === state.playerCountryId
+        ? Math.round(baseIncome * playerIncomeMultiplier)
+        : baseIncome;
     updated[id] = {
       ...country,
       economy: {
@@ -121,7 +139,11 @@ export function computeWeeklyIncome(country: Country, state: GameState): number 
 
 // ---------- 2. Research ----------
 
-function stepResearch(state: GameState, techCatalog: readonly TechDefinition[]): GameState {
+function stepResearch(
+  state: GameState,
+  techCatalog: readonly TechDefinition[],
+  aiResearchMultiplier: number,
+): GameState {
   const updatedCountries: Record<CountryId, Country> = { ...state.countries };
   const updatedProgress = { ...state.techTreeProgress };
   let mutated = false;
@@ -134,7 +156,12 @@ function stepResearch(state: GameState, techCatalog: readonly TechDefinition[]):
       activeResearch: active,
       accumulatedPoints: 0,
     };
-    const newPoints = progress.accumulatedPoints + country.science.researchOutput;
+    // Non-player nations have their per-tick research output scaled by difficulty.
+    const effectiveOutput =
+      id === state.playerCountryId
+        ? country.science.researchOutput
+        : country.science.researchOutput * aiResearchMultiplier;
+    const newPoints = progress.accumulatedPoints + effectiveOutput;
 
     if (tech && newPoints >= tech.cost) {
       // Complete research: append id, apply effects, clear active.
@@ -535,6 +562,7 @@ function stepAi(
   rng: Rng,
   techCatalog: readonly TechDefinition[],
   cadence: number,
+  difficulty: DifficultyTuning | undefined,
 ): GameState {
   let next = state;
   for (const country of Object.values(state.countries)) {
@@ -543,9 +571,9 @@ function stepAi(
     // Stagger so not every AI moves every tick.
     const offset = simpleStableHash(country.id) % cadence;
     if ((state.tick + offset) % cadence !== 0) continue;
-    const action = decideAiAction(next, country.id, rng, techCatalog);
+    const action = decideAiAction(next, country.id, rng, techCatalog, difficulty);
     if (!action) continue;
-    const result = applyAction(next, action, country.id, techCatalog);
+    const result = applyAction(next, action, country.id, techCatalog, difficulty);
     if (result.errors.length === 0) {
       next = result.state;
     }
@@ -563,7 +591,12 @@ function simpleStableHash(s: string): number {
 
 // ---------- 8. Events ----------
 
-function stepEvents(state: GameState, rng: Rng, eventPool: readonly EventDefinition[]): GameState {
+function stepEvents(
+  state: GameState,
+  rng: Rng,
+  eventPool: readonly EventDefinition[],
+  eventChanceMultiplier: number,
+): GameState {
   if (eventPool.length === 0) return state;
   const fired: GameEvent[] = [];
 
@@ -579,9 +612,15 @@ function stepEvents(state: GameState, rng: Rng, eventPool: readonly EventDefinit
       case 'periodic':
         triggered = def.trigger.everyTicks > 0 && state.tick % def.trigger.everyTicks === 0;
         break;
-      case 'random':
-        triggered = rng.next() < def.trigger.chancePerTick;
+      case 'random': {
+        // Difficulty-scaled random trigger probability. Clamped to [0,1].
+        const scaled = Math.min(
+          1,
+          Math.max(0, def.trigger.chancePerTick * eventChanceMultiplier),
+        );
+        triggered = rng.next() < scaled;
         break;
+      }
       case 'condition':
         // Mini-DSL not implemented in Phase 1; treat as never-trigger.
         triggered = false;

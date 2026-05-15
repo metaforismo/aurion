@@ -164,7 +164,17 @@ export function createGame(scenario: Scenario, options: CreateGameOptions): Game
     }
   }
 
-  const difficultyId = options.difficultyId ?? scenario.difficulties[0]?.id ?? 'normal';
+  // Pick difficulty: explicit id > 'normal' fallback > first entry in scenario.
+  const requestedDifficultyId = options.difficultyId ?? 'normal';
+  const matchedDifficulty =
+    scenario.difficulties.find((d) => d.id === requestedDifficultyId) ??
+    (options.difficultyId === undefined ? scenario.difficulties[0] : undefined);
+  if (!matchedDifficulty) {
+    throw new Error(
+      `createGame: difficultyId "${requestedDifficultyId}" not found in scenario.difficulties`,
+    );
+  }
+  const difficultyId = matchedDifficulty.id;
   const seed = options.seed ?? `${scenario.id}::${options.playerCountryId}::${Date.now()}`;
 
   const state: GameState = {

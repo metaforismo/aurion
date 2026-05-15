@@ -322,5 +322,7 @@
   "victory.domination.name": "Total Domination",
   "victory.domination.description": "Control 20 nations, or be the world's top economy together with at least 15 nations under your flag.",
 
-  "difficulty.normal.name": "Normal"
+  "difficulty.easy.name": "Easy",
+  "difficulty.normal.name": "Normal",
+  "difficulty.hard.name": "Hard"
 }

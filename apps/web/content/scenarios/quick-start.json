@@ -1,0 +1,1231 @@
+{
+  "id": "quick-start",
+  "nameKey": "scenario.quick-start.name",
+  "descriptionKey": "scenario.quick-start.description",
+  "version": "0.1.0",
+  "startTick": 0,
+  "playableCountries": [
+    "verm-aurelia",
+    "verm-koros",
+    "verm-tessari"
+  ],
+  "countries": [
+    {
+      "id": "verm-aurelia",
+      "nameKey": "country.qs-aurelia.name",
+      "color": "#2E86AB",
+      "regionId": "vermilion",
+      "capitalKey": "country.qs-aurelia.capital",
+      "population": 4500000,
+      "economy": {
+        "treasury": 1200000000,
+        "gdp": 18000000000,
+        "weeklyIncome": 28000000,
+        "taxRate": 26,
+        "sectors": {
+          "agriculture": 0.2,
+          "industry": 0.35,
+          "services": 0.38,
+          "tech": 0.07
+        }
+      },
+      "military": {
+        "armySize": 8000,
+        "navy": 2500,
+        "airforce": 1500,
+        "doctrineLevel": 0.3,
+        "deployedUnits": []
+      },
+      "intelligence": {
+        "spyCount": 2,
+        "counterIntelLevel": 0.25,
+        "knownIntel": {}
+      },
+      "politics": {
+        "popularity": 64,
+        "factions": {
+          "army": {
+            "satisfaction": 55,
+            "influence": 45
+          },
+          "business": {
+            "satisfaction": 65,
+            "influence": 65
+          },
+          "religious": {
+            "satisfaction": 55,
+            "influence": 25
+          },
+          "populist": {
+            "satisfaction": 60,
+            "influence": 50
+          },
+          "reformist": {
+            "satisfaction": 70,
+            "influence": 55
+          }
+        },
+        "governmentType": "democracy"
+      },
+      "isPlayer": true,
+      "initialCompletedTechs": []
+    },
+    {
+      "id": "verm-koros",
+      "nameKey": "country.qs-koros.name",
+      "color": "#7B4B94",
+      "regionId": "vermilion",
+      "capitalKey": "country.qs-koros.capital",
+      "population": 5200000,
+      "economy": {
+        "treasury": 900000000,
+        "gdp": 14000000000,
+        "weeklyIncome": 22000000,
+        "taxRate": 32,
+        "sectors": {
+          "agriculture": 0.22,
+          "industry": 0.42,
+          "services": 0.3,
+          "tech": 0.06
+        }
+      },
+      "military": {
+        "armySize": 18000,
+        "navy": 4000,
+        "airforce": 2500,
+        "doctrineLevel": 0.45,
+        "deployedUnits": []
+      },
+      "intelligence": {
+        "spyCount": 3,
+        "counterIntelLevel": 0.4,
+        "knownIntel": {}
+      },
+      "politics": {
+        "popularity": 58,
+        "factions": {
+          "army": {
+            "satisfaction": 70,
+            "influence": 60
+          },
+          "business": {
+            "satisfaction": 55,
+            "influence": 45
+          },
+          "religious": {
+            "satisfaction": 50,
+            "influence": 30
+          },
+          "populist": {
+            "satisfaction": 50,
+            "influence": 50
+          },
+          "reformist": {
+            "satisfaction": 45,
+            "influence": 35
+          }
+        },
+        "governmentType": "autocracy"
+      },
+      "isPlayer": true,
+      "initialCompletedTechs": []
+    },
+    {
+      "id": "verm-tessari",
+      "nameKey": "country.qs-tessari.name",
+      "color": "#3CA17E",
+      "regionId": "vermilion",
+      "capitalKey": "country.qs-tessari.capital",
+      "population": 3800000,
+      "economy": {
+        "treasury": 1100000000,
+        "gdp": 16000000000,
+        "weeklyIncome": 25000000,
+        "taxRate": 28,
+        "sectors": {
+          "agriculture": 0.15,
+          "industry": 0.3,
+          "services": 0.42,
+          "tech": 0.13
+        }
+      },
+      "military": {
+        "armySize": 6000,
+        "navy": 2000,
+        "airforce": 1500,
+        "doctrineLevel": 0.32,
+        "deployedUnits": []
+      },
+      "intelligence": {
+        "spyCount": 2,
+        "counterIntelLevel": 0.3,
+        "knownIntel": {}
+      },
+      "politics": {
+        "popularity": 66,
+        "factions": {
+          "army": {
+            "satisfaction": 50,
+            "influence": 35
+          },
+          "business": {
+            "satisfaction": 65,
+            "influence": 55
+          },
+          "religious": {
+            "satisfaction": 55,
+            "influence": 25
+          },
+          "populist": {
+            "satisfaction": 62,
+            "influence": 50
+          },
+          "reformist": {
+            "satisfaction": 75,
+            "influence": 65
+          }
+        },
+        "governmentType": "democracy"
+      },
+      "isPlayer": true,
+      "initialCompletedTechs": []
+    },
+    {
+      "id": "verm-magnara",
+      "nameKey": "country.qs-magnara.name",
+      "color": "#C0392B",
+      "regionId": "vermilion",
+      "capitalKey": "country.qs-magnara.capital",
+      "population": 6800000,
+      "economy": {
+        "treasury": 1400000000,
+        "gdp": 22000000000,
+        "weeklyIncome": 32000000,
+        "taxRate": 30,
+        "sectors": {
+          "agriculture": 0.18,
+          "industry": 0.45,
+          "services": 0.3,
+          "tech": 0.07
+        }
+      },
+      "military": {
+        "armySize": 24000,
+        "navy": 5500,
+        "airforce": 3500,
+        "doctrineLevel": 0.5,
+        "deployedUnits": []
+      },
+      "intelligence": {
+        "spyCount": 3,
+        "counterIntelLevel": 0.4,
+        "knownIntel": {}
+      },
+      "politics": {
+        "popularity": 55,
+        "factions": {
+          "army": {
+            "satisfaction": 75,
+            "influence": 65
+          },
+          "business": {
+            "satisfaction": 60,
+            "influence": 50
+          },
+          "religious": {
+            "satisfaction": 50,
+            "influence": 30
+          },
+          "populist": {
+            "satisfaction": 50,
+            "influence": 50
+          },
+          "reformist": {
+            "satisfaction": 40,
+            "influence": 35
+          }
+        },
+        "governmentType": "oligarchy"
+      },
+      "isPlayer": false,
+      "aiPersonality": {
+        "archetype": "regional_bully",
+        "aggressiveness": 0.55,
+        "expansionism": 0.45,
+        "paranoia": 0.4,
+        "pragmatism": 0.5
+      },
+      "initialCompletedTechs": []
+    },
+    {
+      "id": "verm-soltan",
+      "nameKey": "country.qs-soltan.name",
+      "color": "#F4A261",
+      "regionId": "vermilion",
+      "capitalKey": "country.qs-soltan.capital",
+      "population": 2900000,
+      "economy": {
+        "treasury": 2400000000,
+        "gdp": 32000000000,
+        "weeklyIncome": 45000000,
+        "taxRate": 22,
+        "sectors": {
+          "agriculture": 0.1,
+          "industry": 0.25,
+          "services": 0.5,
+          "tech": 0.15
+        }
+      },
+      "military": {
+        "armySize": 4000,
+        "navy": 3000,
+        "airforce": 1200,
+        "doctrineLevel": 0.28,
+        "deployedUnits": []
+      },
+      "intelligence": {
+        "spyCount": 2,
+        "counterIntelLevel": 0.3,
+        "knownIntel": {}
+      },
+      "politics": {
+        "popularity": 70,
+        "factions": {
+          "army": {
+            "satisfaction": 50,
+            "influence": 30
+          },
+          "business": {
+            "satisfaction": 78,
+            "influence": 70
+          },
+          "religious": {
+            "satisfaction": 55,
+            "influence": 25
+          },
+          "populist": {
+            "satisfaction": 65,
+            "influence": 45
+          },
+          "reformist": {
+            "satisfaction": 65,
+            "influence": 50
+          }
+        },
+        "governmentType": "democracy"
+      },
+      "isPlayer": false,
+      "aiPersonality": {
+        "archetype": "pacifist_trader",
+        "aggressiveness": 0.15,
+        "expansionism": 0.1,
+        "paranoia": 0.4,
+        "pragmatism": 0.75
+      },
+      "initialCompletedTechs": []
+    },
+    {
+      "id": "verm-ridhana",
+      "nameKey": "country.qs-ridhana.name",
+      "color": "#E1B12C",
+      "regionId": "vermilion",
+      "capitalKey": "country.qs-ridhana.capital",
+      "population": 4100000,
+      "economy": {
+        "treasury": 1000000000,
+        "gdp": 17000000000,
+        "weeklyIncome": 26000000,
+        "taxRate": 27,
+        "sectors": {
+          "agriculture": 0.25,
+          "industry": 0.32,
+          "services": 0.36,
+          "tech": 0.07
+        }
+      },
+      "military": {
+        "armySize": 11000,
+        "navy": 3000,
+        "airforce": 2000,
+        "doctrineLevel": 0.35,
+        "deployedUnits": []
+      },
+      "intelligence": {
+        "spyCount": 2,
+        "counterIntelLevel": 0.3,
+        "knownIntel": {}
+      },
+      "politics": {
+        "popularity": 60,
+        "factions": {
+          "army": {
+            "satisfaction": 58,
+            "influence": 50
+          },
+          "business": {
+            "satisfaction": 60,
+            "influence": 55
+          },
+          "religious": {
+            "satisfaction": 55,
+            "influence": 30
+          },
+          "populist": {
+            "satisfaction": 60,
+            "influence": 50
+          },
+          "reformist": {
+            "satisfaction": 55,
+            "influence": 45
+          }
+        },
+        "governmentType": "democracy"
+      },
+      "isPlayer": false,
+      "aiPersonality": {
+        "archetype": "opportunist",
+        "aggressiveness": 0.35,
+        "expansionism": 0.3,
+        "paranoia": 0.45,
+        "pragmatism": 0.65
+      },
+      "initialCompletedTechs": []
+    }
+  ],
+  "relations": [
+    {
+      "countryA": "verm-aurelia",
+      "countryB": "verm-koros",
+      "attitude": -10
+    },
+    {
+      "countryA": "verm-aurelia",
+      "countryB": "verm-tessari",
+      "attitude": 30,
+      "treaties": [
+        "tradeDeal"
+      ]
+    },
+    {
+      "countryA": "verm-aurelia",
+      "countryB": "verm-magnara",
+      "attitude": -20
+    },
+    {
+      "countryA": "verm-aurelia",
+      "countryB": "verm-soltan",
+      "attitude": 25,
+      "treaties": [
+        "tradeDeal"
+      ]
+    },
+    {
+      "countryA": "verm-aurelia",
+      "countryB": "verm-ridhana",
+      "attitude": 10
+    },
+    {
+      "countryA": "verm-koros",
+      "countryB": "verm-tessari",
+      "attitude": -15
+    },
+    {
+      "countryA": "verm-koros",
+      "countryB": "verm-magnara",
+      "attitude": 15,
+      "treaties": [
+        "nonAggression"
+      ]
+    },
+    {
+      "countryA": "verm-koros",
+      "countryB": "verm-soltan",
+      "attitude": 5
+    },
+    {
+      "countryA": "verm-koros",
+      "countryB": "verm-ridhana",
+      "attitude": 20,
+      "treaties": [
+        "tradeDeal"
+      ]
+    },
+    {
+      "countryA": "verm-tessari",
+      "countryB": "verm-magnara",
+      "attitude": -25
+    },
+    {
+      "countryA": "verm-tessari",
+      "countryB": "verm-soltan",
+      "attitude": 35,
+      "treaties": [
+        "tradeDeal",
+        "nonAggression"
+      ]
+    },
+    {
+      "countryA": "verm-tessari",
+      "countryB": "verm-ridhana",
+      "attitude": 15
+    },
+    {
+      "countryA": "verm-magnara",
+      "countryB": "verm-soltan",
+      "attitude": -30
+    },
+    {
+      "countryA": "verm-magnara",
+      "countryB": "verm-ridhana",
+      "attitude": -5
+    },
+    {
+      "countryA": "verm-soltan",
+      "countryB": "verm-ridhana",
+      "attitude": 20,
+      "treaties": [
+        "tradeDeal"
+      ]
+    }
+  ],
+  "techTree": [
+    {
+      "id": "tech_qs_civil_irrigation",
+      "nameKey": "tech.qs.civil.irrigation.name",
+      "descriptionKey": "tech.qs.civil.irrigation.description",
+      "branch": "civil",
+      "cost": 60,
+      "prereqs": [],
+      "effects": [
+        {
+          "type": "modifyStat",
+          "stat": "economy.sectors.agriculture",
+          "delta": 0,
+          "multiplier": 1.1
+        },
+        {
+          "type": "modifyStat",
+          "stat": "economy.weeklyIncome",
+          "delta": 0,
+          "multiplier": 1.04
+        }
+      ]
+    },
+    {
+      "id": "tech_qs_civil_factories",
+      "nameKey": "tech.qs.civil.factories.name",
+      "descriptionKey": "tech.qs.civil.factories.description",
+      "branch": "civil",
+      "cost": 140,
+      "prereqs": [
+        "tech_qs_civil_irrigation"
+      ],
+      "effects": [
+        {
+          "type": "modifyStat",
+          "stat": "economy.sectors.industry",
+          "delta": 0,
+          "multiplier": 1.12
+        },
+        {
+          "type": "modifyStat",
+          "stat": "economy.weeklyIncome",
+          "delta": 0,
+          "multiplier": 1.06
+        }
+      ]
+    },
+    {
+      "id": "tech_qs_civil_smart_services",
+      "nameKey": "tech.qs.civil.smart_services.name",
+      "descriptionKey": "tech.qs.civil.smart_services.description",
+      "branch": "civil",
+      "cost": 240,
+      "prereqs": [
+        "tech_qs_civil_factories"
+      ],
+      "effects": [
+        {
+          "type": "modifyStat",
+          "stat": "economy.gdp",
+          "delta": 0,
+          "multiplier": 1.08
+        },
+        {
+          "type": "modifyStat",
+          "stat": "politics.popularity",
+          "delta": 4
+        }
+      ]
+    },
+    {
+      "id": "tech_qs_military_modern_doctrine",
+      "nameKey": "tech.qs.military.modern_doctrine.name",
+      "descriptionKey": "tech.qs.military.modern_doctrine.description",
+      "branch": "military",
+      "cost": 70,
+      "prereqs": [],
+      "effects": [
+        {
+          "type": "modifyStat",
+          "stat": "military.doctrineLevel",
+          "delta": 0.05
+        }
+      ]
+    },
+    {
+      "id": "tech_qs_military_airpower",
+      "nameKey": "tech.qs.military.airpower.name",
+      "descriptionKey": "tech.qs.military.airpower.description",
+      "branch": "military",
+      "cost": 150,
+      "prereqs": [
+        "tech_qs_military_modern_doctrine"
+      ],
+      "effects": [
+        {
+          "type": "modifyStat",
+          "stat": "military.airforce",
+          "delta": 0,
+          "multiplier": 1.15
+        },
+        {
+          "type": "modifyStat",
+          "stat": "military.doctrineLevel",
+          "delta": 0.05
+        }
+      ]
+    },
+    {
+      "id": "tech_qs_military_combined_arms",
+      "nameKey": "tech.qs.military.combined_arms.name",
+      "descriptionKey": "tech.qs.military.combined_arms.description",
+      "branch": "military",
+      "cost": 250,
+      "prereqs": [
+        "tech_qs_military_airpower"
+      ],
+      "effects": [
+        {
+          "type": "modifyStat",
+          "stat": "military.armySize",
+          "delta": 0,
+          "multiplier": 1.1
+        },
+        {
+          "type": "modifyStat",
+          "stat": "military.doctrineLevel",
+          "delta": 0.08
+        }
+      ]
+    },
+    {
+      "id": "tech_qs_intel_counter_intel",
+      "nameKey": "tech.qs.intel.counter_intel.name",
+      "descriptionKey": "tech.qs.intel.counter_intel.description",
+      "branch": "intelligence",
+      "cost": 80,
+      "prereqs": [],
+      "effects": [
+        {
+          "type": "modifyStat",
+          "stat": "intelligence.counterIntelLevel",
+          "delta": 0.08
+        }
+      ]
+    },
+    {
+      "id": "tech_qs_intel_agent_training",
+      "nameKey": "tech.qs.intel.agent_training.name",
+      "descriptionKey": "tech.qs.intel.agent_training.description",
+      "branch": "intelligence",
+      "cost": 160,
+      "prereqs": [
+        "tech_qs_intel_counter_intel"
+      ],
+      "effects": [
+        {
+          "type": "modifyStat",
+          "stat": "intelligence.spyCount",
+          "delta": 1
+        }
+      ]
+    },
+    {
+      "id": "tech_qs_intel_signals",
+      "nameKey": "tech.qs.intel.signals.name",
+      "descriptionKey": "tech.qs.intel.signals.description",
+      "branch": "intelligence",
+      "cost": 240,
+      "prereqs": [
+        "tech_qs_intel_agent_training"
+      ],
+      "effects": [
+        {
+          "type": "modifyStat",
+          "stat": "intelligence.counterIntelLevel",
+          "delta": 0.05
+        },
+        {
+          "type": "unlockSpyType",
+          "spyType": "propaganda"
+        }
+      ]
+    },
+    {
+      "id": "tech_qs_space_satellite_basic",
+      "nameKey": "tech.qs.space.satellite_basic.name",
+      "descriptionKey": "tech.qs.space.satellite_basic.description",
+      "branch": "space",
+      "cost": 200,
+      "prereqs": [],
+      "effects": [
+        {
+          "type": "modifyStat",
+          "stat": "science.researchOutput",
+          "delta": 0,
+          "multiplier": 1.08
+        }
+      ]
+    },
+    {
+      "id": "tech_qs_space_satellite_advanced",
+      "nameKey": "tech.qs.space.satellite_advanced.name",
+      "descriptionKey": "tech.qs.space.satellite_advanced.description",
+      "branch": "space",
+      "cost": 420,
+      "prereqs": [
+        "tech_qs_space_satellite_basic"
+      ],
+      "effects": [
+        {
+          "type": "modifyStat",
+          "stat": "science.researchOutput",
+          "delta": 0,
+          "multiplier": 1.12
+        },
+        {
+          "type": "modifyStat",
+          "stat": "politics.popularity",
+          "delta": 8
+        }
+      ]
+    }
+  ],
+  "eventPool": [
+    {
+      "id": "event_qs_economy_market_boom",
+      "nameKey": "event.qs.economy.market_boom.name",
+      "descriptionKey": "event.qs.economy.market_boom.description",
+      "trigger": {
+        "type": "random",
+        "chancePerTick": 0.012
+      },
+      "cooldownTicks": 30,
+      "weight": 8,
+      "tags": ["economy", "opportunity"],
+      "choices": [
+        {
+          "labelKey": "event.qs.economy.market_boom.choice.invest",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "economy.weeklyIncome",
+              "delta": 0,
+              "multiplier": 1.05
+            }
+          ]
+        },
+        {
+          "labelKey": "event.qs.economy.market_boom.choice.cash_out",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "economy.treasury",
+              "delta": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_qs_economy_budget_strain",
+      "nameKey": "event.qs.economy.budget_strain.name",
+      "descriptionKey": "event.qs.economy.budget_strain.description",
+      "trigger": {
+        "type": "condition",
+        "expression": "treasury < 1 and weeklyIncome < 0.05"
+      },
+      "cooldownTicks": 60,
+      "weight": 7,
+      "tags": ["economy", "crisis"],
+      "choices": [
+        {
+          "labelKey": "event.qs.economy.budget_strain.choice.austerity",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "economy.weeklyIncome",
+              "delta": 0,
+              "multiplier": 1.04
+            },
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.popularity",
+              "delta": -5
+            }
+          ]
+        },
+        {
+          "labelKey": "event.qs.economy.budget_strain.choice.borrow",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "economy.treasury",
+              "delta": 4
+            },
+            {
+              "type": "shiftAttitude",
+              "with": "verm-soltan",
+              "delta": -5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_qs_military_border_skirmish",
+      "nameKey": "event.qs.military.border_skirmish.name",
+      "descriptionKey": "event.qs.military.border_skirmish.description",
+      "trigger": {
+        "type": "random",
+        "chancePerTick": 0.01
+      },
+      "cooldownTicks": 40,
+      "weight": 7,
+      "tags": ["military", "diplomacy", "crisis"],
+      "choices": [
+        {
+          "labelKey": "event.qs.military.border_skirmish.choice.protest",
+          "effects": [
+            {
+              "type": "shiftAttitude",
+              "with": "verm-magnara",
+              "delta": -8
+            },
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.popularity",
+              "delta": 2
+            }
+          ]
+        },
+        {
+          "labelKey": "event.qs.military.border_skirmish.choice.negotiate",
+          "effects": [
+            {
+              "type": "shiftAttitude",
+              "with": "verm-magnara",
+              "delta": 4
+            },
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "economy.treasury",
+              "delta": -1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_qs_diplomacy_trade_offer",
+      "nameKey": "event.qs.diplomacy.trade_offer.name",
+      "descriptionKey": "event.qs.diplomacy.trade_offer.description",
+      "trigger": {
+        "type": "periodic",
+        "everyTicks": 35
+      },
+      "cooldownTicks": 35,
+      "weight": 6,
+      "tags": ["diplomacy", "economy", "opportunity"],
+      "choices": [
+        {
+          "labelKey": "event.qs.diplomacy.trade_offer.choice.accept",
+          "effects": [
+            {
+              "type": "shiftAttitude",
+              "with": "verm-soltan",
+              "delta": 6
+            },
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "economy.weeklyIncome",
+              "delta": 0,
+              "multiplier": 1.03
+            }
+          ]
+        },
+        {
+          "labelKey": "event.qs.diplomacy.trade_offer.choice.decline",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.factions.populist.satisfaction",
+              "delta": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_qs_social_civic_festival",
+      "nameKey": "event.qs.social.civic_festival.name",
+      "descriptionKey": "event.qs.social.civic_festival.description",
+      "trigger": {
+        "type": "periodic",
+        "everyTicks": 45
+      },
+      "cooldownTicks": 45,
+      "weight": 5,
+      "tags": ["social", "opportunity"],
+      "choices": [
+        {
+          "labelKey": "event.qs.social.civic_festival.choice.fund",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "economy.treasury",
+              "delta": -2
+            },
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.popularity",
+              "delta": 6
+            }
+          ]
+        },
+        {
+          "labelKey": "event.qs.social.civic_festival.choice.skip",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.popularity",
+              "delta": -2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_qs_intel_spy_caught",
+      "nameKey": "event.qs.intel.spy_caught.name",
+      "descriptionKey": "event.qs.intel.spy_caught.description",
+      "trigger": {
+        "type": "random",
+        "chancePerTick": 0.006
+      },
+      "cooldownTicks": 60,
+      "weight": 5,
+      "tags": ["intelligence", "diplomacy", "crisis"],
+      "choices": [
+        {
+          "labelKey": "event.qs.intel.spy_caught.choice.disavow",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "intelligence.spyCount",
+              "delta": -1
+            },
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.popularity",
+              "delta": -2
+            }
+          ]
+        },
+        {
+          "labelKey": "event.qs.intel.spy_caught.choice.bribe_release",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "economy.treasury",
+              "delta": -3
+            },
+            {
+              "type": "shiftAttitude",
+              "with": "verm-koros",
+              "delta": -4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_qs_opportunity_research_grant",
+      "nameKey": "event.qs.opportunity.research_grant.name",
+      "descriptionKey": "event.qs.opportunity.research_grant.description",
+      "trigger": {
+        "type": "random",
+        "chancePerTick": 0.008
+      },
+      "cooldownTicks": 50,
+      "weight": 5,
+      "tags": ["opportunity", "narrative"],
+      "choices": [
+        {
+          "labelKey": "event.qs.opportunity.research_grant.choice.accept",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "science.researchOutput",
+              "delta": 0,
+              "multiplier": 1.06
+            }
+          ]
+        },
+        {
+          "labelKey": "event.qs.opportunity.research_grant.choice.decline",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.factions.business.satisfaction",
+              "delta": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_qs_crisis_storm_season",
+      "nameKey": "event.qs.crisis.storm_season.name",
+      "descriptionKey": "event.qs.crisis.storm_season.description",
+      "trigger": {
+        "type": "random",
+        "chancePerTick": 0.005
+      },
+      "cooldownTicks": 80,
+      "weight": 4,
+      "tags": ["crisis", "social"],
+      "choices": [
+        {
+          "labelKey": "event.qs.crisis.storm_season.choice.relief",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "economy.treasury",
+              "delta": -4
+            },
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.popularity",
+              "delta": 5
+            }
+          ]
+        },
+        {
+          "labelKey": "event.qs.crisis.storm_season.choice.minimal_response",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.popularity",
+              "delta": -4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_qs_diplomacy_alliance_proposal",
+      "nameKey": "event.qs.diplomacy.alliance_proposal.name",
+      "descriptionKey": "event.qs.diplomacy.alliance_proposal.description",
+      "trigger": {
+        "type": "condition",
+        "expression": "worldTension > 30"
+      },
+      "cooldownTicks": 70,
+      "weight": 6,
+      "tags": ["diplomacy", "opportunity"],
+      "choices": [
+        {
+          "labelKey": "event.qs.diplomacy.alliance_proposal.choice.tessari",
+          "effects": [
+            {
+              "type": "shiftAttitude",
+              "with": "verm-tessari",
+              "delta": 12
+            }
+          ]
+        },
+        {
+          "labelKey": "event.qs.diplomacy.alliance_proposal.choice.ridhana",
+          "effects": [
+            {
+              "type": "shiftAttitude",
+              "with": "verm-ridhana",
+              "delta": 12
+            }
+          ]
+        },
+        {
+          "labelKey": "event.qs.diplomacy.alliance_proposal.choice.neither",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.popularity",
+              "delta": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_qs_politics_reform_demand",
+      "nameKey": "event.qs.politics.reform_demand.name",
+      "descriptionKey": "event.qs.politics.reform_demand.description",
+      "trigger": {
+        "type": "condition",
+        "expression": "popularity < 50"
+      },
+      "cooldownTicks": 50,
+      "weight": 6,
+      "tags": ["politics", "social"],
+      "choices": [
+        {
+          "labelKey": "event.qs.politics.reform_demand.choice.reform",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.factions.reformist.satisfaction",
+              "delta": 8
+            },
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.popularity",
+              "delta": 5
+            }
+          ]
+        },
+        {
+          "labelKey": "event.qs.politics.reform_demand.choice.resist",
+          "effects": [
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.factions.business.satisfaction",
+              "delta": 5
+            },
+            {
+              "type": "modifyStat",
+              "target": "player",
+              "stat": "politics.popularity",
+              "delta": -3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "victoryConditions": [
+    {
+      "id": "economic",
+      "nameKey": "victory.qs.economic.name",
+      "descriptionKey": "victory.qs.economic.description",
+      "rule": {
+        "kind": "gdpRank",
+        "ofPlayer": true,
+        "rankAtMost": 1
+      }
+    },
+    {
+      "id": "military",
+      "nameKey": "victory.qs.military.name",
+      "descriptionKey": "victory.qs.military.description",
+      "rule": {
+        "kind": "controlNCountries",
+        "n": 3
+      }
+    },
+    {
+      "id": "scientific",
+      "nameKey": "victory.qs.scientific.name",
+      "descriptionKey": "victory.qs.scientific.description",
+      "rule": {
+        "kind": "completeTech",
+        "techId": "tech_qs_space_satellite_advanced"
+      }
+    },
+    {
+      "id": "diplomatic",
+      "nameKey": "victory.qs.diplomatic.name",
+      "descriptionKey": "victory.qs.diplomatic.description",
+      "rule": {
+        "kind": "allianceCoverage",
+        "minPercent": 60
+      }
+    },
+    {
+      "id": "domination",
+      "nameKey": "victory.qs.domination.name",
+      "descriptionKey": "victory.qs.domination.description",
+      "rule": {
+        "kind": "controlNCountries",
+        "n": 4
+      }
+    }
+  ],
+  "difficulties": [
+    {
+      "id": "easy",
+      "nameKey": "difficulty.easy.name",
+      "modifiers": {
+        "aiAggression": 0.7,
+        "aiResearchSpeed": 0.85,
+        "playerIncome": 1.3,
+        "eventDifficulty": 0.8
+      }
+    },
+    {
+      "id": "normal",
+      "nameKey": "difficulty.normal.name",
+      "modifiers": {
+        "aiAggression": 1.0,
+        "aiResearchSpeed": 1.0,
+        "playerIncome": 1.0,
+        "eventDifficulty": 1.0
+      }
+    },
+    {
+      "id": "hard",
+      "nameKey": "difficulty.hard.name",
+      "modifiers": {
+        "aiAggression": 1.35,
+        "aiResearchSpeed": 1.2,
+        "playerIncome": 0.85,
+        "eventDifficulty": 1.25
+      }
+    }
+  ]
+}

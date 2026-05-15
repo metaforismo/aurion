@@ -32,6 +32,13 @@
   "setup": {
     "title": "New game",
     "stepOf": "Step {current} of {total}",
+    "breadcrumbs": {
+      "label": "Game setup",
+      "scenario": "Scenario",
+      "country": "Country",
+      "victory": "Victory",
+      "difficulty": "Difficulty"
+    },
     "stepScenario": {
       "title": "Choose a scenario",
       "description": "The scenario defines the world, nations and tech tree."
@@ -43,6 +50,50 @@
     "stepVictory": {
       "title": "Choose a victory condition",
       "description": "Sets your long-term objective."
+    },
+    "stepDifficulty": {
+      "title": "Choose difficulty",
+      "description": "Tune the challenge before you begin. Each preset shows what changes.",
+      "recommended": "Recommended",
+      "ironManWarning": "Iron Man mode: no autosave, one shot only. A defeat ends the game.",
+      "modifier": {
+        "aiAggression": "AI aggression",
+        "aiResearchSpeed": "AI research speed",
+        "playerIncome": "Player income",
+        "eventDifficulty": "Event severity",
+        "aiAllianceBias": "AI coalitions",
+        "spyDetectionAgainstPlayer": "Spy detection",
+        "lossToleranceWeeks": "Loss tolerance",
+        "eventChanceMultiplier": "Event frequency",
+        "easierLabel": "easier",
+        "harderLabel": "harder",
+        "neutralLabel": "unchanged",
+        "deltaPositive": "+{percent}%",
+        "deltaNegative": "{percent}%",
+        "neutral": "—"
+      }
+    },
+    "scenario": {
+      "status": {
+        "available": "Available",
+        "planned": "Coming soon"
+      },
+      "fallback": {
+        "name": "Scenario {id}",
+        "description": "Preview not available."
+      }
+    },
+    "country": {
+      "stats": {
+        "gdp": "GDP",
+        "popularity": "Popularity",
+        "factions": "Factions"
+      }
+    },
+    "difficulty": {
+      "fallback": {
+        "name": "Preset {id}"
+      }
     },
     "start": "Start game",
     "preparing": "Preparing game…"
@@ -397,8 +448,39 @@
     }
   },
   "difficulty": {
+    "easy": {
+      "name": "Easy",
+      "description": "Less aggressive AI, +30% starting income, softer negative events. Great to learn the ropes."
+    },
     "normal": {
-      "name": "Normal"
+      "name": "Normal",
+      "description": "Reference balance. A fair challenge with no concessions."
+    },
+    "hard": {
+      "name": "Hard",
+      "description": "AI gangs up on the leader, your income shrinks and loss counters move faster."
+    },
+    "ironMan": {
+      "name": "Iron Man",
+      "description": "Like Hard, but with no autosave or manual saves. One shot only."
+    }
+  },
+  "scenario": {
+    "ascesa-aurion": {
+      "name": "Rise of Aurion",
+      "description": "The flagship campaign: a small industrial republic caught between great-power ambitions."
+    },
+    "quick-start": {
+      "name": "Quick Start",
+      "description": "Eight nations in one region. A tutorial-lite run, 10–20 real minutes."
+    },
+    "mondo-contemporaneo": {
+      "name": "Contemporary World",
+      "description": "Fictional 2026. Inherit a middle power and try to climb to the global top."
+    },
+    "guerra-fredda": {
+      "name": "Cold War",
+      "description": "Fictional 1962. Bipolar world, decolonisation, space race."
     }
   },
   "victoryScreen": {

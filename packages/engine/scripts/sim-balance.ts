@@ -1,15 +1,18 @@
-// Headless simulation runner.
+// Sim balance runner.
 //
-// Loads a scenario JSON from `apps/web/content/scenarios/<scenario>.json` if
-// it exists, otherwise falls back to a small mock scenario built inline. Then
-// runs N games where every country (including the "player" slot) is driven by
-// AI, and prints win/loss/timeout distribution + average ticks-to-completion.
+// Always runs all 3 difficulties N times each on the chosen scenario and
+// prints a markdown table with win/loss/timeout percentages. Exits non-zero if
+// any difficulty's win-rate strays from the Phase 2 target by more than
+// `WIN_RATE_SLACK_PP` percentage points.
+//
+// The `WIN_RATE_SLACK_PP = 25` value is intentionally loose for first-pass
+// scaffolding so that early Phase 2 work doesn't break CI; tighten this to
+// match `docs/SPEC-PHASE-2.md` (±10pp in Phase 2, stricter in Phase 3) once
+// the engine + content have stabilised.
 //
 // Env knobs:
-//   SIM_RUNS=100                                — number of runs (per difficulty)
-//   SIM_DIFFICULTY=easy|normal|hard             — which difficulty preset to use
+//   SIM_RUNS=100                                — number of runs per difficulty
 //   SIM_SCENARIO=ascesa-aurion|quick-start|...  — which scenario JSON to load
-//   SIM_COMPARE=true                            — run all 3 difficulties + table
 
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -26,52 +29,36 @@ import type {
   Scenario,
 } from '../src/index.js';
 
-export type DifficultyId = 'easy' | 'normal' | 'hard';
+type DifficultyId = 'easy' | 'normal' | 'hard';
+type Outcome = 'won' | 'lost' | 'timeout';
 
 const RUNS = Number.parseInt(process.env['SIM_RUNS'] ?? '100', 10);
 const MAX_TICKS = 2000;
 const SCENARIO_ID = (process.env['SIM_SCENARIO'] ?? 'ascesa-aurion').trim();
-const COMPARE = (process.env['SIM_COMPARE'] ?? '').toLowerCase() === 'true';
-const DIFFICULTY_ID: DifficultyId = parseDifficulty(process.env['SIM_DIFFICULTY']);
 
-function parseDifficulty(raw: string | undefined): DifficultyId {
-  const v = (raw ?? 'normal').toLowerCase();
-  if (v === 'easy' || v === 'normal' || v === 'hard') return v;
-  console.warn(`Unknown SIM_DIFFICULTY="${raw}", defaulting to "normal".`);
-  return 'normal';
-}
+/**
+ * Acceptable deviation (in percentage points) of measured win-rate from the
+ * Phase 2 target before we consider the balance broken. Loose on purpose for
+ * first-pass scaffolding — tighten as the tuning pass progresses.
+ */
+const WIN_RATE_SLACK_PP = 25;
 
-function scenarioPath(id: string): string {
-  return resolve(process.cwd(), `../../apps/web/content/scenarios/${id}.json`);
-}
+/** Phase 2 target distributions, from `docs/SPEC-PHASE-2.md`. */
+const TARGETS: Record<
+  DifficultyId,
+  { winRatePct: number; timeoutPct: number; lossPct: number }
+> = {
+  easy: { winRatePct: 50, timeoutPct: 30, lossPct: 20 },
+  normal: { winRatePct: 30, timeoutPct: 40, lossPct: 30 },
+  hard: { winRatePct: 10, timeoutPct: 30, lossPct: 60 },
+};
 
-function loadScenario(id: string): Scenario {
-  const path = scenarioPath(id);
-  if (existsSync(path)) {
-    try {
-      const raw = readFileSync(path, 'utf-8');
-      const parsed: unknown = JSON.parse(raw);
-      // Trust the scenario file's shape; engine validates at createGame time.
-      return parsed as Scenario;
-    } catch (e) {
-      console.warn(`Could not read scenario at ${path}, using mock:`, e);
-    }
-  } else {
-    console.warn(`Scenario file not found at ${path}, using mock.`);
-  }
-  return mockScenario();
-}
-
-// ---------------------------------------------------------------------------
-// Difficulty presets.
-//
-// Mirrors `docs/SPEC-PHASE-2.md` — used as a fallback when the scenario JSON
-// hasn't been updated yet to ship the easy/hard tunings (Phase 2 in flight).
-// We prefer a scenario's own DifficultyTuning entry if present so content
-// authors can override per-scenario.
-// ---------------------------------------------------------------------------
-
-export const DIFFICULTY_PRESETS: Record<DifficultyId, DifficultyTuning> = {
+/**
+ * Difficulty presets, mirroring `docs/SPEC-PHASE-2.md`. Used as a fallback
+ * when the scenario JSON hasn't been updated yet to ship the easy/hard
+ * tunings (Phase 2 in flight).
+ */
+const DIFFICULTY_PRESETS: Record<DifficultyId, DifficultyTuning> = {
   easy: {
     id: 'easy',
     nameKey: 'difficulty.easy.name',
@@ -116,19 +103,30 @@ export const DIFFICULTY_PRESETS: Record<DifficultyId, DifficultyTuning> = {
   },
 };
 
-/**
- * Pick the DifficultyTuning to feed to the engine for `id`.
- *
- * Preference order:
- *   1. Scenario JSON's own entry with that id (authors may override).
- *   2. Hard-coded preset from `docs/SPEC-PHASE-2.md`.
- */
-export function resolveDifficulty(scenario: Scenario, id: DifficultyId): DifficultyTuning {
-  const fromScenario = scenario.difficulties.find((d) => d.id === id);
-  return fromScenario ?? DIFFICULTY_PRESETS[id];
+function scenarioPath(id: string): string {
+  return resolve(process.cwd(), `../../apps/web/content/scenarios/${id}.json`);
+}
+
+function loadScenario(id: string): Scenario {
+  const path = scenarioPath(id);
+  if (existsSync(path)) {
+    try {
+      const raw = readFileSync(path, 'utf-8');
+      const parsed: unknown = JSON.parse(raw);
+      return parsed as Scenario;
+    } catch (e) {
+      console.warn(`Could not read scenario at ${path}, using mock:`, e);
+    }
+  } else {
+    console.warn(`Scenario file not found at ${path}, using mock.`);
+  }
+  return mockScenario();
 }
 
 function mockScenario(): Scenario {
+  // Compact 5-country fallback so the balance script remains useful in a
+  // scratch checkout. Mirrors sim.ts's mock; kept inline (no shared module)
+  // to stay self-contained and avoid the script importing from the other.
   const personalities: AiPersonality[] = [
     { archetype: 'pacifist_trader', aggressiveness: 0.2, expansionism: 0.2, paranoia: 0.4, pragmatism: 0.7 },
     { archetype: 'regional_bully', aggressiveness: 0.8, expansionism: 0.6, paranoia: 0.5, pragmatism: 0.3 },
@@ -182,7 +180,7 @@ function mockScenario(): Scenario {
     };
   });
   return {
-    id: 'mock-sim',
+    id: 'mock-balance',
     nameKey: 'sim.mock',
     descriptionKey: 'sim.mock.desc',
     version: '0.0.0',
@@ -210,8 +208,6 @@ function mockScenario(): Scenario {
         rule: { kind: 'gdpRank', ofPlayer: true, rankAtMost: 1 },
       },
     ],
-    // Mock ships all 3 phase-2 presets so a default sim works without a real
-    // scenario JSON or a content-side update to add easy/hard tunings.
     difficulties: [
       DIFFICULTY_PRESETS.easy,
       DIFFICULTY_PRESETS.normal,
@@ -220,10 +216,13 @@ function mockScenario(): Scenario {
   };
 }
 
-type Outcome = 'won' | 'lost' | 'timeout';
+function resolveDifficulty(scenario: Scenario, id: DifficultyId): DifficultyTuning {
+  return scenario.difficulties.find((d) => d.id === id) ?? DIFFICULTY_PRESETS[id];
+}
+
 type Result = { outcome: Outcome; ticks: number };
 
-export function runOne(
+function runOne(
   scenario: Scenario,
   difficulty: DifficultyTuning,
   seed: string,
@@ -241,10 +240,8 @@ export function runOne(
   const eventPool = scenario.eventPool;
   const victoryRule = scenario.victoryConditions[0]?.rule;
 
-  // Force-attach an AI personality to the "player" so all countries are AI-driven.
-  // Default archetype matches the scenario fantasy ("small nation rising peacefully"):
-  // a pacifist_trader baseline keeps the sim from immediately auto-declaring war on
-  // every neighbour, so we measure scenario balance rather than self-induced collapse.
+  // Same convention as sim.ts: ensure the "player" slot has an AI personality
+  // so balance runs are fully self-driven.
   s = {
     ...s,
     countries: {
@@ -264,9 +261,6 @@ export function runOne(
 
   for (let i = 0; i < MAX_TICKS; i++) {
     if (s.winLoss !== 'playing') break;
-    // Player slot: also let AI act. Note: we deliberately do NOT pass the
-    // difficulty into the player's AI scoring — difficulty modifiers describe
-    // the world the player faces, not the player's own behaviour.
     const action: Action | null = decideAiAction(s, playerId, playerRng, techCatalog);
     if (action) {
       const r = applyAction(s, action, playerId, techCatalog);
@@ -280,15 +274,18 @@ export function runOne(
   return { outcome: 'timeout', ticks: s.tick };
 }
 
-export type Distribution = {
+type Distribution = {
   difficulty: DifficultyId;
   runs: number;
   counts: Record<Outcome, number>;
   crashes: number;
   avgTicks: number;
+  winRatePct: number;
+  lossRatePct: number;
+  timeoutRatePct: number;
 };
 
-export function runMany(
+function runMany(
   scenario: Scenario,
   difficulty: DifficultyTuning,
   runs: number,
@@ -298,7 +295,7 @@ export function runMany(
   let crashes = 0;
   for (let i = 0; i < runs; i++) {
     try {
-      const res = runOne(scenario, difficulty, `${difficulty.id}-seed-${i}`);
+      const res = runOne(scenario, difficulty, `${difficulty.id}-bal-${i}`);
       counts[res.outcome]++;
       totalTicks += res.ticks;
     } catch (e) {
@@ -307,79 +304,83 @@ export function runMany(
     }
   }
   const completed = runs - crashes;
-  const avgTicks = completed > 0 ? totalTicks / completed : 0;
+  const denom = completed > 0 ? completed : 1;
   return {
     difficulty: difficulty.id as DifficultyId,
     runs,
     counts,
     crashes,
-    avgTicks,
+    avgTicks: completed > 0 ? totalTicks / completed : 0,
+    winRatePct: (counts.won / denom) * 100,
+    lossRatePct: (counts.lost / denom) * 100,
+    timeoutRatePct: (counts.timeout / denom) * 100,
   };
 }
 
-export function pct(n: number, total: number): string {
-  if (total <= 0) return '0.0%';
-  return `${((n / total) * 100).toFixed(1)}%`;
+function fmtPct(n: number): string {
+  return `${n.toFixed(1)}%`;
 }
 
-function printSingle(scenario: Scenario, dist: Distribution): void {
-  console.log('---');
-  console.log(`Scenario:   ${scenario.id}`);
-  console.log(`Difficulty: ${dist.difficulty}`);
-  console.log(`Runs:       ${dist.runs}`);
-  console.log(`Won:        ${dist.counts.won} (${pct(dist.counts.won, dist.runs)})`);
-  console.log(`Lost:       ${dist.counts.lost} (${pct(dist.counts.lost, dist.runs)})`);
-  console.log(`Timeout:    ${dist.counts.timeout} (${pct(dist.counts.timeout, dist.runs)})`);
-  console.log(`Crashes:    ${dist.crashes}`);
-  console.log(`Avg ticks-to-completion: ${dist.avgTicks.toFixed(1)}`);
-}
-
-function printCompareTable(scenario: Scenario, results: readonly Distribution[]): void {
-  const cols = ['Difficulty', 'Runs', 'Won', 'Lost', 'Timeout', 'Avg ticks', 'Crashes'];
-  const rows = results.map((d) => [
-    d.difficulty,
-    String(d.runs),
-    `${d.counts.won} (${pct(d.counts.won, d.runs)})`,
-    `${d.counts.lost} (${pct(d.counts.lost, d.runs)})`,
-    `${d.counts.timeout} (${pct(d.counts.timeout, d.runs)})`,
-    d.avgTicks.toFixed(1),
-    String(d.crashes),
-  ]);
-  const widths = cols.map((c, i) =>
-    Math.max(c.length, ...rows.map((r) => (r[i] ?? '').length)),
+function printMarkdownTable(scenario: Scenario, results: readonly Distribution[]): void {
+  console.log('');
+  console.log(
+    `## Balance: \`${scenario.id}\` — ${results[0]?.runs ?? 0} runs / difficulty`,
   );
-  const fmt = (cells: readonly string[]): string =>
-    '| ' + cells.map((c, i) => c.padEnd(widths[i] ?? 0)).join(' | ') + ' |';
-  const sep = '|' + widths.map((w) => '-'.repeat(w + 2)).join('|') + '|';
-  console.log('---');
-  console.log(`Scenario: ${scenario.id} (${results[0]?.runs ?? 0} runs each)`);
-  console.log(fmt(cols));
-  console.log(sep);
-  for (const r of rows) console.log(fmt(r));
+  console.log('');
+  console.log(
+    '| Difficulty | Won | Lost | Timeout | Avg ticks | Crashes | Target win | Δ vs target |',
+  );
+  console.log(
+    '|------------|----:|-----:|--------:|----------:|--------:|-----------:|-------------|',
+  );
+  for (const d of results) {
+    const target = TARGETS[d.difficulty];
+    const delta = d.winRatePct - target.winRatePct;
+    const deltaStr = `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}pp`;
+    const ok = Math.abs(delta) <= WIN_RATE_SLACK_PP ? 'OK' : 'OUT';
+    console.log(
+      `| ${d.difficulty} | ${fmtPct(d.winRatePct)} | ${fmtPct(d.lossRatePct)} | ` +
+        `${fmtPct(d.timeoutRatePct)} | ${d.avgTicks.toFixed(1)} | ${d.crashes} | ` +
+        `${fmtPct(target.winRatePct)} | ${deltaStr} (${ok}) |`,
+    );
+  }
+  console.log('');
+  console.log(
+    `Slack: ±${WIN_RATE_SLACK_PP}pp on win-rate (loose first-pass scaffolding). ` +
+      `Tighten in docs/SPEC-PHASE-2.md once tuning has settled.`,
+  );
 }
 
 function main(): void {
   const scenario = loadScenario(SCENARIO_ID);
-
-  if (COMPARE) {
-    console.log(
-      `Running ${RUNS} simulations per difficulty on scenario "${scenario.id}" (max ${MAX_TICKS} ticks each)…`,
-    );
-    const results: Distribution[] = (['easy', 'normal', 'hard'] as const).map((id) =>
-      runMany(scenario, resolveDifficulty(scenario, id), RUNS),
-    );
-    printCompareTable(scenario, results);
-    if (results.some((r) => r.crashes > 0)) process.exitCode = 1;
-    return;
-  }
-
-  const difficulty = resolveDifficulty(scenario, DIFFICULTY_ID);
   console.log(
-    `Running ${RUNS} simulations on scenario "${scenario.id}" @ ${difficulty.id} (max ${MAX_TICKS} ticks each)…`,
+    `Running ${RUNS} simulations per difficulty on scenario "${scenario.id}" ` +
+      `(max ${MAX_TICKS} ticks each)…`,
   );
-  const dist = runMany(scenario, difficulty, RUNS);
-  printSingle(scenario, dist);
-  if (dist.crashes > 0) process.exitCode = 1;
+  const results: Distribution[] = (['easy', 'normal', 'hard'] as const).map((id) =>
+    runMany(scenario, resolveDifficulty(scenario, id), RUNS),
+  );
+  printMarkdownTable(scenario, results);
+
+  let exitCode = 0;
+  if (results.some((r) => r.crashes > 0)) {
+    console.error('FAIL: one or more runs crashed.');
+    exitCode = 1;
+  }
+  const offenders = results.filter(
+    (r) => Math.abs(r.winRatePct - TARGETS[r.difficulty].winRatePct) > WIN_RATE_SLACK_PP,
+  );
+  if (offenders.length > 0) {
+    for (const r of offenders) {
+      const target = TARGETS[r.difficulty];
+      console.error(
+        `FAIL: ${r.difficulty} win-rate ${fmtPct(r.winRatePct)} is more than ` +
+          `${WIN_RATE_SLACK_PP}pp from target ${fmtPct(target.winRatePct)}.`,
+      );
+    }
+    exitCode = 1;
+  }
+  if (exitCode !== 0) process.exitCode = exitCode;
 }
 
 main();

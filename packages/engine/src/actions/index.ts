@@ -6,6 +6,7 @@ import type {
   Action,
   ApplyActionResult,
   CountryId,
+  DifficultyTuning,
   DiplomacyKind,
   FactionId,
   GameState,
@@ -47,13 +48,14 @@ export function applyAction(
   action: Action,
   countryId?: CountryId,
   techCatalog: readonly TechDefinition[] = [],
+  difficulty?: DifficultyTuning,
 ): ApplyActionResult {
   const actor = countryId ?? state.playerCountryId;
   switch (action.type) {
     case 'invest':
       return applyInvest(state, action, actor);
     case 'deploySpy':
-      return applyDeploySpy(state, action, actor);
+      return applyDeploySpy(state, action, actor, difficulty);
     case 'startResearch':
       return applyStartResearch(state, action, actor, techCatalog);
     case 'setTaxRate':
