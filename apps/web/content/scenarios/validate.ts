@@ -21,6 +21,9 @@ import quickStartEn from './quick-start.en.json' with { type: 'json' };
 import mondoJson from './mondo-contemporaneo.json' with { type: 'json' };
 import mondoIt from './mondo-contemporaneo.it.json' with { type: 'json' };
 import mondoEn from './mondo-contemporaneo.en.json' with { type: 'json' };
+import guerraFreddaJson from './guerra-fredda.json' with { type: 'json' };
+import guerraFreddaIt from './guerra-fredda.it.json' with { type: 'json' };
+import guerraFreddaEn from './guerra-fredda.en.json' with { type: 'json' };
 import type {
   Scenario,
   CountryInit,
@@ -81,6 +84,12 @@ const SCENARIO_FILES: readonly RegistryEntry[] = [
     scenarioJson: mondoJson,
     it: mondoIt,
     en: mondoEn,
+  },
+  {
+    id: 'guerra-fredda',
+    scenarioJson: guerraFreddaJson,
+    it: guerraFreddaIt,
+    en: guerraFreddaEn,
   },
 ];
 

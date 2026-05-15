@@ -27,7 +27,8 @@
     "settings": "Settings",
     "languageSwitch": "Switch language",
     "saveSavedAt": "Saved {date}",
-    "import": "Import save"
+    "import": "Import save",
+    "emptyHint": "Start a new game to see it here."
   },
   "setup": {
     "title": "New game",
@@ -137,6 +138,14 @@
       "menuDisabled": "Disabled in Iron Man",
       "menuHint": "Disabled in Iron Man — you can only save once the run ends.",
       "exitWarning": "Iron Man has no autosave. Leaving now abandons the run permanently."
+    },
+    "audio": {
+      "volumeButton": "Audio settings",
+      "popoverTitle": "Audio",
+      "musicLabel": "Music",
+      "sfxLabel": "Sound effects",
+      "mute": "Mute",
+      "unmute": "Unmute"
     }
   },
   "notifications": {
@@ -606,6 +615,101 @@
         "title": "That's it!",
         "body": "You've seen the essentials. The game will resume at 1× speed as soon as you close this window. Have fun."
       }
+    }
+  },
+  "achievements": {
+    "toast": {
+      "unlocked": "Achievement unlocked",
+      "dismiss": "Dismiss"
+    },
+    "list": {
+      "title": "Achievements",
+      "locked": "???",
+      "tier": {
+        "bronze": "Bronze",
+        "silver": "Silver",
+        "gold": "Gold"
+      }
+    },
+    "complete_first_tech": {
+      "name": "First steps",
+      "description": "Complete your first technology."
+    },
+    "popular_leader": {
+      "name": "Popular leader",
+      "description": "Reach 80 popularity."
+    },
+    "first_alliance": {
+      "name": "Diplomat",
+      "description": "Sign your first alliance treaty."
+    },
+    "first_spy_op": {
+      "name": "Cloak and dagger",
+      "description": "Complete your first spy operation."
+    },
+    "first_century": {
+      "name": "A century in power",
+      "description": "Govern for 100 weeks without losing the game."
+    },
+    "master_spy": {
+      "name": "Master spy",
+      "description": "Complete 10 successful spy operations."
+    },
+    "peace_through_strength": {
+      "name": "Peace through strength",
+      "description": "Win three wars by securing enemy territory."
+    },
+    "survivor": {
+      "name": "Survivor",
+      "description": "Survive 500 weeks without losing."
+    },
+    "cold_warrior": {
+      "name": "Cold warrior",
+      "description": "Maintain your government for 250 weeks."
+    },
+    "coalition_builder": {
+      "name": "Coalition builder",
+      "description": "Hold three alliances at the same time."
+    },
+    "beloved_government": {
+      "name": "Beloved government",
+      "description": "Reach 90 popularity."
+    },
+    "top3_economy": {
+      "name": "Rising power",
+      "description": "Reach the top 3 economies by GDP."
+    },
+    "industrial_powerhouse": {
+      "name": "Industrial powerhouse",
+      "description": "Complete the advanced industry technology."
+    },
+    "economic_titan": {
+      "name": "Economic titan",
+      "description": "Become the world's largest economy."
+    },
+    "space_pioneer": {
+      "name": "Space pioneer",
+      "description": "Complete a space-programme technology."
+    },
+    "global_alliance": {
+      "name": "Global alliance",
+      "description": "Hold five alliances at the same time."
+    },
+    "spy_master_general": {
+      "name": "Spy master general",
+      "description": "Complete 25 successful spy operations."
+    },
+    "long_haul": {
+      "name": "Long haul",
+      "description": "Survive 1000 weeks without losing."
+    },
+    "warlord": {
+      "name": "Warlord",
+      "description": "Win five wars across all your runs."
+    },
+    "mars_conqueror": {
+      "name": "Mars conqueror",
+      "description": "Establish a colony on Mars."
     }
   }
 }

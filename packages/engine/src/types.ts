@@ -445,6 +445,41 @@ export type GameState = {
 };
 
 // ---------------------------------------------------------------------------
+// Achievements (cross-game / global unlocks).
+// ---------------------------------------------------------------------------
+
+export type AchievementId = string;
+
+/**
+ * Composable, declarative predicate over the current GameState. The runtime
+ * never carries closures so achievement definitions remain JSON-serialisable
+ * (which keeps them friendly to future "load extra achievements from a
+ * scenario" flows). All numeric thresholds are inclusive (>= / <=) unless
+ * noted otherwise on the matching evaluator branch.
+ */
+export type AchievementCondition =
+  | { kind: 'completeTech'; techId: TechId }
+  | { kind: 'reachPopularity'; threshold: number }
+  | { kind: 'reachGdpRank'; rank: number }
+  | { kind: 'allianceCount'; n: number }
+  | { kind: 'spyOpsCompleted'; n: number }
+  | { kind: 'completeWar'; wins: number }
+  | { kind: 'survivedTicks'; n: number }
+  | { kind: 'and'; conditions: AchievementCondition[] }
+  | { kind: 'or'; conditions: AchievementCondition[] };
+
+export type AchievementDef = {
+  id: AchievementId;
+  nameKey: string;
+  descKey: string;
+  condition: AchievementCondition;
+  /** 'bronze' | 'silver' | 'gold' difficulty hint for UI. */
+  tier: 'bronze' | 'silver' | 'gold';
+  /** Hidden until unlocked — secret achievements get a placeholder name in UI. */
+  hidden?: boolean;
+};
+
+// ---------------------------------------------------------------------------
 // Engine API result shapes.
 // ---------------------------------------------------------------------------
 

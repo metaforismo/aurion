@@ -66,7 +66,7 @@ export const SCENARIO_REGISTRY: Record<ScenarioId, ScenarioMeta> = {
     id: 'guerra-fredda',
     nameKey: 'scenario.guerra-fredda.name',
     descriptionKey: 'scenario.guerra-fredda.description',
-    status: 'planned',
+    status: 'available',
     sortOrder: 30,
   },
 };
@@ -147,6 +147,11 @@ export async function loadScenario(id: ScenarioId): Promise<Scenario> {
         '../content/scenarios/mondo-contemporaneo.json'
       )) as { default: Scenario };
       scenario = mod.default;
+    } else if (id === 'guerra-fredda') {
+      const mod = (await import(
+        '../content/scenarios/guerra-fredda.json'
+      )) as { default: Scenario };
+      scenario = mod.default;
     } else {
       throw new ScenarioNotFoundError(id);
     }
@@ -208,6 +213,16 @@ export async function loadScenarioMessages(
     } else if (id === 'mondo-contemporaneo' && locale === 'en') {
       const mod = (await import(
         '../content/scenarios/mondo-contemporaneo.en.json'
+      )) as { default: Record<string, string> };
+      messages = mod.default;
+    } else if (id === 'guerra-fredda' && locale === 'it') {
+      const mod = (await import(
+        '../content/scenarios/guerra-fredda.it.json'
+      )) as { default: Record<string, string> };
+      messages = mod.default;
+    } else if (id === 'guerra-fredda' && locale === 'en') {
+      const mod = (await import(
+        '../content/scenarios/guerra-fredda.en.json'
       )) as { default: Record<string, string> };
       messages = mod.default;
     }

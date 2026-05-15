@@ -8,6 +8,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
+  AchievementId,
   Action,
   CountryId,
   Country,
@@ -18,6 +19,10 @@ import type {
   SaveId,
   Scenario,
   VictoryConditionId,
+} from '@aurion/engine';
+import {
+  BUILTIN_ACHIEVEMENTS,
+  evaluateAchievements,
 } from '@aurion/engine';
 
 import {
@@ -30,9 +35,11 @@ import {
   AUTOSAVE_ID,
   autosave as persistenceAutosave,
   generateSaveId,
+  getUnlockedAchievements,
   loadSave,
   SaveLockedError,
   saveGame as persistenceSaveGame,
+  unlockAchievement,
 } from './persistence';
 import { loadScenario, type ScenarioId } from './scenarios';
 
@@ -120,6 +127,19 @@ export type GameStoreState = {
   pendingConfirm: ConfirmRequest | null;
   /** Which of the 6 game-system panels is currently active in the left rail. */
   selectedPanel: PanelId;
+  /**
+   * Most recent achievement that has been unlocked but not yet acknowledged
+   * by the UI. The toast component reads this and clears it via
+   * `dismissAchievementToast`. Null when no toast is queued.
+   */
+  pendingAchievementToast: AchievementId | null;
+  /**
+   * In-memory mirror of every achievement id we already know to be unlocked.
+   * Hydrated from IndexedDB on first load (lazy) and kept in sync with the
+   * `achievements` table so we never re-fire a toast for something the
+   * player has already seen.
+   */
+  unlockedAchievementIds: ReadonlySet<AchievementId>;
 
   // ---- Actions ------------------------------------------------------------
   loadGame: (saveId: SaveId) => Promise<void>;
@@ -151,6 +171,8 @@ export type GameStoreState = {
    * "default" / safe fallback). Useful for ESC handlers if we ever allow it.
    */
   dismissCurrentEvent: () => void;
+  /** Clear the currently displayed achievement toast. */
+  dismissAchievementToast: () => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -228,6 +250,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   selectedCountryId: null,
   pendingConfirm: null,
   selectedPanel: getInitialPanel(),
+  pendingAchievementToast: null,
+  unlockedAchievementIds: new Set<AchievementId>(),
 
   reset: () => {
     set({
@@ -382,6 +406,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       ticksThisSession: current.ticksThisSession + 1,
     });
 
+    // Achievements: ask the engine which definitions are now satisfied, then
+    // diff against the in-memory unlocked set. Anything new is persisted (the
+    // helper is idempotent at the DB layer too) and the most recent fresh
+    // unlock surfaces a UI toast. Fire-and-forget: the gameplay loop must
+    // never block on persistence.
+    void maybeUnlockAchievements(reconciled, current.saveId, get, set);
+
     // Autosave every 30 ticks of game time. Fire-and-forget — failures here
     // should not interrupt gameplay; they'll surface via the next manual save.
     //
@@ -488,7 +519,76 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   dismissCurrentEvent: () => {
     get().resolveCurrentEvent(0);
   },
+
+  dismissAchievementToast: () => {
+    set({ pendingAchievementToast: null });
+  },
 }));
+
+// ---------------------------------------------------------------------------
+// Achievement plumbing
+//
+// Kept at module scope (not inside the store factory) so we can reuse the
+// same helper from both `loadGame` and `advanceTick` without each call site
+// having to inline the diff against persistence.
+// ---------------------------------------------------------------------------
+
+/** True once the in-memory `unlockedAchievementIds` cache has been hydrated. */
+let _achievementsHydrated = false;
+
+async function ensureAchievementsHydrated(
+  set: (partial: Partial<GameStoreState>) => void,
+): Promise<void> {
+  if (_achievementsHydrated) return;
+  _achievementsHydrated = true;
+  try {
+    const rows = await getUnlockedAchievements();
+    if (rows.length === 0) return;
+    const ids = new Set<AchievementId>(rows.map((r) => r.id));
+    set({ unlockedAchievementIds: ids });
+  } catch (err) {
+    console.warn('[store] failed to hydrate achievements', err);
+    // Reset the gate so a future tick can retry hydration.
+    _achievementsHydrated = false;
+  }
+}
+
+async function maybeUnlockAchievements(
+  state: GameState,
+  saveId: SaveId | null,
+  get: () => GameStoreState,
+  set: (partial: Partial<GameStoreState>) => void,
+): Promise<void> {
+  await ensureAchievementsHydrated(set);
+  const known = get().unlockedAchievementIds;
+  const matched = evaluateAchievements(state, BUILTIN_ACHIEVEMENTS);
+  const fresh: AchievementId[] = [];
+  for (const id of matched) {
+    if (!known.has(id)) fresh.push(id);
+  }
+  if (fresh.length === 0) return;
+
+  const nextSet = new Set(known);
+  for (const id of fresh) nextSet.add(id);
+  // The toast renders the most recently unlocked id (typically the only one
+  // produced by a single tick). When two fire on the same tick we still only
+  // surface one — the player will see the rest in the achievements list.
+  const lastFresh = fresh[fresh.length - 1] ?? null;
+  set({
+    unlockedAchievementIds: nextSet,
+    pendingAchievementToast: lastFresh,
+  });
+
+  // Persist each new unlock; the helper is idempotent so any race with the
+  // hydrated set is harmless.
+  if (saveId) {
+    for (const id of fresh) {
+      void unlockAchievement(id, state.scenarioId, saveId).catch((err) => {
+        console.warn('[store] failed to persist achievement unlock', id, err);
+      });
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Selectors

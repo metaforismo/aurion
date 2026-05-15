@@ -17,6 +17,7 @@ const SCENARIO_IDS = [
   'ascesa-aurion',
   'quick-start',
   'mondo-contemporaneo',
+  'guerra-fredda',
 ] as const;
 
 export default getRequestConfig(async ({ requestLocale }) => {

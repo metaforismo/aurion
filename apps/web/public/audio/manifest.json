@@ -1,0 +1,14 @@
+{
+  "music.menu": { "src": "/audio/music/menu.mp3", "volume": 0.4, "loop": true },
+  "music.gameplay": { "src": "/audio/music/gameplay.mp3", "volume": 0.3, "loop": true },
+  "music.tension": { "src": "/audio/music/tension.mp3", "volume": 0.4, "loop": true },
+  "sfx.tick": { "src": "/audio/sfx/tick.mp3", "volume": 0.2 },
+  "sfx.click": { "src": "/audio/sfx/click.mp3", "volume": 0.5 },
+  "sfx.notification": { "src": "/audio/sfx/notification.mp3", "volume": 0.6 },
+  "sfx.event": { "src": "/audio/sfx/event.mp3", "volume": 0.7 },
+  "sfx.victory": { "src": "/audio/sfx/victory.mp3", "volume": 0.8 },
+  "sfx.defeat": { "src": "/audio/sfx/defeat.mp3", "volume": 0.7 },
+  "sfx.tech-unlock": { "src": "/audio/sfx/tech-unlock.mp3", "volume": 0.6 },
+  "sfx.spy-success": { "src": "/audio/sfx/spy-success.mp3", "volume": 0.5 },
+  "sfx.spy-detected": { "src": "/audio/sfx/spy-detected.mp3", "volume": 0.6 }
+}

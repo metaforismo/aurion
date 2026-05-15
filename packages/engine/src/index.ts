@@ -11,3 +11,15 @@ export { checkWinLoss } from './checkWinLoss.js';
 export { createRng } from './rng.js';
 export type { Rng } from './rng.js';
 export { decideAiAction } from './ai/index.js';
+export {
+  evaluateAchievements,
+  evaluateCondition as evaluateAchievementCondition,
+  BUILTIN_ACHIEVEMENTS,
+} from './achievements/index.js';
+// Re-export achievement types directly (not just via `export *`) so consumers
+// can grab them from the package root with a single import line.
+export type {
+  AchievementId,
+  AchievementDef,
+  AchievementCondition,
+} from './types.js';

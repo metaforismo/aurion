@@ -27,7 +27,8 @@
     "settings": "Impostazioni",
     "languageSwitch": "Cambia lingua",
     "saveSavedAt": "Salvato il {date}",
-    "import": "Importa partita"
+    "import": "Importa partita",
+    "emptyHint": "Inizia una nuova partita per vederla qui."
   },
   "setup": {
     "title": "Nuova partita",
@@ -137,6 +138,14 @@
       "menuDisabled": "Disabilitato in Iron Man",
       "menuHint": "Disabilitato in Iron Man — puoi salvare solo a fine partita.",
       "exitWarning": "L'Iron Man non ha autosave. Uscire ora abbandona definitivamente la partita."
+    },
+    "audio": {
+      "volumeButton": "Impostazioni audio",
+      "popoverTitle": "Audio",
+      "musicLabel": "Musica",
+      "sfxLabel": "Effetti sonori",
+      "mute": "Silenzia",
+      "unmute": "Riattiva"
     }
   },
   "notifications": {
@@ -606,6 +615,101 @@
         "title": "Tutto qui!",
         "body": "Hai visto i controlli essenziali. Il gioco riprenderà a velocità 1× appena chiudi questa finestra. Buona partita."
       }
+    }
+  },
+  "achievements": {
+    "toast": {
+      "unlocked": "Obiettivo sbloccato",
+      "dismiss": "Chiudi"
+    },
+    "list": {
+      "title": "Obiettivi",
+      "locked": "???",
+      "tier": {
+        "bronze": "Bronzo",
+        "silver": "Argento",
+        "gold": "Oro"
+      }
+    },
+    "complete_first_tech": {
+      "name": "Primi passi",
+      "description": "Completa la tua prima tecnologia."
+    },
+    "popular_leader": {
+      "name": "Leader popolare",
+      "description": "Raggiungi 80 di popolarità."
+    },
+    "first_alliance": {
+      "name": "Diplomatico",
+      "description": "Firma la tua prima alleanza."
+    },
+    "first_spy_op": {
+      "name": "Cappa e spada",
+      "description": "Completa la tua prima operazione di spionaggio."
+    },
+    "first_century": {
+      "name": "Un secolo al potere",
+      "description": "Governa per 100 settimane senza perdere."
+    },
+    "master_spy": {
+      "name": "Maestro spia",
+      "description": "Completa 10 operazioni di spionaggio riuscite."
+    },
+    "peace_through_strength": {
+      "name": "Pace attraverso la forza",
+      "description": "Vinci tre guerre conquistando territorio nemico."
+    },
+    "survivor": {
+      "name": "Sopravvissuto",
+      "description": "Sopravvivi 500 settimane senza perdere."
+    },
+    "cold_warrior": {
+      "name": "Guerriero freddo",
+      "description": "Mantieni il tuo governo per 250 settimane."
+    },
+    "coalition_builder": {
+      "name": "Costruttore di coalizioni",
+      "description": "Mantieni tre alleanze attive contemporaneamente."
+    },
+    "beloved_government": {
+      "name": "Governo amato",
+      "description": "Raggiungi 90 di popolarità."
+    },
+    "top3_economy": {
+      "name": "Potenza emergente",
+      "description": "Entra nelle prime 3 economie per PIL."
+    },
+    "industrial_powerhouse": {
+      "name": "Potenza industriale",
+      "description": "Completa la tecnologia di industria avanzata."
+    },
+    "economic_titan": {
+      "name": "Titano economico",
+      "description": "Diventa la prima economia mondiale."
+    },
+    "space_pioneer": {
+      "name": "Pioniere spaziale",
+      "description": "Completa una tecnologia del programma spaziale."
+    },
+    "global_alliance": {
+      "name": "Alleanza globale",
+      "description": "Mantieni cinque alleanze attive contemporaneamente."
+    },
+    "spy_master_general": {
+      "name": "Generale dei servizi segreti",
+      "description": "Completa 25 operazioni di spionaggio riuscite."
+    },
+    "long_haul": {
+      "name": "Lungo viaggio",
+      "description": "Sopravvivi 1000 settimane senza perdere."
+    },
+    "warlord": {
+      "name": "Signore della guerra",
+      "description": "Vinci cinque guerre nelle tue partite."
+    },
+    "mars_conqueror": {
+      "name": "Conquistatore di Marte",
+      "description": "Stabilisci una colonia su Marte."
     }
   }
 }

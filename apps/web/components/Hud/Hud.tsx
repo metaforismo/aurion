@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useTicker } from '../../lib/ticker';
 import { selectIronMan, useGameStore } from '../../lib/store';
 
+import { AudioVolumeButton } from './AudioVolumeButton';
 import { DateBadge } from './DateBadge';
 import { IronManBadge } from './IronManBadge';
 import { MenuButton } from './MenuButton';
@@ -57,6 +58,7 @@ export function Hud({ onNotify }: HudProps) {
         <SpeedControls />
       </div>
       <div className="ml-auto flex items-center gap-2">
+        <AudioVolumeButton />
         <MenuButton onNotify={notify} />
       </div>
       {/* Internal fallback toast — only used if no parent notifier is wired. */}

@@ -6,3 +6,4 @@ export { PopularityBadge } from './PopularityBadge';
 export { SpeedControls } from './SpeedControls';
 export { MenuButton } from './MenuButton';
 export type { MenuButtonProps } from './MenuButton';
+export { AudioVolumeButton } from './AudioVolumeButton';

@@ -11,6 +11,13 @@ import { use } from 'react';
 import { useTranslations } from 'next-intl';
 import type { SaveId } from '@aurion/engine';
 
+import { AchievementToast } from '../../../../components/Achievements';
+import {
+  AudioProvider,
+  useEventModalSfx,
+  useGameplayMusic,
+  useNotificationSfx,
+} from '../../../../components/Audio';
 import Hud from '../../../../components/Hud';
 import WorldMap from '../../../../components/Map';
 import ModalRoot from '../../../../components/Modals';
@@ -55,17 +62,37 @@ export default function PlayPage({
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
-      <Hud />
-      <div className="grid flex-1 grid-cols-1 gap-2 p-2 lg:grid-cols-[18rem_minmax(0,1fr)_20rem]">
-        <PanelTabs />
-        <WorldMap />
-        <NotificationStream />
-      </div>
-      <ModalRoot />
-      {/* First-time tutorial — self-bootstraps from the persisted dismissed
-          flag. Renders nothing once the player has seen / skipped it. */}
-      <TutorialOverlay />
-    </main>
+    <AudioProvider>
+      {/* Audio behaviours mounted *inside* the provider so they have a
+          context to read from. Side-effect-only — no DOM. */}
+      <PlayAudioBindings />
+      <main className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
+        <Hud />
+        <div className="grid flex-1 grid-cols-1 gap-2 p-2 lg:grid-cols-[18rem_minmax(0,1fr)_20rem]">
+          <PanelTabs />
+          <WorldMap />
+          <NotificationStream />
+        </div>
+        <ModalRoot />
+        {/* Cross-game achievement toast — self-managed: reads
+            `pendingAchievementToast` from the store and auto-dismisses. */}
+        <AchievementToast />
+        {/* First-time tutorial — self-bootstraps from the persisted dismissed
+            flag. Renders nothing once the player has seen / skipped it. */}
+        <TutorialOverlay />
+      </main>
+    </AudioProvider>
   );
+}
+
+/**
+ * Empty component whose only job is to mount the audio hooks under the
+ * AudioProvider. Splitting them out keeps the page component readable and
+ * lets us add / remove behaviours without touching the JSX tree.
+ */
+function PlayAudioBindings() {
+  useGameplayMusic();
+  useEventModalSfx();
+  useNotificationSfx();
+  return null;
 }

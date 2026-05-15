@@ -5,7 +5,7 @@
 // don't fail (IndexedDB is not available on the server).
 
 import Dexie, { type Table } from 'dexie';
-import type { GameState, SaveId } from '@aurion/engine';
+import type { AchievementId, GameState, SaveId } from '@aurion/engine';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,6 +27,23 @@ export type SaveSummary = Omit<SaveEntry, 'state'>;
 export type MetaEntry = {
   key: string;
   value: unknown;
+};
+
+/**
+ * Cross-game achievement unlock record. Persisted in its own Dexie table so
+ * the home / achievements pages can list everything the player has earned
+ * without loading any save's full GameState. The (id) is the primary key —
+ * unlocks are intentionally idempotent: re-firing the same achievement from
+ * a later save is a no-op rather than overwriting the original timestamp.
+ */
+export type UnlockedAchievement = {
+  id: AchievementId;
+  /** Wall-clock unlock time (ms since epoch). */
+  unlockedAt: number;
+  /** Scenario the player was running when the achievement first fired. */
+  scenarioId: string;
+  /** Save id of the run where the achievement first fired. */
+  saveId: SaveId;
 };
 
 /** Reserved slot id for the rolling autosave. */
@@ -127,12 +144,23 @@ export function iconForDifficulty(difficultyId: string): string | null {
 class AurionDB extends Dexie {
   saves!: Table<SaveEntry, SaveId>;
   meta!: Table<MetaEntry, string>;
+  achievements!: Table<UnlockedAchievement, AchievementId>;
 
   constructor() {
     super('aurion');
+    // v1 — original schema (saves + meta). Kept exactly as-shipped so Dexie
+    // performs an in-place upgrade for existing browsers without touching
+    // existing rows.
     this.version(1).stores({
       saves: '&id, name, scenarioId, savedAt',
       meta: '&key',
+    });
+    // v2 — adds the `achievements` table. Dexie carries v1's saves/meta
+    // forward automatically because their store specs are unchanged.
+    this.version(2).stores({
+      saves: '&id, name, scenarioId, savedAt',
+      meta: '&key',
+      achievements: '&id, unlockedAt, scenarioId, saveId',
     });
   }
 }
@@ -391,4 +419,111 @@ export async function getTutorialDismissed(): Promise<boolean> {
 /** Persist the tutorial dismissal flag. */
 export async function setTutorialDismissed(value: boolean): Promise<void> {
   await setMeta(TUTORIAL_DISMISSED_META_KEY, value);
+}
+
+// ---------------------------------------------------------------------------
+// Audio volume preferences — kept in the meta table so they survive across
+// devices the next time we add cloud sync, and so they don't compete for the
+// localStorage budget Zustand already uses for speed/panel prefs.
+// ---------------------------------------------------------------------------
+
+/** Reserved meta key for the per-category audio volumes + mute flags. */
+export const AUDIO_VOLUMES_META_KEY = 'aurion:audio-volumes';
+
+/**
+ * Persisted shape for audio volume preferences. Keeps `music` and `sfx` as
+ * 0..1 floats and per-category mute booleans. Mute is intentionally separate
+ * from volume so toggling mute doesn't lose the player's chosen level.
+ */
+export type AudioVolumePrefs = {
+  music: number;
+  sfx: number;
+  mutedMusic?: boolean;
+  mutedSfx?: boolean;
+};
+
+/** Defaults applied when no preference has been stored yet. */
+export const DEFAULT_AUDIO_VOLUMES: AudioVolumePrefs = {
+  music: 0.5,
+  sfx: 0.7,
+  mutedMusic: false,
+  mutedSfx: false,
+};
+
+function clampVolume(value: unknown, fallback: number): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
+  if (value < 0) return 0;
+  if (value > 1) return 1;
+  return value;
+}
+
+/**
+ * Read the persisted audio volume preferences. Falls back to
+ * `DEFAULT_AUDIO_VOLUMES` when no entry has been written yet OR when
+ * persistence is unavailable (SSR, private mode without IndexedDB).
+ */
+export async function getAudioVolumes(): Promise<AudioVolumePrefs> {
+  const raw = await getMeta<Partial<AudioVolumePrefs>>(AUDIO_VOLUMES_META_KEY);
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_AUDIO_VOLUMES };
+  return {
+    music: clampVolume(raw.music, DEFAULT_AUDIO_VOLUMES.music),
+    sfx: clampVolume(raw.sfx, DEFAULT_AUDIO_VOLUMES.sfx),
+    mutedMusic: raw.mutedMusic === true,
+    mutedSfx: raw.mutedSfx === true,
+  };
+}
+
+/** Persist audio volume preferences. Values are clamped to 0..1. */
+export async function setAudioVolumes(prefs: AudioVolumePrefs): Promise<void> {
+  const normalized: AudioVolumePrefs = {
+    music: clampVolume(prefs.music, DEFAULT_AUDIO_VOLUMES.music),
+    sfx: clampVolume(prefs.sfx, DEFAULT_AUDIO_VOLUMES.sfx),
+    mutedMusic: prefs.mutedMusic === true,
+    mutedSfx: prefs.mutedSfx === true,
+  };
+  await setMeta(AUDIO_VOLUMES_META_KEY, normalized);
+}
+
+// ---------------------------------------------------------------------------
+// Achievements (cross-game unlocks)
+//
+// Stored in their own table so they survive deleting individual saves and so
+// the home page can render the catalogue without loading any GameState. The
+// engine exposes the (pure) evaluator that produces ids; the writes here are
+// the bridge between that evaluator and the player's persistent profile.
+// ---------------------------------------------------------------------------
+
+/**
+ * List every achievement the player has unlocked, ordered most-recent-first.
+ * Returns an empty array when persistence is unavailable (SSR, private mode)
+ * so callers can render the catalogue uniformly.
+ */
+export async function getUnlockedAchievements(): Promise<UnlockedAchievement[]> {
+  if (!isPersistenceAvailable()) return [];
+  return db().achievements.orderBy('unlockedAt').reverse().toArray();
+}
+
+/**
+ * Idempotent unlock: writes a record only when one does not already exist for
+ * the given id. Re-firing a previously-unlocked achievement is a silent no-op
+ * (the original `unlockedAt` / `scenarioId` / `saveId` are preserved). Returns
+ * `true` when a NEW unlock was written, `false` when the achievement was
+ * already in the table (or persistence is unavailable).
+ */
+export async function unlockAchievement(
+  id: AchievementId,
+  scenarioId: string,
+  saveId: SaveId,
+): Promise<boolean> {
+  if (!isPersistenceAvailable()) return false;
+  const existing = await db().achievements.get(id);
+  if (existing) return false;
+  const entry: UnlockedAchievement = {
+    id,
+    scenarioId,
+    saveId,
+    unlockedAt: Date.now(),
+  };
+  await withWriteGuard(() => db().achievements.put(entry));
+  return true;
 }
