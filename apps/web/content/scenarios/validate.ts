@@ -352,12 +352,16 @@ function validateScenario(bundle: ScenarioBundle): { errors: number; warnings: n
     councilMembers: number;
     triggers: number;
     dethroneIsolation: boolean | null;
+    eras: number;
+    spaceMilestones: number;
   } = {
     blocs: 0,
     blocMembersTotal: 0,
     councilMembers: 0,
     triggers: 0,
     dethroneIsolation: null,
+    eras: 0,
+    spaceMilestones: 0,
   };
 
   // 9a — blocs
@@ -495,6 +499,75 @@ function validateScenario(bundle: ScenarioBundle): { errors: number; warnings: n
     }
   }
 
+  // 9e — eras (Wave 10 era-paced mode)
+  if (scenario.eras !== undefined) {
+    if (!Array.isArray(scenario.eras)) {
+      phase3Errors.push('Phase 3: eras must be an array');
+    } else {
+      phase3Stats.eras = scenario.eras.length;
+      const seenEraIds = new Set<string>();
+      let prevEnd: number | null = null;
+      for (let i = 0; i < scenario.eras.length; i++) {
+        const era = scenario.eras[i] as {
+          id: unknown;
+          nameKey: unknown;
+          startTick: unknown;
+          endTick: unknown;
+        };
+        if (typeof era.id !== 'string' || era.id.length === 0) {
+          phase3Errors.push(`Phase 3: era[${i}] missing id`);
+          continue;
+        }
+        if (seenEraIds.has(era.id)) {
+          phase3Errors.push(`Phase 3: duplicate era id "${era.id}"`);
+        }
+        seenEraIds.add(era.id);
+        if (typeof era.nameKey !== 'string' || era.nameKey.length === 0) {
+          phase3Errors.push(`Phase 3: era "${era.id}" missing nameKey`);
+        }
+        if (typeof era.startTick !== 'number' || era.startTick < 0) {
+          phase3Errors.push(`Phase 3: era "${era.id}" startTick must be a number ≥ 0`);
+          continue;
+        }
+        if (
+          typeof era.endTick !== 'number' ||
+          era.endTick <= era.startTick
+        ) {
+          phase3Errors.push(`Phase 3: era "${era.id}" endTick must be > startTick`);
+          continue;
+        }
+        if (prevEnd !== null && era.startTick !== prevEnd) {
+          phase3Errors.push(
+            `Phase 3: era "${era.id}" startTick (${era.startTick}) must equal previous era endTick (${prevEnd})`,
+          );
+        }
+        prevEnd = era.endTick;
+      }
+    }
+  }
+
+  // 9f — space milestones (techs that declare prestigeFirst / prestigeFollow)
+  for (const tech of scenario.techTree) {
+    const hasFirst = typeof tech.prestigeFirst === 'number';
+    const hasFollow = typeof tech.prestigeFollow === 'number';
+    if (hasFirst || hasFollow) {
+      phase3Stats.spaceMilestones += 1;
+      if (hasFirst && (tech.prestigeFirst! < 0 || !Number.isFinite(tech.prestigeFirst!))) {
+        phase3Errors.push(
+          `Phase 3: tech "${tech.id}" prestigeFirst must be a finite non-negative number`,
+        );
+      }
+      if (
+        hasFollow &&
+        (tech.prestigeFollow! < 0 || !Number.isFinite(tech.prestigeFollow!))
+      ) {
+        phase3Errors.push(
+          `Phase 3: tech "${tech.id}" prestigeFollow must be a finite non-negative number`,
+        );
+      }
+    }
+  }
+
   // -------------------------------------------------------------------------
   // Aggregate + per-scenario report.
   // -------------------------------------------------------------------------
@@ -549,7 +622,9 @@ function validateScenario(bundle: ScenarioBundle): { errors: number; warnings: n
     scenario.blocs !== undefined ||
     scenario.unCouncilMembers !== undefined ||
     scenario.unTriggerMap !== undefined ||
-    scenario.dethroneIsolationOnByDefault !== undefined;
+    scenario.dethroneIsolationOnByDefault !== undefined ||
+    scenario.eras !== undefined ||
+    phase3Stats.spaceMilestones > 0;
   if (hasPhase3) {
     console.log(
       '  Phase 3 — blocs:     ',
@@ -566,6 +641,8 @@ function validateScenario(bundle: ScenarioBundle): { errors: number; warnings: n
           ? 'on'
           : 'off',
     );
+    console.log('  Phase 3 — eras:      ', phase3Stats.eras);
+    console.log('  Phase 3 — space milestones:', phase3Stats.spaceMilestones);
   } else {
     console.log('  Phase 3:              not in use');
   }

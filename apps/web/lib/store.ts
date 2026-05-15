@@ -111,6 +111,28 @@ export type ConfirmRequest = {
   tone?: 'primary' | 'danger';
 };
 
+/**
+ * A "nuclear strike inbound" notification surfaced to the player when an AI
+ * country has launched a tactical or strategic warhead at the player's country.
+ *
+ * The store derives this from the engine's `state.events` ring buffer by
+ * matching `definitionId` against the convention
+ * `event_nuclear_strike_incoming_{attackerCountryId}_{tactical|strategic}`.
+ * Whichever such event is the most recent one targeting the player on a tick
+ * boundary becomes the active notification; the player dismisses it via
+ * `dismissNuclearStrikeIncoming()` (stable Sigh button in the modal).
+ *
+ * Stored separately from the generic event modal because the framing of an
+ * incoming strike (passive, non-actionable, narrative) does not match the
+ * choose-a-choice contract of a normal `EventModal`.
+ */
+export type PendingNuclearStrikeIncoming = {
+  attacker: CountryId;
+  kind: 'tactical' | 'strategic';
+  /** Tick at which the engine surfaced the inbound-strike event. */
+  firedAtTick: number;
+};
+
 export type StartNewGameParams = {
   scenarioId: ScenarioId;
   playerCountryId: CountryId;
@@ -185,6 +207,16 @@ export type GameStoreState = {
    * already-celebrated game.
    */
   eternalFirstVictoryShown: boolean;
+  /**
+   * Wave 10 nuclear UI: an inbound strike notification queued by `advanceTick`
+   * when a matching event fires in `state.events`. Null when there is no
+   * incoming strike to display. Cleared by `dismissNuclearStrikeIncoming`.
+   *
+   * We intentionally only carry the most recent incoming strike — multiple
+   * inbound strikes on the same tick collapse to one notification (the latest
+   * wins). The player can review the full chain in the event log.
+   */
+  pendingNuclearStrikeIncoming: PendingNuclearStrikeIncoming | null;
 
   // ---- Actions ------------------------------------------------------------
   loadGame: (saveId: SaveId) => Promise<void>;
@@ -225,6 +257,11 @@ export type GameStoreState = {
    * run. Called by the modal after the player presses "Continua".
    */
   acknowledgeEternalFirstVictory: () => void;
+  /**
+   * Clear the currently displayed "nuclear strike inbound" notification, if any.
+   * Idempotent — safe to call when no notification is active.
+   */
+  dismissNuclearStrikeIncoming: () => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -306,6 +343,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   unlockedAchievementIds: new Set<AchievementId>(),
   pendingVictoryToast: null,
   eternalFirstVictoryShown: false,
+  pendingNuclearStrikeIncoming: null,
 
   reset: () => {
     set({
@@ -320,6 +358,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       pendingConfirm: null,
       pendingVictoryToast: null,
       eternalFirstVictoryShown: false,
+      pendingNuclearStrikeIncoming: null,
     });
   },
 
@@ -339,6 +378,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       // celebrated". Fresh games start at 0 and the next victory opens it.
       eternalFirstVictoryShown:
         (state.unlockedVictories?.length ?? 0) > 0,
+      // Loaded saves never auto-pop the inbound-strike modal; the event is
+      // either already in the past (and harmless to ignore) or the player
+      // already acknowledged it before saving.
+      pendingNuclearStrikeIncoming: null,
     });
   },
 
@@ -382,6 +425,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         // (by definition) been celebrated already; suppress the modal.
         eternalFirstVictoryShown:
           (entry.state.unlockedVictories?.length ?? 0) > 0,
+        pendingNuclearStrikeIncoming: null,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -435,6 +479,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         // milestone fires the celebratory modal once.
         pendingVictoryToast: null,
         eternalFirstVictoryShown: false,
+        pendingNuclearStrikeIncoming: null,
       });
       return saveId;
     } catch (err) {
@@ -496,10 +541,26 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       pendingVictoryToast = latest;
     }
 
+    // — Inbound nuclear strike detection (Wave 10) —
+    // The engine surfaces a strike against the player by appending an event
+    // whose `definitionId` follows the convention
+    // `event_nuclear_strike_incoming_{attackerCountryId}_{tactical|strategic}`.
+    // We pick the newest such event that fired AFTER the previous tick's
+    // event ring buffer position so we don't re-fire the modal for events the
+    // player has already seen on a prior tick. Defensive: if no event matches
+    // (most ticks), the previous notification (or null) is preserved.
+    const nextIncoming = pickIncomingNuclearStrike(
+      reconciled,
+      current.state.events.length,
+    );
+    const pendingNuclearStrikeIncoming =
+      nextIncoming ?? current.pendingNuclearStrikeIncoming;
+
     set({
       state: reconciled,
       ticksThisSession: current.ticksThisSession + 1,
       pendingVictoryToast,
+      pendingNuclearStrikeIncoming,
     });
 
     // Achievements: ask the engine which definitions are now satisfied, then
@@ -627,6 +688,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   acknowledgeEternalFirstVictory: () => {
     set({ eternalFirstVictoryShown: true });
   },
+
+  dismissNuclearStrikeIncoming: () => {
+    set({ pendingNuclearStrikeIncoming: null });
+  },
 }));
 
 // ---------------------------------------------------------------------------
@@ -692,6 +757,75 @@ async function maybeUnlockAchievements(
       });
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Nuclear strike inbound — event matching
+// ---------------------------------------------------------------------------
+
+/**
+ * Stable convention: an inbound nuclear strike against the player surfaces in
+ * `state.events` as a `GameEvent` whose `definitionId` matches:
+ *
+ *   event_nuclear_strike_incoming_<attackerCountryId>_<tactical|strategic>
+ *
+ * The engine team owns event id formatting; this UI helper is intentionally
+ * permissive so the modal still triggers when the engine ships its first
+ * iteration (alternative kind separators / casing are tolerated as long as
+ * the prefix and the trailing kind survive intact).
+ *
+ * Returns the most recent matching event whose `firedAtTick === state.tick`
+ * (i.e. fired on the most recent tick boundary), or null. We match on tick
+ * rather than buffer index because the events ring is capped — comparing
+ * lengths would miss events that fired on a tick where the buffer was
+ * already at capacity.
+ */
+const NUCLEAR_INCOMING_PREFIX = 'event_nuclear_strike_incoming_';
+
+function pickIncomingNuclearStrike(
+  state: GameState,
+  // prevEventCount is no longer used after the buffer-cap fix, but kept on
+  // the signature for forward-compatibility (a future engine version may
+  // expose a per-tick event delta we can use to scope detection more tightly).
+  _prevEventCount: number,
+): PendingNuclearStrikeIncoming | null {
+  void _prevEventCount;
+  const events = state.events;
+  if (events.length === 0) return null;
+  // Walk newest-to-oldest. Stop when we leave the current tick's slice — the
+  // engine appends events in tick order, so once we see an older `firedAtTick`
+  // there is nothing newer to find.
+  for (let i = events.length - 1; i >= 0; i--) {
+    const ev = events[i];
+    if (!ev) continue;
+    if (ev.firedAtTick !== state.tick) break;
+    const id = ev.definitionId;
+    if (typeof id !== 'string' || !id.startsWith(NUCLEAR_INCOMING_PREFIX))
+      continue;
+    const rest = id.slice(NUCLEAR_INCOMING_PREFIX.length);
+    // Trailing token must encode the kind. Tolerate either suffix order.
+    let kind: 'tactical' | 'strategic' | null = null;
+    let attacker: CountryId | null = null;
+    if (rest.endsWith('_tactical')) {
+      kind = 'tactical';
+      attacker = rest.slice(0, -'_tactical'.length);
+    } else if (rest.endsWith('_strategic')) {
+      kind = 'strategic';
+      attacker = rest.slice(0, -'_strategic'.length);
+    }
+    if (!kind || !attacker) continue;
+    // Sanity: only honour events whose attacker exists in the country roster
+    // and whose target is the player (we treat the event as player-targeted
+    // by virtue of it being surfaced into the player's game state).
+    if (!state.countries[attacker]) continue;
+    if (attacker === state.playerCountryId) continue;
+    return {
+      attacker,
+      kind,
+      firedAtTick: ev.firedAtTick,
+    };
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------

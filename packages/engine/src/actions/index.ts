@@ -26,6 +26,10 @@ import { applyProposeUNResolution } from './proposeUNResolution.js';
 import { applyVoteUN } from './voteUN.js';
 import { applyJoinBloc } from './joinBloc.js';
 import { applyLeaveBloc } from './leaveBloc.js';
+import { applyAcknowledgeEraTransition } from './acknowledgeEraTransition.js';
+import { applyLaunchTactical } from './launchTactical.js';
+import { applyLaunchStrategic } from './launchStrategic.js';
+import { applyDismantleNuclear } from './dismantleNuclear.js';
 import { ensureRelation } from './helpers.js';
 
 export {
@@ -40,6 +44,10 @@ export {
   applyVoteUN,
   applyJoinBloc,
   applyLeaveBloc,
+  applyAcknowledgeEraTransition,
+  applyLaunchTactical,
+  applyLaunchStrategic,
+  applyDismantleNuclear,
   computeSpyProbabilities,
   isDeployAllowed,
   isDiplomacyAllowed,
@@ -88,13 +96,15 @@ export function applyAction(
       return applyJoinBloc(state, action, actor);
     case 'leaveBloc':
       return applyLeaveBloc(state, action, actor);
-    // Phase 3 Wave 10: scaffolded as no-ops until the nuclear/era agents
-    // replace them with real reducers.
-    case 'launchTactical':
-    case 'launchStrategic':
-    case 'dismantleNuclear':
     case 'acknowledgeEraTransition':
-      return { state, errors: ['errors.wave10NotImplemented'] };
+      return applyAcknowledgeEraTransition(state, action, actor);
+    // Phase 3 Wave 10: nuclear actions.
+    case 'launchTactical':
+      return applyLaunchTactical(state, action, actor, scenario);
+    case 'launchStrategic':
+      return applyLaunchStrategic(state, action, actor, scenario);
+    case 'dismantleNuclear':
+      return applyDismantleNuclear(state, action, actor);
   }
 }
 
@@ -279,6 +289,28 @@ export function getAvailableActions(
       actions.push({ type: 'voteUN', resolutionId: r.id, vote: 'no' });
       actions.push({ type: 'voteUN', resolutionId: r.id, vote: 'abstain' });
     }
+  }
+
+  // Phase 3 Wave 10: nuclear actions only enumerated when the country has an
+  // arsenal. Tactical strikes require an enemy region (any region of a
+  // country we're at war with). Strategic strikes require a country we're at
+  // war with that exists. Dismantling requires at least one warhead.
+  if (country.nuclear && country.nuclear.warheadCount >= 1) {
+    // Compose enemy ids list once.
+    const enemyIds: string[] = [];
+    for (const rel of Object.values(state.relations)) {
+      if (!rel.atWar) continue;
+      if (rel.countryA === countryId) enemyIds.push(rel.countryB);
+      else if (rel.countryB === countryId) enemyIds.push(rel.countryA);
+    }
+    for (const enemyId of enemyIds) {
+      const enemy = state.countries[enemyId];
+      if (!enemy) continue;
+      actions.push({ type: 'launchTactical', targetRegionId: enemy.regionId });
+      actions.push({ type: 'launchStrategic', targetCountryId: enemyId });
+    }
+    // Dismantle one warhead (always offered if there's at least one).
+    actions.push({ type: 'dismantleNuclear', count: 1 });
   }
 
   return actions;

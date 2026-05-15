@@ -141,6 +141,10 @@
   "tech.gf.space.manned_mars.name": "Missione con equipaggio su Marte",
   "tech.gf.space.manned_mars.description": "La prima missione umana sul Pianeta Rosso. La frontiera scientifica del secolo, oltre la Luna.",
 
+  "era.gf.early-cold-war.name": "Prima Guerra Fredda",
+  "era.gf.detente.name": "Distensione",
+  "era.gf.end-of-history.name": "Fine della Storia",
+
   "event.gf.crisis.caribbean_standoff.name": "Standoff caraibico",
   "event.gf.crisis.caribbean_standoff.description": "Vettori missilistici stranieri vengono scoperti su un'isola vicina a un grande continente. La crisi è globale, le ore sono contate.",
   "event.gf.crisis.caribbean_standoff.choice.escalate": "Mostra i muscoli con un'imponente prontezza navale",

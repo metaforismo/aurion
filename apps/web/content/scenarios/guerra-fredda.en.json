@@ -141,6 +141,10 @@
   "tech.gf.space.manned_mars.name": "Manned Mars mission",
   "tech.gf.space.manned_mars.description": "The first human mission to the Red Planet. The scientific frontier of the century, beyond the Moon.",
 
+  "era.gf.early-cold-war.name": "Early Cold War",
+  "era.gf.detente.name": "Detente",
+  "era.gf.end-of-history.name": "End of History",
+
   "event.gf.crisis.caribbean_standoff.name": "Caribbean standoff",
   "event.gf.crisis.caribbean_standoff.description": "Foreign missile launchers are discovered on an island near a major continent. The crisis is global; the hours are counted.",
   "event.gf.crisis.caribbean_standoff.choice.escalate": "Show muscle with imposing naval readiness",

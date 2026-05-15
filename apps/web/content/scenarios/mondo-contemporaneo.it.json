@@ -146,6 +146,12 @@
   "tech.mc.space.ai_research_assistants.description": "Modelli scientifici dedicati accelerano scoperta e validazione in ogni laboratorio del paese.",
   "tech.mc.space.mars_mission.name": "Missione su Marte",
   "tech.mc.space.mars_mission.description": "La prima missione con equipaggio su Marte. Il momento che definisce un secolo.",
+  "tech.mc.space.mars_colony.name": "Colonia permanente su Marte",
+  "tech.mc.space.mars_colony.description": "Una colonia stabile sul Pianeta Rosso: l'umanità diventa interplanetaria.",
+
+  "era.mc.info-age.name": "Era dell'Informazione",
+  "era.mc.space-age.name": "Nuova Era Spaziale",
+  "era.mc.post-scarcity.name": "Era post-scarsità",
 
   "event.mc.economy.global_inflation.name": "Inflazione globale",
   "event.mc.economy.global_inflation.description": "Le banche centrali del G20 segnalano pressione sui prezzi. Il governo deve scegliere come stabilizzare l'economia interna.",

@@ -16,7 +16,11 @@ import type {
 } from './types.js';
 import { initBlocs } from './blocs/index.js';
 import { initReputation } from './reputation/index.js';
+import { initSpaceMilestones } from './space/index.js';
 import { initUN } from './un/index.js';
+import { initEraState } from './era/index.js';
+import { inferArsenalFromTechs } from './nuclear/index.js';
+import type { TechDefinition } from './types.js';
 
 /** Stable RelationKey: lex-sorted pair so (A,B) and (B,A) collide. */
 export function relationKey(a: CountryId, b: CountryId): RelationKey {
@@ -44,8 +48,20 @@ export function deriveResearchOutput(
   return Math.max(0, Number(raw.toFixed(3)));
 }
 
-function initCountry(init: CountryInit): Country {
+function initCountry(init: CountryInit, techCatalog: readonly TechDefinition[] = []): Country {
   const completedTechs: TechId[] = [...init.initialCompletedTechs];
+  // Phase 3 Wave 10 — derive nuclear arsenal from completed techs so scenarios
+  // with pre-armed states (e.g. mondo-contemporaneo's 5 nuclear powers) get a
+  // working arsenal at game start without each scenario JSON having to
+  // hand-author the field. Returns undefined for any country without a
+  // nuclear-arsenal tech.
+  const inferredArsenal = inferArsenalFromTechs(
+    { science: { completedTechs } },
+    techCatalog,
+  );
+  // Allow `nuclear` to be present on the init payload (back-door for tests
+  // and future scenarios that want explicit warhead counts). Init wins.
+  const initNuclear = (init as CountryInit & { nuclear?: NonNullable<Country['nuclear']> }).nuclear;
   const country: Country = {
     id: init.id,
     nameKey: init.nameKey,
@@ -95,6 +111,7 @@ function initCountry(init: CountryInit): Country {
     isPlayer: init.isPlayer,
     ...(init.aiPersonality ? { aiPersonality: { ...init.aiPersonality } } : {}),
     ...(init.blocId ? { blocId: init.blocId } : {}),
+    ...(initNuclear ? { nuclear: { ...initNuclear } } : inferredArsenal ? { nuclear: inferredArsenal } : {}),
   };
   return country;
 }
@@ -122,7 +139,7 @@ export function createGame(scenario: Scenario, options: CreateGameOptions): Game
   const countries: Record<CountryId, Country> = {};
   const techTreeProgress: Record<CountryId, ResearchProgress> = {};
   for (const init of scenario.countries) {
-    const country = initCountry(init);
+    const country = initCountry(init, scenario.techTree);
     // Force isPlayer flag to match options.playerCountryId for safety.
     country.isPlayer = country.id === options.playerCountryId;
     countries[country.id] = country;
@@ -222,6 +239,16 @@ export function createGame(scenario: Scenario, options: CreateGameOptions): Game
       }
     : undefined;
 
+  // Era runtime: only initialized when gameMode === 'era-paced' AND scenario
+  // declares an `eras` schedule. Returns undefined otherwise so the field
+  // remains absent on saves that don't use the system.
+  const eraState = initEraState(scenario, gameMode, scenario.startTick);
+
+  // Space prestige milestones: populated when the scenario declares at least
+  // one tech with `prestigeFirst`. Otherwise undefined → space-race system
+  // is dormant (see space/index.ts for legacy-save handling).
+  const spaceMilestones = initSpaceMilestones(scenario);
+
   const state: GameState = {
     ...baseState,
     ...(reputation !== undefined ? { reputation, pendingReputationDeltas: [] } : {}),
@@ -230,6 +257,8 @@ export function createGame(scenario: Scenario, options: CreateGameOptions): Game
     ...(gameMode !== undefined ? { gameMode } : {}),
     ...(cumulativeStats !== undefined ? { cumulativeStats } : {}),
     ...(wantsCumulative ? { unlockedVictories: [], actionLog: [] } : {}),
+    ...(eraState !== undefined ? { eraState } : {}),
+    ...(spaceMilestones !== undefined ? { spaceMilestones } : {}),
   };
   return state;
 }

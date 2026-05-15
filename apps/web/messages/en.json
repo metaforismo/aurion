@@ -111,6 +111,14 @@
         "name": "Eternal",
         "description": "Never ends. Victories become milestones; you keep playing as long as you want. 30 minutes or dozens of hours — your call."
       },
+      "era-paced": {
+        "name": "Era-paced",
+        "description": "The run advances through narrative eras; every transition opens a chapter screen. Available only for scenarios that declare eras (Mondo Contemporaneo, Guerra Fredda)."
+      },
+      "eraPaced": {
+        "available": "Available in this scenario.",
+        "unavailable": "Not available in this scenario."
+      },
       "dethrone": {
         "name": "Dethrone",
         "description": "Become #1 and hold the throne: drop out of the top 3 for 5 years and you lose. For players who want tension even after winning.",
@@ -201,6 +209,12 @@
         "title": "Exit the game?",
         "description": "Unsaved changes will be lost. Return to the home screen?",
         "confirm": "Exit"
+      },
+      "nuclearDismantle": {
+        "title": "Dismantle the nuclear arsenal?",
+        "descriptionTreaty": "You will dismantle every warhead. With the active non-proliferation treaty you receive the full reputation boost (+30 per warhead). The action is irreversible.",
+        "descriptionNoTreaty": "You will dismantle every warhead. Without an active non-proliferation treaty the reputation boost is halved (+15 per warhead). The action is irreversible.",
+        "confirm": "Dismantle"
       }
     },
     "winLoss": {
@@ -234,6 +248,80 @@
       "title": "First victory unlocked!",
       "body": "You met the \"{condition}\" condition. In Eternal mode the run never ends — keep playing and rack up more victories. From here on, milestones surface as discreet bottom-right toasts.",
       "continue": "Continue"
+    },
+    "eraTransition": {
+      "title": "Chapter closed: {fromEra}",
+      "subtitle": "Now beginning: {toEra}",
+      "continue": "Continue",
+      "stats": {
+        "ariaLabel": "Summary of the era that just ended",
+        "ticksPlayed": "Weeks played",
+        "peakRank": "Peak GDP rank",
+        "techsUnlocked": "Technologies unlocked",
+        "reputationGained": "Reputation gained"
+      }
+    },
+    "nuclearConfirm": {
+      "step1": {
+        "title": "Warning — Nuclear strike",
+        "body": "You are about to launch a nuclear weapon. The consequences are permanent and devastating. Continue?",
+        "cancel": "Cancel",
+        "continue": "Continue",
+        "continueLocked": "Wait… ({seconds} s)",
+        "targetLabel": "Target",
+        "kindLabel": "Type",
+        "kind": {
+          "tactical": "Tactical strike (region)",
+          "strategic": "Strategic strike (country)"
+        },
+        "consequence": {
+          "tactical": {
+            "reputation": "World reputation: −50 across every bloc.",
+            "warChain": "Very high probability of cascading war declarations from the target's allies.",
+            "aftermath": "Global tension +30 and an automatic UN condemnation."
+          },
+          "strategic": {
+            "reputation": "World reputation: −100 (capped) across every bloc.",
+            "warChain": "Every nation with moderate aggression will declare war on you.",
+            "aftermath": "Global tension +60, UN condemnation, possible nuclear winter on MAD."
+          }
+        },
+        "helper": "You have 3 seconds to read before Continue becomes available. Cancel is always there."
+      },
+      "step2": {
+        "title": "Final confirmation",
+        "body": "Once launched, this cannot be undone. Do you really want to proceed?",
+        "cancel": "Cancel",
+        "confirm": "Launch",
+        "prompt": "Type {word} to confirm:",
+        "mismatch": "You must type exactly {word} (case-sensitive).",
+        "targetLabel": "Target",
+        "kindLabel": "Type"
+      },
+      "mad": {
+        "warning": "The target possesses nuclear weapons: MAD (Mutual Assured Destruction) risk."
+      }
+    },
+    "nuclearStrikeIncoming": {
+      "title": "Nuclear strike inbound",
+      "body": {
+        "tactical": "{attacker} has launched a tactical nuclear strike on one of your regions.",
+        "strategic": "{attacker} has launched a strategic nuclear strike on your nation."
+      },
+      "effects": {
+        "tactical": {
+          "population": "The target region is devastated: millions of estimated casualties.",
+          "economy": "Every deployment in the region is destroyed.",
+          "aftermath": "National popularity −30. Automatic UN condemnation against the attacker."
+        },
+        "strategic": {
+          "population": "Your capital and industrial centres are in ruins.",
+          "economy": "GDP halved, treasury collapsed, popularity zeroed.",
+          "aftermath": "Nuclear winter and global crisis: the world will never be the same."
+        }
+      },
+      "helper": "There is nothing you can do to undo this strike: it has already happened.",
+      "dismiss": "Sigh."
     }
   },
   "panels": {
@@ -287,6 +375,11 @@
     }
   },
   "panelResearch": {
+    "tab": {
+      "label": "Research section",
+      "techTree": "Tech tree",
+      "spaceRace": "Space race"
+    },
     "active": {
       "title": "Active research",
       "empty": "No active research. Start one below.",
@@ -324,6 +417,21 @@
     "start": "Start research",
     "emptyBranch": "No technology in this branch."
   },
+  "panelSpaceRace": {
+    "title": "Space race",
+    "noMilestones": "This scenario doesn't track space milestones.",
+    "achievedAt": "Achieved by {country} on week {tick}.",
+    "notYetAchieved": "No nation has reached this milestone yet.",
+    "achievers": "Other achievers ({count})",
+    "prestigeFirst": "+{value} reputation (first)",
+    "prestigeFollow": "+{value} reputation (followers)",
+    "status": {
+      "first": "First achiever",
+      "follower": "Follower",
+      "inProgress": "In progress",
+      "locked": "Not yet achieved"
+    }
+  },
   "panelMilitary": {
     "armySize": "Army",
     "navy": "Navy",
@@ -353,6 +461,40 @@
     "wars": {
       "title": "Active wars",
       "empty": "No ongoing war."
+    },
+    "nuclear": {
+      "section": {
+        "title": "Nuclear Arsenal"
+      },
+      "warningPermanent": "The use of nuclear weapons has permanent consequences.",
+      "arsenal": {
+        "count": "Available warheads",
+        "deliveryLabel": "Delivery system",
+        "deliverySystem": {
+          "0": "Bombers",
+          "1": "ICBM",
+          "2": "Hypersonic"
+        },
+        "noWarheads": "No warheads available."
+      },
+      "button": {
+        "tactical": "Launch tactical",
+        "strategic": "Launch strategic",
+        "dismantle": "Dismantle arsenal ({count} warheads, +{boost} rep)"
+      },
+      "target": {
+        "region": "Target region (tactical)",
+        "regionPlaceholder": "Pick a region…",
+        "country": "Target country (strategic)",
+        "countryPlaceholder": "Pick a country…",
+        "pickRegion": "Pick a target region.",
+        "pickCountry": "Pick a target country."
+      },
+      "dismantle": {
+        "boostFull": "Non-proliferation treaty active: full reputation boost (+{perWarhead} per warhead, total +{total}).",
+        "boostHalved": "No active treaty: boost halved (+{perWarhead} per warhead, total +{total}).",
+        "confirm": "Dismantle every warhead"
+      }
     }
   },
   "panelSpies": {
@@ -687,6 +829,7 @@
     "victoryNotSelected": "Pick a victory condition.",
     "saveLocked": "Saves are locked in Iron Man mode.",
     "unknown": "Unexpected error.",
+    "wave10NotImplemented": "Nuclear feature not yet wired up: the engine will land it shortly.",
     "un": {
       "notCouncil": "Only council members may take this action.",
       "alreadyVoted": "You have already voted on this resolution.",

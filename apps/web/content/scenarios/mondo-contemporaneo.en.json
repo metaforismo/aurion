@@ -146,6 +146,12 @@
   "tech.mc.space.ai_research_assistants.description": "Dedicated scientific models accelerate discovery and validation in every lab in the country.",
   "tech.mc.space.mars_mission.name": "Mars mission",
   "tech.mc.space.mars_mission.description": "The first crewed mission to Mars. The moment that defines a century.",
+  "tech.mc.space.mars_colony.name": "Permanent Mars colony",
+  "tech.mc.space.mars_colony.description": "A self-sustaining colony on the Red Planet: humanity becomes interplanetary.",
+
+  "era.mc.info-age.name": "Information Age",
+  "era.mc.space-age.name": "New Space Age",
+  "era.mc.post-scarcity.name": "Post-scarcity Era",
 
   "event.mc.economy.global_inflation.name": "Global inflation",
   "event.mc.economy.global_inflation.description": "G20 central banks signal price pressure. The government must choose how to stabilise the domestic economy.",

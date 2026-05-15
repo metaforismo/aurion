@@ -2048,7 +2048,9 @@
       "prereqs": [],
       "effects": [
         { "type": "modifyStat", "stat": "science.researchOutput", "delta": 0, "multiplier": 1.06 }
-      ]
+      ],
+      "prestigeFirst": 30,
+      "prestigeFollow": 10
     },
     {
       "id": "tech_mc_space_communications",
@@ -2083,7 +2085,9 @@
       "effects": [
         { "type": "modifyStat", "stat": "politics.popularity", "delta": 8 },
         { "type": "modifyStat", "stat": "science.researchOutput", "delta": 0, "multiplier": 1.08 }
-      ]
+      ],
+      "prestigeFirst": 30,
+      "prestigeFollow": 10
     },
     {
       "id": "tech_mc_space_orbital_factory",
@@ -2153,7 +2157,23 @@
       "effects": [
         { "type": "modifyStat", "stat": "politics.popularity", "delta": 12 },
         { "type": "modifyStat", "stat": "science.researchOutput", "delta": 0, "multiplier": 1.08 }
-      ]
+      ],
+      "prestigeFirst": 30,
+      "prestigeFollow": 10
+    },
+    {
+      "id": "tech_mc_space_mars_colony",
+      "nameKey": "tech.mc.space.mars_colony.name",
+      "descriptionKey": "tech.mc.space.mars_colony.description",
+      "branch": "space",
+      "cost": 3000,
+      "prereqs": ["tech_mc_space_mars_mission"],
+      "effects": [
+        { "type": "modifyStat", "stat": "politics.popularity", "delta": 20 },
+        { "type": "modifyStat", "stat": "science.researchOutput", "delta": 0, "multiplier": 1.12 }
+      ],
+      "prestigeFirst": 50,
+      "prestigeFollow": 20
     }
   ],
   "eventPool": [
@@ -3023,5 +3043,10 @@
       }
     }
   },
-  "dethroneIsolationOnByDefault": true
+  "dethroneIsolationOnByDefault": true,
+  "eras": [
+    { "id": "info-age", "nameKey": "era.mc.info-age.name", "startTick": 0, "endTick": 500 },
+    { "id": "space-age", "nameKey": "era.mc.space-age.name", "startTick": 500, "endTick": 1500 },
+    { "id": "post-scarcity", "nameKey": "era.mc.post-scarcity.name", "startTick": 1500, "endTick": 3000 }
+  ]
 }

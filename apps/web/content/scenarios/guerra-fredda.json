@@ -2060,7 +2060,9 @@
       "effects": [
         { "type": "modifyStat", "stat": "science.researchOutput", "delta": 0, "multiplier": 1.06 },
         { "type": "modifyStat", "stat": "politics.popularity", "delta": 4 }
-      ]
+      ],
+      "prestigeFirst": 30,
+      "prestigeFollow": 10
     },
     {
       "id": "tech_gf_space_manned_orbital",
@@ -2095,7 +2097,9 @@
       "effects": [
         { "type": "modifyStat", "stat": "politics.popularity", "delta": 12 },
         { "type": "modifyStat", "stat": "science.researchOutput", "delta": 0, "multiplier": 1.1 }
-      ]
+      ],
+      "prestigeFirst": 30,
+      "prestigeFollow": 10
     },
     {
       "id": "tech_gf_space_station",
@@ -2119,7 +2123,9 @@
       "effects": [
         { "type": "modifyStat", "stat": "science.researchOutput", "delta": 0, "multiplier": 1.08 },
         { "type": "modifyStat", "stat": "politics.popularity", "delta": 6 }
-      ]
+      ],
+      "prestigeFirst": 30,
+      "prestigeFollow": 10
     },
     {
       "id": "tech_gf_space_shuttle",
@@ -2143,7 +2149,9 @@
       "effects": [
         { "type": "modifyStat", "stat": "politics.popularity", "delta": 15 },
         { "type": "modifyStat", "stat": "science.researchOutput", "delta": 0, "multiplier": 1.1 }
-      ]
+      ],
+      "prestigeFirst": 30,
+      "prestigeFollow": 10
     }
   ],
   "eventPool": [
@@ -2986,5 +2994,10 @@
       }
     }
   },
-  "dethroneIsolationOnByDefault": true
+  "dethroneIsolationOnByDefault": true,
+  "eras": [
+    { "id": "early-cold-war", "nameKey": "era.gf.early-cold-war.name", "startTick": 0, "endTick": 600 },
+    { "id": "detente", "nameKey": "era.gf.detente.name", "startTick": 600, "endTick": 1200 },
+    { "id": "end-of-history", "nameKey": "era.gf.end-of-history.name", "startTick": 1200, "endTick": 2000 }
+  ]
 }

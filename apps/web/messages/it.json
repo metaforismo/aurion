@@ -111,6 +111,14 @@
         "name": "Eterna",
         "description": "Mai finisce. Sblocchi vittorie come milestone, continui finché vuoi. Bastano 30 minuti o decine di ore — sei tu a decidere."
       },
+      "era-paced": {
+        "name": "A capitoli",
+        "description": "Il gioco progredisce per ere narrative; a ogni passaggio una schermata celebrativa. Disponibile solo per gli scenari che dichiarano ere (Mondo Contemporaneo, Guerra Fredda)."
+      },
+      "eraPaced": {
+        "available": "Disponibile per questo scenario.",
+        "unavailable": "Non disponibile per questo scenario."
+      },
       "dethrone": {
         "name": "Detronizzazione",
         "description": "Diventa #1 e mantieni lo status: se cadi dal podio per 5 anni, perdi. Per chi vuole tensione anche dopo aver vinto.",
@@ -201,6 +209,12 @@
         "title": "Uscire dalla partita?",
         "description": "Le modifiche non salvate andranno perse. Vuoi tornare alla home?",
         "confirm": "Esci"
+      },
+      "nuclearDismantle": {
+        "title": "Smantellare l'arsenale nucleare?",
+        "descriptionTreaty": "Procederai allo smantellamento di tutte le testate. Con il trattato di non-proliferazione attivo riceverai il boost reputazionale pieno (+30 per testata). L'azione è irreversibile.",
+        "descriptionNoTreaty": "Procederai allo smantellamento di tutte le testate. Senza un trattato di non-proliferazione attivo il boost reputazionale è dimezzato (+15 per testata). L'azione è irreversibile.",
+        "confirm": "Smantella"
       }
     },
     "winLoss": {
@@ -234,6 +248,80 @@
       "title": "Hai sbloccato la tua prima vittoria!",
       "body": "Hai raggiunto la condizione \"{condition}\". In modalità Eterna la partita non finisce: continua a giocare e accumula altre vittorie. Le successive saranno notifiche più discrete in basso a destra.",
       "continue": "Continua"
+    },
+    "eraTransition": {
+      "title": "Capitolo concluso: {fromEra}",
+      "subtitle": "Ora inizia: {toEra}",
+      "continue": "Continua",
+      "stats": {
+        "ariaLabel": "Riepilogo dell'era appena conclusa",
+        "ticksPlayed": "Settimane giocate",
+        "peakRank": "Miglior posizione PIL",
+        "techsUnlocked": "Tecnologie sbloccate",
+        "reputationGained": "Reputazione guadagnata"
+      }
+    },
+    "nuclearConfirm": {
+      "step1": {
+        "title": "Avvertenza — Strike nucleare",
+        "body": "Stai per lanciare un'arma nucleare. Le conseguenze sono permanenti e devastanti. Continui?",
+        "cancel": "Annulla",
+        "continue": "Continua",
+        "continueLocked": "Attendi… ({seconds} s)",
+        "targetLabel": "Bersaglio",
+        "kindLabel": "Tipo",
+        "kind": {
+          "tactical": "Strike tattico (regione)",
+          "strategic": "Strike strategico (nazione)"
+        },
+        "consequence": {
+          "tactical": {
+            "reputation": "Reputazione mondiale: −50 in tutti i blocchi.",
+            "warChain": "Probabilità altissima di dichiarazioni di guerra a catena dagli alleati del bersaglio.",
+            "aftermath": "Tensione globale +30 e condanna ONU automatica."
+          },
+          "strategic": {
+            "reputation": "Reputazione mondiale: −100 (saturata) in tutti i blocchi.",
+            "warChain": "Tutte le nazioni con aggressività moderata dichiareranno guerra contro di te.",
+            "aftermath": "Tensione globale +60, condanna ONU, possibile inverno nucleare in caso di MAD."
+          }
+        },
+        "helper": "Hai ancora 3 secondi per leggere prima di poter continuare. Annulla è sempre disponibile."
+      },
+      "step2": {
+        "title": "Conferma finale",
+        "body": "Una volta lanciato, questo non si annulla. Vuoi davvero procedere?",
+        "cancel": "Annulla",
+        "confirm": "Lancia",
+        "prompt": "Digita {word} per confermare:",
+        "mismatch": "Devi digitare esattamente {word} (maiuscole comprese).",
+        "targetLabel": "Bersaglio",
+        "kindLabel": "Tipo"
+      },
+      "mad": {
+        "warning": "Il bersaglio possiede armi nucleari: rischio MAD (Distruzione Reciproca Garantita)."
+      }
+    },
+    "nuclearStrikeIncoming": {
+      "title": "Strike nucleare in arrivo",
+      "body": {
+        "tactical": "{attacker} ha lanciato uno strike nucleare tattico contro una tua regione.",
+        "strategic": "{attacker} ha lanciato uno strike nucleare strategico contro la tua nazione."
+      },
+      "effects": {
+        "tactical": {
+          "population": "La regione bersaglio è devastata: milioni di vittime stimate.",
+          "economy": "Tutte le unità schierate nella regione sono distrutte.",
+          "aftermath": "Popolarità nazionale −30. Condanna ONU automatica contro l'attaccante."
+        },
+        "strategic": {
+          "population": "La capitale e i centri industriali sono in macerie.",
+          "economy": "PIL ridotto del 50%, tesoreria collassata, popolarità azzerata.",
+          "aftermath": "Inverno nucleare e crisi globale: il mondo non sarà più lo stesso."
+        }
+      },
+      "helper": "Non c'è nulla che tu possa fare per annullare questo strike: è già accaduto.",
+      "dismiss": "Sigh."
     }
   },
   "panels": {
@@ -287,6 +375,11 @@
     }
   },
   "panelResearch": {
+    "tab": {
+      "label": "Sezione di ricerca",
+      "techTree": "Albero delle tecnologie",
+      "spaceRace": "Corsa allo Spazio"
+    },
     "active": {
       "title": "Ricerca in corso",
       "empty": "Nessuna ricerca attiva. Avviane una qui sotto.",
@@ -324,6 +417,21 @@
     "start": "Avvia ricerca",
     "emptyBranch": "Nessuna tecnologia in questo ramo."
   },
+  "panelSpaceRace": {
+    "title": "Corsa allo Spazio",
+    "noMilestones": "Lo scenario non traccia milestone spaziali.",
+    "achievedAt": "Raggiunta da {country} alla settimana {tick}.",
+    "notYetAchieved": "Nessuna nazione ha ancora raggiunto questa milestone.",
+    "achievers": "Altri achievers ({count})",
+    "prestigeFirst": "+{value} reputazione (primo)",
+    "prestigeFollow": "+{value} reputazione (successivi)",
+    "status": {
+      "first": "Primo achiever",
+      "follower": "Follower",
+      "inProgress": "In corso",
+      "locked": "Non raggiunta"
+    }
+  },
   "panelMilitary": {
     "armySize": "Esercito",
     "navy": "Marina",
@@ -353,6 +461,40 @@
     "wars": {
       "title": "Guerre attive",
       "empty": "Nessuna guerra in corso."
+    },
+    "nuclear": {
+      "section": {
+        "title": "Arsenale Nucleare"
+      },
+      "warningPermanent": "L'uso di armi nucleari ha conseguenze permanenti.",
+      "arsenal": {
+        "count": "Testate disponibili",
+        "deliveryLabel": "Sistema di lancio",
+        "deliverySystem": {
+          "0": "Bombardieri",
+          "1": "ICBM",
+          "2": "Ipersonici"
+        },
+        "noWarheads": "Nessuna testata disponibile."
+      },
+      "button": {
+        "tactical": "Lancia tattico",
+        "strategic": "Lancia strategico",
+        "dismantle": "Smantella arsenale ({count} testate, +{boost} rep)"
+      },
+      "target": {
+        "region": "Regione bersaglio (tattico)",
+        "regionPlaceholder": "Seleziona una regione…",
+        "country": "Nazione bersaglio (strategico)",
+        "countryPlaceholder": "Seleziona una nazione…",
+        "pickRegion": "Seleziona una regione bersaglio.",
+        "pickCountry": "Seleziona una nazione bersaglio."
+      },
+      "dismantle": {
+        "boostFull": "Trattato non-proliferazione attivo: boost reputazione pieno (+{perWarhead} per testata, totale +{total}).",
+        "boostHalved": "Senza trattato attivo: boost dimezzato (+{perWarhead} per testata, totale +{total}).",
+        "confirm": "Smantella tutte le testate"
+      }
     }
   },
   "panelSpies": {
@@ -687,6 +829,7 @@
     "victoryNotSelected": "Seleziona una condizione di vittoria.",
     "saveLocked": "Salvataggi bloccati in Iron Man.",
     "unknown": "Errore inatteso.",
+    "wave10NotImplemented": "Funzione nucleare non ancora attiva: l'engine la implementerà a breve.",
     "un": {
       "notCouncil": "Solo i membri del consiglio possono compiere questa azione.",
       "alreadyVoted": "Hai già espresso il tuo voto su questa risoluzione.",

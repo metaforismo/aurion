@@ -126,6 +126,8 @@ export type UseTickerResult = {
  *  - `document.visibilitychange` (auto-pause when tab hidden)
  *  - any unresolved engine event (auto-pause)
  *  - `state.winLoss` (auto-pause when not playing)
+ *  - `state.eraState.pendingTransition` (auto-pause while EraTransitionModal
+ *    is up; cleared by the `acknowledgeEraTransition` action)
  *
  * Auto-pauses preserve the user's last *non-zero* speed so we can restore it
  * automatically when the auto-pause condition clears (unless the user
@@ -137,6 +139,12 @@ export function useTicker(): UseTickerResult {
   const advanceTick = useGameStore((s) => s.advanceTick);
   const hasOpenEvent = useGameStore(selectHasOpenEvent);
   const winLoss = useGameStore((s: GameStoreState) => s.state?.winLoss);
+  // Era-paced mode pauses the loop on every era boundary so the player can
+  // sit with the chapter beat. The flag is cleared by the engine when the
+  // player dispatches `acknowledgeEraTransition`.
+  const hasPendingEraTransition = useGameStore(
+    (s: GameStoreState) => s.state?.eraState?.pendingTransition != null,
+  );
 
   const tickerRef = useRef<Ticker | null>(null);
   const [isAutoPaused, setIsAutoPaused] = useState(false);
@@ -180,7 +188,11 @@ export function useTicker(): UseTickerResult {
 
   // Compute effective speed (auto-pause takes precedence over user speed).
   useEffect(() => {
-    const wantsAutoPause = isTabHidden || hasOpenEvent || winLoss !== 'playing';
+    const wantsAutoPause =
+      isTabHidden ||
+      hasOpenEvent ||
+      winLoss !== 'playing' ||
+      hasPendingEraTransition;
     // setIsAutoPaused mirrors derived state into hook output. The lint rule's
     // cascading-render warning is a false positive here — the value is a pure
     // function of the deps and we never re-enter this effect via the setter.
@@ -193,7 +205,7 @@ export function useTicker(): UseTickerResult {
     } else {
       ticker.setSpeed(speed);
     }
-  }, [isTabHidden, hasOpenEvent, winLoss, speed]);
+  }, [isTabHidden, hasOpenEvent, winLoss, hasPendingEraTransition, speed]);
 
   return {
     speed,

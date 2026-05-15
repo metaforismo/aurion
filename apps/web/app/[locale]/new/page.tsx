@@ -54,17 +54,30 @@ const VICTORY_IDS: readonly VictoryConditionId[] = [
 const RECOMMENDED_DIFFICULTY = 'normal';
 
 /**
- * Game-mode options the wizard surfaces in step 5. `'era-paced'` is declared
- * in the engine type union but Wave 9 does not implement it (Wave 10+); it's
- * intentionally omitted here so the picker only shows the three modes the
- * engine actually supports.
+ * Game-mode options the wizard surfaces in step 5. Wave 10 ships era-paced
+ * for the two scenarios that declare an `eras[]` schedule (Mondo
+ * Contemporaneo, Guerra Fredda); the wizard greys out the card for scenarios
+ * without ones (see `SCENARIOS_WITH_ERAS`).
  */
-type SelectableGameMode = Exclude<GameMode, 'era-paced'>;
+type SelectableGameMode = GameMode;
 const GAME_MODES: readonly SelectableGameMode[] = [
   'classic',
   'eternal',
+  'era-paced',
   'dethrone',
 ];
+
+/**
+ * Scenario ids that ship a full `eras` schedule and therefore support
+ * era-paced. The card stays selectable on every scenario (so the player can
+ * read about the mode) but is greyed-out + disabled when the active scenario
+ * doesn't carry the metadata. Mirrors the JSON we ship in
+ * `apps/web/content/scenarios/{mondo-contemporaneo,guerra-fredda}.json`.
+ */
+const SCENARIOS_WITH_ERAS: ReadonlySet<string> = new Set([
+  'mondo-contemporaneo',
+  'guerra-fredda',
+]);
 
 /** Default game mode pre-selected when the player lands on step 5. */
 const DEFAULT_GAME_MODE: SelectableGameMode = 'classic';
@@ -179,6 +192,21 @@ export default function NewGamePage() {
       cancelled = true;
     };
   }, [scenarioId, tErrors]);
+
+  // Era-paced safety: when the player swaps to a scenario that doesn't ship
+  // an `eras[]` schedule, we silently coerce a previously-selected era-paced
+  // mode back to the default. The wizard already disables the card in that
+  // case but state may carry over from an earlier scenario pick.
+  useEffect(() => {
+    if (
+      gameMode === 'era-paced' &&
+      scenarioId !== null &&
+      !SCENARIOS_WITH_ERAS.has(scenarioId)
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setGameMode(DEFAULT_GAME_MODE);
+    }
+  }, [gameMode, scenarioId]);
 
   // Index of the current step in STEPS — used by breadcrumbs / step counter.
   const currentStepIndex = STEPS.indexOf(step);
@@ -952,22 +980,40 @@ function GameModeStep({
     selected === 'dethrone' &&
     (!scenarioId || !DETHRONE_BLOC_SCENARIOS.has(scenarioId));
 
+  // Era-paced ships only with scenarios that declare an `eras` schedule. The
+  // card stays visible across all scenarios but is disabled (greyed-out) when
+  // the active scenario doesn't support it — so the player understands what
+  // the mode is and why it's not available.
+  const eraPacedAvailable = scenarioId
+    ? SCENARIOS_WITH_ERAS.has(scenarioId)
+    : false;
+
   return (
     <section className="flex flex-col gap-4">
       <div>
         <h2 className="text-xl font-semibold text-fg">{tMode('title')}</h2>
         <p className="mt-1 text-sm text-fg-muted">{tMode('description')}</p>
       </div>
-      <ul className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        {GAME_MODES.map((mode) => (
-          <li key={mode}>
-            <GameModeCard
-              mode={mode}
-              selected={selected === mode}
-              onSelect={() => onSelect(mode)}
-            />
-          </li>
-        ))}
+      <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-4">
+        {GAME_MODES.map((mode) => {
+          const disabled = mode === 'era-paced' && !eraPacedAvailable;
+          return (
+            <li key={mode}>
+              <GameModeCard
+                mode={mode}
+                selected={selected === mode}
+                disabled={disabled}
+                disabledReason={
+                  disabled ? tMode('eraPaced.unavailable') : undefined
+                }
+                onSelect={() => {
+                  if (disabled) return;
+                  onSelect(mode);
+                }}
+              />
+            </li>
+          );
+        })}
       </ul>
       {showDethroneIsolationWarning ? (
         <p
@@ -1007,34 +1053,44 @@ function GameModeStep({
  * Tone token used by each game-mode card. Mirrors the spec's visual hint:
  *   - Classic   → neutral chrome (no special highlight)
  *   - Eternal   → accent (the recommended, default mode)
+ *   - Era-paced → info (narrative, chapter-driven)
  *   - Dethrone  → warning (tense, "spada di Damocle" framing)
  */
 const GAME_MODE_TONE: Readonly<
-  Record<SelectableGameMode, 'neutral' | 'accent' | 'warning'>
+  Record<SelectableGameMode, 'neutral' | 'accent' | 'warning' | 'info'>
 > = {
   classic: 'neutral',
   eternal: 'accent',
+  'era-paced': 'info',
   dethrone: 'warning',
 };
 
 /**
  * Inline glyphs per game mode. Kept as text so we don't pull in lucide-react
- * just for three icons — the card has its own border + tone treatment that
+ * just for four icons — the card has its own border + tone treatment that
  * carries the visual weight.
  */
 const GAME_MODE_GLYPH: Readonly<Record<SelectableGameMode, string>> = {
   classic: '\u{2691}', // flag
   eternal: '\u{221E}', // infinity
+  'era-paced': '\u{1F4D6}', // book (chapters)
   dethrone: '\u{1F451}', // crown
 };
 
 function GameModeCard({
   mode,
   selected,
+  disabled,
+  disabledReason,
   onSelect,
 }: {
   mode: SelectableGameMode;
   selected: boolean;
+  /** Greys-out the card and ignores clicks. Used for era-paced on scenarios
+   * that don't ship an `eras[]` schedule. */
+  disabled?: boolean;
+  /** Tooltip + helper line shown beneath the description when `disabled`. */
+  disabledReason?: string;
   onSelect: () => void;
 }) {
   const tMode = useTranslations('setup.gameMode');
@@ -1052,6 +1108,8 @@ function GameModeCard({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
+      disabled={disabled}
+      title={disabled ? disabledReason : undefined}
       className={cn(
         'flex h-full w-full flex-col gap-2 rounded-xl border px-4 py-4 text-left transition-colors',
         selected
@@ -1061,10 +1119,13 @@ function GameModeCard({
                 ? 'border-accent bg-accent/15 text-fg'
                 : cardTone === 'warning'
                   ? 'border-warning/70 bg-warning/15 text-fg'
-                  : 'border-border-strong bg-surface-2 text-fg',
+                  : cardTone === 'info'
+                    ? 'border-info/70 bg-info/15 text-fg'
+                    : 'border-border-strong bg-surface-2 text-fg',
             )
           : 'border-border bg-surface-1 text-fg hover:border-border-strong',
         recommended && !selected && 'shadow-[0_0_0_1px_var(--color-accent-soft)]',
+        disabled && 'cursor-not-allowed opacity-50 hover:border-border',
       )}
     >
       <div className="flex items-center justify-between gap-2">
@@ -1092,6 +1153,9 @@ function GameModeCard({
         ) : null}
       </div>
       <p className="text-xs leading-relaxed text-fg-muted">{description}</p>
+      {disabled && disabledReason ? (
+        <p className="text-[11px] italic text-fg-faint">{disabledReason}</p>
+      ) : null}
     </button>
   );
 }

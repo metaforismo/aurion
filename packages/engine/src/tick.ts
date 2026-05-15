@@ -30,6 +30,9 @@ import { clamp } from './actions/helpers.js';
 import { tickReputation } from './reputation/index.js';
 import { tickBlocs } from './blocs/index.js';
 import { tickUN } from './un/index.js';
+import { tickEra } from './era/index.js';
+import { recordTechCompletion, tickSpace } from './space/index.js';
+import { tickNuclear } from './nuclear/index.js';
 
 export type TickContext = {
   /** Tech catalog from the current scenario; used to complete research and apply effects. */
@@ -73,7 +76,9 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
   next = stepEconomy(next, playerIncomeMul);
 
   // 2. Research. Non-player nations get `aiResearchSpeed` multiplier.
-  next = stepResearch(next, techCatalog, aiResearchMul);
+  // Also handles space-prestige milestone tracking when a tech completes
+  // (requires `scenario` to look up `prestigeFirst`/`prestigeFollow`).
+  next = stepResearch(next, techCatalog, aiResearchMul, ctx.scenario);
 
   // 3. Spy operations.
   next = stepSpies(next, rng, techCatalog);
@@ -103,12 +108,19 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
   // 9. World tension.
   next = stepWorldTension(next);
 
+  // 9.5. Era-paced transitions. Before win/loss so checkWinLoss can mark
+  //      the run as 'won' on the final era boundary in the same tick the
+  //      transition fires. No-op when state.eraState is undefined.
+  if (ctx.scenario) next = tickEra(next, ctx.scenario);
+
   // 10. Win/loss. Loss-streak thresholds scaled by `lossToleranceWeeks`.
+  //     Era-paced wins on reaching the LAST era's endTick.
   next = checkWinLoss(
     next,
     ctx.victoryRule,
     difficulty,
     ctx.scenario?.dethroneIsolationOnByDefault === true,
+    ctx.scenario?.eras,
   );
 
   // ----- Phase 3 extensions (steps 11–15) -----
@@ -120,6 +132,17 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
 
   // 13. Run bloc tick step (periodic leader recompute, AI defections).
   next = tickBlocs(next);
+
+  // 13.5. Space prestige tick step. Currently a no-op (real work happens
+  //       inside stepResearch via recordTechCompletion); kept as an
+  //       explicit step so future passive milestone effects plug in here.
+  if (ctx.scenario) next = tickSpace(next, ctx.scenario);
+
+  // 13.7. Nuclear tick step. Keeps `mad` flag in sync with warhead count and
+  //       handles auto-warhead production (1/50 ticks) for countries that
+  //       have completed `tech_*_nuclear_arsenal_advanced`. Pure no-op for
+  //       countries without an arsenal.
+  next = tickNuclear(next, ctx.scenario);
 
   // 14. Track cumulative stats & dethrone-mode counters where applicable.
   next = tickCumulativeStats(next);
@@ -251,10 +274,15 @@ function stepResearch(
   state: GameState,
   techCatalog: readonly TechDefinition[],
   aiResearchMultiplier: number,
+  scenario: Scenario | undefined,
 ): GameState {
   const updatedCountries: Record<CountryId, Country> = { ...state.countries };
   const updatedProgress = { ...state.techTreeProgress };
   let mutated = false;
+  // Collect (countryId, techId) pairs that completed this tick; we apply
+  // milestone bookkeeping AFTER the country/progress patches are baked in so
+  // `recordTechCompletion` sees the updated state.
+  const completions: Array<{ countryId: CountryId; techId: string }> = [];
 
   for (const [id, country] of Object.entries(state.countries)) {
     const active = country.science.activeResearch;
@@ -286,6 +314,7 @@ function stepResearch(
       updatedCountries[id] = newCountry;
       updatedProgress[id] = { activeResearch: null, accumulatedPoints: 0 };
       mutated = true;
+      completions.push({ countryId: id, techId: tech.id });
     } else {
       updatedProgress[id] = { activeResearch: active, accumulatedPoints: newPoints };
       mutated = true;
@@ -293,7 +322,24 @@ function stepResearch(
   }
 
   if (!mutated) return state;
-  return { ...state, countries: updatedCountries, techTreeProgress: updatedProgress };
+  let next: GameState = {
+    ...state,
+    countries: updatedCountries,
+    techTreeProgress: updatedProgress,
+  };
+
+  // Space-prestige milestone bookkeeping. recordTechCompletion is a silent
+  // no-op when state.spaceMilestones is undefined (legacy scenario / save).
+  // Multiple completions in the same tick: iterated in country-iteration
+  // order — the FIRST country in the loop becomes the milestone first
+  // achiever; the rest become followers (deterministic by Object.entries).
+  if (scenario && completions.length > 0) {
+    for (const { countryId, techId } of completions) {
+      next = recordTechCompletion(next, countryId, techId, scenario);
+    }
+  }
+
+  return next;
 }
 
 function applyTechEffectsToScience(science: ScienceState, effects: TechEffect[]): ScienceState {

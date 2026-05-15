@@ -10,6 +10,7 @@ import type {
   ActiveBlocId,
   Country,
   DifficultyTuning,
+  Era,
   GameState,
   Scenario,
   VictoryRule,
@@ -49,12 +50,18 @@ const LOW_POP_THRESHOLD = 10;
  * `dethroneIsolationEnabled` (Phase 3) controls whether the isolation streak
  * is armed as a loss trigger. Defaults to false — only scenarios that opt in
  * via `scenario.dethroneIsolationOnByDefault` enable it.
+ *
+ * `eras` (Phase 3 Wave 10) is the scenario's era schedule. When the player
+ * is in `gameMode === 'era-paced'` AND `state.tick` has reached the LAST
+ * era's `endTick`, the run is treated as completed and `winLoss = 'won'`.
+ * Loss conditions still apply normally (the player can lose mid-era).
  */
 export function checkWinLoss(
   state: GameState,
   victoryRule?: VictoryRule,
   difficulty?: DifficultyTuning,
   dethroneIsolationEnabled = false,
+  eras?: readonly Era[],
 ): GameState {
   const player = state.countries[state.playerCountryId];
   if (!player) return { ...state, winLoss: state.winLoss };
@@ -113,10 +120,21 @@ export function checkWinLoss(
       isDethroneLoss(withStreaksState, dethroneIsolationEnabled)
     ) {
       winLoss = 'lost';
+    } else if (
+      state.gameMode === 'era-paced' &&
+      eras &&
+      eras.length > 0 &&
+      isFinalEraComplete(state, eras)
+    ) {
+      // Era-paced narrative end: player has reached the END of the last
+      // declared era. The run is recognised as a win regardless of the
+      // selected victory condition (it's a chapter-completion victory).
+      winLoss = 'won';
     } else if (victoryRule && evaluateVictory(state, victoryRule)) {
       // Eternal mode: victories accumulate in `unlockedVictories` instead of
       // ending the game. The tick step handles the tracking; here we just
-      // refrain from setting winLoss.
+      // refrain from setting winLoss. Era-paced doesn't suppress
+      // intermediate victories — the chapter end overrides them above.
       if (state.gameMode !== 'eternal') {
         winLoss = 'won';
       }
@@ -124,6 +142,16 @@ export function checkWinLoss(
   }
 
   return { ...withStreaksState, winLoss };
+}
+
+/**
+ * Returns true when `gameMode === 'era-paced'` AND `state.tick` has reached
+ * (or passed) the endTick of the LAST era in the scenario. Pure helper.
+ */
+function isFinalEraComplete(state: GameState, eras: readonly Era[]): boolean {
+  const lastEra = eras[eras.length - 1];
+  if (!lastEra) return false;
+  return state.tick >= lastEra.endTick;
 }
 
 /**
@@ -261,5 +289,6 @@ export function checkWinLossWithScenario(state: GameState, scenario: Scenario): 
     def?.rule,
     undefined,
     scenario.dethroneIsolationOnByDefault === true,
+    scenario.eras,
   );
 }

@@ -2,6 +2,7 @@
 
 import type {
   CountryInit,
+  Era,
   EventDefinition,
   RelationInit,
   Scenario,
@@ -263,6 +264,69 @@ export const PHASE3_PEACEKEEPING_TEMPLATE: UNResolutionTemplate = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Space prestige fixture scenario (Wave 10, System 6).
+// Adds 3 milestone techs to the Phase 3 fixture so the space module can be
+// exercised end-to-end (research completes → recordTechCompletion fires →
+// reputation deltas queue → tickReputation drains them).
+//
+// Costs are intentionally tiny so a tick loop in tests can complete a tech
+// in a handful of ticks without the test having to crank the fixture's
+// researchOutput. The real scenarios use far larger costs.
+// ---------------------------------------------------------------------------
+
+export const SPACE_MILESTONE_TECHS: TechDefinition[] = [
+  {
+    id: 'tech_space_first_satellite',
+    nameKey: 'tech.space.satellite.name',
+    descriptionKey: 'tech.space.satellite.desc',
+    branch: 'space',
+    cost: 100,
+    prereqs: [],
+    effects: [],
+    prestigeFirst: 5,
+    prestigeFollow: 2,
+  },
+  {
+    id: 'tech_space_moon_landing',
+    nameKey: 'tech.space.moon.name',
+    descriptionKey: 'tech.space.moon.desc',
+    branch: 'space',
+    cost: 500,
+    prereqs: [],
+    effects: [],
+    prestigeFirst: 20,
+    prestigeFollow: 8,
+  },
+  {
+    id: 'tech_space_mars_mission',
+    nameKey: 'tech.space.mars.name',
+    descriptionKey: 'tech.space.mars.desc',
+    branch: 'space',
+    cost: 2000,
+    prereqs: [],
+    effects: [],
+    prestigeFirst: 30,
+    prestigeFollow: 12,
+  },
+];
+
+/**
+ * Phase 3 fixture extended with the 3 milestone techs above. Used by the
+ * space module's tests; everything else (blocs, UN, countries) is identical
+ * to `makePhase3Scenario`.
+ */
+export function makeSpaceFixtureScenario(): Scenario {
+  const base = makePhase3Scenario();
+  return {
+    ...base,
+    id: 'space-fixture',
+    techTree: [...base.techTree, ...SPACE_MILESTONE_TECHS],
+  };
+}
+
+export const SPACE_FIXTURE_SCENARIO: Scenario = makeSpaceFixtureScenario();
+
 export function makePhase3Scenario(): Scenario {
   const base = makeScenario();
   // Replace the country roster: 4 countries, two per bloc; mark blocId on each.
@@ -328,3 +392,148 @@ export function makePhase3Scenario(): Scenario {
     dethroneIsolationOnByDefault: true,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Era-paced fixture scenario (Wave 10, System 5).
+// 2 eras spanning ticks [0..50) and [50..100). Identical to the Phase 3
+// fixture in every other respect so era tests can reuse the existing
+// blocs / countries / UN trigger setup. The endTick of the FINAL era is the
+// "narrative end" — checkWinLoss flips the run to 'won' on that tick.
+// ---------------------------------------------------------------------------
+
+export const ERA_FIXTURE_ERAS: readonly Era[] = [
+  {
+    id: 'era_dawn',
+    nameKey: 'era.dawn.name',
+    startTick: 0,
+    endTick: 50,
+  },
+  {
+    id: 'era_zenith',
+    nameKey: 'era.zenith.name',
+    startTick: 50,
+    endTick: 100,
+  },
+];
+
+export function makeEraFixtureScenario(): Scenario {
+  const base = makePhase3Scenario();
+  return {
+    ...base,
+    id: 'era-fixture',
+    eras: [...ERA_FIXTURE_ERAS],
+  };
+}
+
+export const ERA_FIXTURE_SCENARIO: Scenario = makeEraFixtureScenario();
+
+// ---------------------------------------------------------------------------
+// Nuclear fixture scenario (Wave 10, System 4).
+// Adds 4 nuclear-tech tree nodes following the SPEC-PHASE-3 naming convention
+// so `inferArsenalFromTechs` populates `country.nuclear` correctly. Two
+// countries (aurion + khanate) start with the basic arsenal tech completed →
+// each holds 1 warhead. Borealis stays non-nuclear so unilateral strikes can
+// be tested. Aurion and khanate begin AT WAR so launch preconditions pass
+// without further setup. Also adds a launchTactical / launchStrategic UN
+// trigger map so the condemnation flow is exercised.
+// ---------------------------------------------------------------------------
+
+export const NUCLEAR_TECHS: TechDefinition[] = [
+  {
+    id: 'tech_military_nuclear_research',
+    nameKey: 'tech.nuclear.research.name',
+    descriptionKey: 'tech.nuclear.research.desc',
+    branch: 'military',
+    cost: 100,
+    prereqs: [],
+    effects: [],
+  },
+  {
+    id: 'tech_military_nuclear_arsenal',
+    nameKey: 'tech.nuclear.arsenal.name',
+    descriptionKey: 'tech.nuclear.arsenal.desc',
+    branch: 'military',
+    cost: 200,
+    prereqs: ['tech_military_nuclear_research'],
+    effects: [],
+  },
+  {
+    id: 'tech_military_nuclear_arsenal_advanced',
+    nameKey: 'tech.nuclear.advanced.name',
+    descriptionKey: 'tech.nuclear.advanced.desc',
+    branch: 'military',
+    cost: 300,
+    prereqs: ['tech_military_nuclear_arsenal'],
+    effects: [],
+  },
+  {
+    id: 'tech_military_hypersonic_delivery',
+    nameKey: 'tech.nuclear.hypersonic.name',
+    descriptionKey: 'tech.nuclear.hypersonic.desc',
+    branch: 'military',
+    cost: 400,
+    prereqs: ['tech_military_nuclear_arsenal_advanced'],
+    effects: [],
+  },
+];
+
+export const NUCLEAR_CONDEMNATION_TEMPLATE: UNResolutionTemplate = {
+  kind: 'condemnation',
+  titleKey: 'un.condemnation.title',
+  descriptionKey: 'un.condemnation.desc',
+  votingDurationTicks: 4,
+  effects: { onPass: [], onFail: [] },
+};
+
+export function makeNuclearFixtureScenario(): Scenario {
+  const base = makePhase3Scenario();
+  // Pre-arm aurion and khanate by giving each the nuclear arsenal tech.
+  // Borealis and meridia stay non-nuclear.
+  const countries: CountryInit[] = base.countries.map((c) => {
+    if (c.id === 'aurion') {
+      return {
+        ...c,
+        initialCompletedTechs: [
+          ...c.initialCompletedTechs,
+          'tech_military_nuclear_research',
+          'tech_military_nuclear_arsenal',
+        ],
+      };
+    }
+    if (c.id === 'khanate') {
+      return {
+        ...c,
+        initialCompletedTechs: [
+          ...c.initialCompletedTechs,
+          'tech_military_nuclear_research',
+          'tech_military_nuclear_arsenal',
+        ],
+      };
+    }
+    return c;
+  });
+  // Aurion at war with khanate by default so launch tests have a valid target.
+  const relations: RelationInit[] = base.relations.map((r) => {
+    if (
+      (r.countryA === 'aurion' && r.countryB === 'khanate') ||
+      (r.countryB === 'aurion' && r.countryA === 'khanate')
+    ) {
+      return { ...r, atWar: true, attitude: -90 };
+    }
+    return r;
+  });
+  return {
+    ...base,
+    id: 'nuclear-fixture',
+    countries,
+    relations,
+    techTree: [...base.techTree, ...NUCLEAR_TECHS],
+    unTriggerMap: {
+      ...base.unTriggerMap,
+      launchTactical: NUCLEAR_CONDEMNATION_TEMPLATE,
+      launchStrategic: NUCLEAR_CONDEMNATION_TEMPLATE,
+    },
+  };
+}
+
+export const NUCLEAR_FIXTURE_SCENARIO: Scenario = makeNuclearFixtureScenario();

@@ -12,6 +12,7 @@ import type {
   TechDefinition,
 } from '../types.js';
 import { getRelation } from '../actions/helpers.js';
+import { isMilestone } from '../space/index.js';
 
 /**
  * Tick before which the AI strongly avoids declaring war — used to keep the
@@ -21,6 +22,88 @@ import { getRelation } from '../actions/helpers.js';
 const EARLY_GAME_WAR_GRACE_TICKS = 50;
 /** AI declines to declare war unless it has at least this military-power ratio. */
 const WAR_POWER_RATIO_REQUIRED = 0.9;
+
+// ---------------------------------------------------------------------------
+// Nuclear AI gating — Open Question Q12 (SPEC-PHASE-3 §1353).
+//
+// All preconditions MUST be met BEFORE a launchTactical / launchStrategic
+// score can be positive:
+//   1. country has aiPersonality.aggressiveness > 0.7
+//   2. country.nuclear?.warheadCount >= 1
+//   3. EITHER long-running active war OR has been hit by a nuke recently
+//
+// MAD discount: if the target also has an arsenal, apply a hard −10 score
+// penalty UNLESS attacker is desperate (treasury < 0 + at war + losing).
+//
+// Even when all gates pass, the base nuclear score is small (~0.15) so
+// nukes remain rare. Hard difficulty's aiAggression modifier nudges it
+// slightly higher but the spec target of <5% per 100 Hard sims must hold.
+// ---------------------------------------------------------------------------
+const NUCLEAR_AGGR_GATE = 0.7;
+const NUCLEAR_LONG_WAR_GATE_TICKS = 50;
+const NUCLEAR_RECENT_HIT_LOOKBACK_TICKS = 200;
+const NUCLEAR_BASE_POSITIVE_SCORE = 0.15;
+const NUCLEAR_MAD_PENALTY = -10;
+const NUCLEAR_STRIKE_EVENT_PREFIX = 'event_nuclear_strike_';
+
+function hasLongRunningWar(state: GameState, countryId: CountryId): boolean {
+  if (state.tick < NUCLEAR_LONG_WAR_GATE_TICKS) return false;
+  for (const rel of Object.values(state.relations)) {
+    if (!rel.atWar) continue;
+    if (rel.countryA !== countryId && rel.countryB !== countryId) continue;
+    return true;
+  }
+  return false;
+}
+
+function hasBeenNukedRecently(state: GameState, countryId: CountryId): boolean {
+  const cutoff = state.tick - NUCLEAR_RECENT_HIT_LOOKBACK_TICKS;
+  for (const ev of state.events) {
+    if (ev.firedAtTick < cutoff) continue;
+    if (!ev.definitionId.startsWith(NUCLEAR_STRIKE_EVENT_PREFIX)) continue;
+    if (ev.definitionId.includes(countryId)) return true;
+  }
+  return false;
+}
+
+function targetHasArsenal(state: GameState, targetCountryId: CountryId): boolean {
+  const target = state.countries[targetCountryId];
+  if (!target?.nuclear) return false;
+  return target.nuclear.warheadCount >= 1;
+}
+
+function findHostCountryByRegion(state: GameState, regionId: string): CountryId | null {
+  for (const c of Object.values(state.countries)) {
+    if (c.regionId === regionId) return c.id;
+  }
+  return null;
+}
+
+function isDesperate(state: GameState, countryId: CountryId): boolean {
+  const country = state.countries[countryId];
+  if (!country) return false;
+  if (country.economy.treasury >= 0) return false;
+  let atWar = false;
+  for (const rel of Object.values(state.relations)) {
+    if (rel.atWar && (rel.countryA === countryId || rel.countryB === countryId)) {
+      atWar = true;
+      break;
+    }
+  }
+  if (!atWar) return false;
+  // "Losing": low popularity OR small army.
+  return country.politics.popularity < 30 || country.military.armySize < 200;
+}
+
+/** Reputation in the worst bloc, or +Infinity if no reputation tracked. */
+function worstBlocReputation(state: GameState): number {
+  if (!state.reputation) return Number.POSITIVE_INFINITY;
+  let worst = Number.POSITIVE_INFINITY;
+  for (const v of Object.values(state.reputation)) {
+    if (typeof v === 'number' && v < worst) worst = v;
+  }
+  return worst;
+}
 
 type ActionType = Action['type'];
 
@@ -158,6 +241,7 @@ export function decideAiAction(
       personality,
       rng.next(),
       difficulty,
+      techCatalog,
     );
     if (score > bestScore) {
       bestScore = score;
@@ -178,6 +262,7 @@ function scoreAction(
   personality: NonNullable<GameState['countries'][string]['aiPersonality']>,
   noise: number,
   difficulty?: DifficultyTuning,
+  techCatalog: readonly TechDefinition[] = [],
 ): number {
   const country = state.countries[countryId];
   if (!country) return -1;
@@ -255,6 +340,19 @@ function scoreAction(
       } else {
         score += 0.2;
       }
+      // Phase 3 Wave 10: bias toward unclaimed space-prestige milestones.
+      // If this tech is a milestone AND no other country has achieved it
+      // yet (firstAchieverCountryId is still null), it's a once-in-a-game
+      // reputation grab — superpowers especially won't let it slip.
+      const tech = techCatalog.find((t) => t.id === action.techId);
+      if (isMilestone(tech)) {
+        const entry = state.spaceMilestones?.[action.techId];
+        const unclaimed = entry?.firstAchieverCountryId == null;
+        if (unclaimed) {
+          score += 0.3;
+          if (personality.archetype === 'superpower') score += 0.2;
+        }
+      }
       break;
     }
     case 'setTaxRate': {
@@ -321,6 +419,21 @@ function scoreAction(
           }
           if (activeWars >= 1) score -= 0.5 * activeWars;
           if (veryLowMoney) score -= 1;
+          // Phase 3 Wave 10 — Nuclear deterrent malus. If the target has a
+          // visible nuclear arsenal (per our intel level on them), apply a
+          // -5.0 score penalty unless we have nukes ourselves AND have been
+          // heavily provoked. Discourages "ignore the bomb" wars.
+          if (target?.nuclear && target.nuclear.warheadCount >= 1 && target.nuclear.mad) {
+            const intel = country.intelligence.knownIntel[action.target] ?? 'none';
+            const visible = intel === 'partial' || intel === 'full';
+            if (visible) {
+              const weHaveNukes = (country.nuclear?.warheadCount ?? 0) >= 1;
+              const heavilyProvoked = att <= -75;
+              if (!weHaveNukes || !heavilyProvoked) {
+                score -= 5.0;
+              }
+            }
+          }
           break;
         }
         case 'sueForPeace':
@@ -423,6 +536,76 @@ function scoreAction(
       else score -= 0.2;
       break;
     }
+    // -----------------------------------------------------------------------
+    // Phase 3 Wave 10 — Nuclear actions (Q12 gating).
+    // -----------------------------------------------------------------------
+    case 'launchTactical': {
+      // Hard gates first: any failure → strongly negative (rules out the action).
+      if (!country.nuclear || country.nuclear.warheadCount < 1) return -1;
+      if (personality.aggressiveness <= NUCLEAR_AGGR_GATE) return -1;
+      const longWar = hasLongRunningWar(state, countryId);
+      const recentlyNuked = hasBeenNukedRecently(state, countryId);
+      if (!longWar && !recentlyNuked) return -1;
+      // Target region must belong to (or be occupied by) an enemy.
+      const hostId = findHostCountryByRegion(state, action.targetRegionId);
+      if (hostId && hostId !== countryId) {
+        // MAD bias: if the target's HOST country has its own arsenal, treat
+        // as nuclear escalation and apply the heavy MAD penalty unless
+        // attacker is desperate.
+        if (targetHasArsenal(state, hostId)) {
+          if (!isDesperate(state, countryId)) {
+            score = NUCLEAR_MAD_PENALTY;
+            break;
+          }
+        }
+      }
+      // All gates passed — small positive score, scaled by aggressiveness
+      // beyond the 0.7 gate. Stays well below ordinary "good" actions so
+      // the AI almost never chooses this when something else is on offer.
+      score = NUCLEAR_BASE_POSITIVE_SCORE + (personality.aggressiveness - NUCLEAR_AGGR_GATE) * 0.3;
+      // Recently-nuked countries get a small revenge bias.
+      if (recentlyNuked) score += 0.1;
+      break;
+    }
+    case 'launchStrategic': {
+      if (!country.nuclear || country.nuclear.warheadCount < 1) return -1;
+      if (personality.aggressiveness <= NUCLEAR_AGGR_GATE) return -1;
+      const longWar = hasLongRunningWar(state, countryId);
+      const recentlyNuked = hasBeenNukedRecently(state, countryId);
+      if (!longWar && !recentlyNuked) return -1;
+      // Strategic strikes apply MAD penalty when the target has an arsenal.
+      if (targetHasArsenal(state, action.targetCountryId)) {
+        if (!isDesperate(state, countryId)) {
+          score = NUCLEAR_MAD_PENALTY;
+          break;
+        }
+      }
+      score = NUCLEAR_BASE_POSITIVE_SCORE + (personality.aggressiveness - NUCLEAR_AGGR_GATE) * 0.3;
+      if (recentlyNuked) score += 0.1;
+      break;
+    }
+    case 'dismantleNuclear': {
+      // Pacifist traders & cold isolationists may choose defensive disarmament
+      // when reputation has crashed in any bloc (< -50). Other archetypes
+      // never dismantle voluntarily.
+      if (!country.nuclear || country.nuclear.warheadCount < 1) return -1;
+      const acceptable =
+        personality.archetype === 'pacifist_trader' ||
+        personality.archetype === 'cold_isolationist';
+      if (!acceptable) return -1;
+      // Only the player's reputation is tracked; AI countries can't dismantle
+      // for their own benefit through the rep system. We still expose the
+      // option for player AI in sims, gated by worstBlocReputation if rep
+      // is tracked.
+      const worst = worstBlocReputation(state);
+      if (worst > -50) return -1;
+      score = 0.3;
+      break;
+    }
+    case 'acknowledgeEraTransition': {
+      // Era system fires this through the UI/agent; AI shouldn't pick it.
+      return -1;
+    }
   }
 
   // Random noise (small) so ties break deterministically per call.
@@ -453,6 +636,12 @@ function scoreAction(
       } else if (action.kind === 'proposeAlliance') {
         score = scaleScore(score, allianceBias);
       }
+    } else if (action.type === 'launchTactical' || action.type === 'launchStrategic') {
+      // Hard difficulty makes nuclear use marginally more likely, but the
+      // overall score remains small enough that the per-100-runs rate stays
+      // <5% per spec Q12. We use a soft multiplier capped at 1.2x.
+      const nukeMul = Math.min(1.2, aggression);
+      score = scaleScore(score, nukeMul);
     }
   }
 

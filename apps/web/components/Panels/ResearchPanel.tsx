@@ -2,6 +2,11 @@
 // - Shows the player's active research with a progress bar.
 // - Lists all techs grouped by branch as cards (cost, prereqs, effects, status).
 // - Lets the player start research on an available tech.
+//
+// Phase 3 Wave 10: hosts a sub-tab control ("Tech tree" | "Corsa allo Spazio").
+// The space race tab is rendered by `SpaceRacePanel`, which reads
+// `state.spaceMilestones` populated by the engine when scenario techs declare
+// `prestigeFirst` / `prestigeFollow`.
 
 'use client';
 
@@ -27,8 +32,12 @@ import { EmptyState } from './shared/EmptyState';
 import { Section } from './shared/Section';
 import { StatBar } from './shared/StatBar';
 import { useScenarioMessages } from './shared/useScenarioMessages';
+import { SpaceRacePanel } from './SpaceRacePanel';
 
 type BranchFilter = 'all' | TechBranch;
+type ResearchTab = 'techTree' | 'spaceRace';
+
+const RESEARCH_TABS: readonly ResearchTab[] = ['techTree', 'spaceRace'];
 
 const BRANCH_ORDER: readonly TechBranch[] = [
   'civil',
@@ -57,6 +66,8 @@ export function ResearchPanel({
   const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
   const { t: tScenario } = useScenarioMessages(scenarioId);
 
+  // Sub-tab inside the research panel — Tech tree (default) | Space race.
+  const [activeTab, setActiveTab] = useState<ResearchTab>('techTree');
   const [filter, setFilter] = useState<BranchFilter>('all');
 
   const filteredTree = useMemo(() => {
@@ -82,10 +93,100 @@ export function ResearchPanel({
     );
   }
 
+  return (
+    <div className="flex flex-col gap-4 p-4">
+      {/* Sub-tabs: tech tree | space race */}
+      <div
+        className="flex flex-wrap gap-1"
+        role="tablist"
+        aria-label={t('tab.label')}
+      >
+        {RESEARCH_TABS.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab}
+            id={`research-tab-${tab}`}
+            aria-controls={`research-tabpanel-${tab}`}
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              'rounded-md border px-3 py-1.5 text-xs font-medium transition',
+              activeTab === tab
+                ? 'border-accent bg-accent/15 text-accent'
+                : 'border-border-strong bg-surface-1 text-fg-muted hover:border-border-strong hover:text-fg',
+            )}
+          >
+            {t(`tab.${tab}`)}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'spaceRace' ? (
+        <div
+          role="tabpanel"
+          id="research-tabpanel-spaceRace"
+          aria-labelledby="research-tab-spaceRace"
+        >
+          <SpaceRacePanel />
+        </div>
+      ) : (
+        <div
+          role="tabpanel"
+          id="research-tabpanel-techTree"
+          aria-labelledby="research-tab-techTree"
+          className="flex flex-col gap-4"
+        >
+          <TechTreeView
+            t={t}
+            tScenario={tScenario}
+            techTree={techTree}
+            filter={filter}
+            setFilter={setFilter}
+            grouped={grouped}
+            stateTechProgress={stateTechProgress}
+            player={player}
+            applyAction={applyAction}
+            onErrors={onErrors}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tech-tree subview — extracted so the tabs can swap content cleanly while
+// the parent component still owns the player/scenario lookups.
+// ---------------------------------------------------------------------------
+
+function TechTreeView({
+  t,
+  tScenario,
+  techTree,
+  filter,
+  setFilter,
+  grouped,
+  stateTechProgress,
+  player,
+  applyAction,
+  onErrors,
+}: {
+  t: ReturnType<typeof useTranslations>;
+  tScenario: (key: string | undefined | null) => string;
+  techTree: TechDefinition[];
+  filter: BranchFilter;
+  setFilter: (f: BranchFilter) => void;
+  grouped: Map<TechBranch, TechDefinition[]>;
+  stateTechProgress: { accumulatedPoints: number } | undefined;
+  player: NonNullable<ReturnType<typeof selectPlayerCountry>>;
+  applyAction: GameStoreState['applyAction'];
+  onErrors?: (errors: string[]) => void;
+}) {
   const completedSet = new Set(player.science.completedTechs);
   const activeTechId = player.science.activeResearch;
   const activeTech = activeTechId
-    ? techTree.find((t) => t.id === activeTechId) ?? null
+    ? techTree.find((tech) => tech.id === activeTechId) ?? null
     : null;
   const accumulated = stateTechProgress?.accumulatedPoints ?? 0;
   const researchOutput = player.science.researchOutput;
@@ -95,7 +196,7 @@ export function ResearchPanel({
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <>
       {/* Active research */}
       <Section
         title={t('active.title')}
@@ -175,7 +276,7 @@ export function ResearchPanel({
           </Section>
         );
       })}
-    </div>
+    </>
   );
 }
 

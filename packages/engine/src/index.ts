@@ -16,6 +16,14 @@ export {
   evaluateCondition as evaluateAchievementCondition,
   BUILTIN_ACHIEVEMENTS,
 } from './achievements/index.js';
+export {
+  initSpaceMilestones,
+  recordTechCompletion,
+  tickSpace,
+  isMilestone,
+  REASON_KEY_FIRST as SPACE_MILESTONE_REASON_FIRST,
+  REASON_KEY_FOLLOW as SPACE_MILESTONE_REASON_FOLLOW,
+} from './space/index.js';
 // Re-export achievement types directly (not just via `export *`) so consumers
 // can grab them from the package root with a single import line.
 export type {
