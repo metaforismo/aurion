@@ -1,4 +1,8 @@
 // i18n smoke: switching from /it to /en flips both URL and visible strings.
+//
+// The language switcher renders one button per locale (`it`, `en` — lower-
+// case glyphs). Pressing the inactive locale flips the URL and the visible
+// home strings. The current locale's button is `aria-pressed="true"`.
 
 import { expect, test } from '@playwright/test';
 
@@ -9,8 +13,8 @@ test.describe('i18n', () => {
     // Italian baseline.
     await expect(page.getByRole('link', { name: 'Nuova partita' })).toBeVisible();
 
-    // Click EN switcher button. It's labelled simply "EN" in the header.
-    await page.getByRole('button', { name: 'EN', exact: true }).click();
+    // The switcher renders the locale codes lowercased ("it" / "en").
+    await page.getByRole('button', { name: 'en', exact: true }).click();
 
     // URL should now start with /en.
     await page.waitForURL(/\/en(\/|$)/);

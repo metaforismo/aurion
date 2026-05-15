@@ -1,21 +1,138 @@
 // Shared helpers for the E2E suite. These intentionally use the visible UI
 // rather than poking at internal store state so the tests double as a real
 // gameplay-loop smoke check.
+//
+// IMPORTANT: the new-game wizard has 5 steps as of Wave 9 / Phase 3:
+//   1) scenario   2) country   3) victory   4) difficulty   5) game mode
+// Existing helpers default to a Phase 1-equivalent run (Ascesa di Aurion,
+// player Aurion, economic victory, normal difficulty, classic mode). Phase 3
+// tests opt into the other modes via the `gameMode` / `scenarioId` params.
 
 import { expect, type Page } from '@playwright/test';
 
 export type Locale = 'it' | 'en';
 
+/** All 5 game modes selectable in the wizard. */
+export type GameMode = 'classic' | 'eternal' | 'era-paced' | 'dethrone';
+
+/** All 4 difficulty preset ids that ship with the bundled scenarios. */
+export type DifficultyId = 'easy' | 'normal' | 'hard' | 'ironMan';
+
+export type ScenarioId =
+  | 'ascesa-aurion'
+  | 'quick-start'
+  | 'mondo-contemporaneo'
+  | 'guerra-fredda';
+
+/**
+ * Localised display names for the four scenarios. The wizard cards now render
+ * the translated `nameKey` rather than the raw id, so we have to match by the
+ * visible string. Keep in sync with messages/{it,en}.json::scenario.*.name.
+ */
+const SCENARIO_LABEL: Record<Locale, Record<ScenarioId, string>> = {
+  it: {
+    'ascesa-aurion': 'Ascesa di Aurion',
+    'quick-start': 'Quick Start',
+    'mondo-contemporaneo': 'Mondo Contemporaneo',
+    'guerra-fredda': 'Guerra Fredda',
+  },
+  en: {
+    'ascesa-aurion': 'Ascesa di Aurion',
+    'quick-start': 'Quick Start',
+    'mondo-contemporaneo': 'Mondo Contemporaneo',
+    'guerra-fredda': 'Guerra Fredda',
+  },
+};
+
+/**
+ * Localised display names for the four difficulty presets. Same situation as
+ * scenarios — wizard cards render the translated name.
+ */
+const DIFFICULTY_LABEL: Record<Locale, Record<DifficultyId, string>> = {
+  it: {
+    easy: 'Facile',
+    normal: 'Normale',
+    hard: 'Difficile',
+    ironMan: 'Iron Man',
+  },
+  en: {
+    easy: 'Easy',
+    normal: 'Normal',
+    hard: 'Hard',
+    ironMan: 'Iron Man',
+  },
+};
+
+/** Localised display names for the four selectable game-mode cards. */
+const GAME_MODE_LABEL: Record<Locale, Record<GameMode, string>> = {
+  it: {
+    classic: 'Classica',
+    eternal: 'Eterna',
+    'era-paced': 'A capitoli',
+    dethrone: 'Detronizzazione',
+  },
+  en: {
+    classic: 'Classic',
+    eternal: 'Eternal',
+    'era-paced': 'Era-paced',
+    dethrone: 'Dethrone',
+  },
+};
+
+/**
+ * Pre-set the IndexedDB tutorial-dismissed flag so the first-time tutorial
+ * overlay does not fire on every test. We attempt a direct IndexedDB write
+ * via an init script run before every navigation. The persistence layer
+ * stores the flag in `meta` table of the `aurion` database.
+ *
+ * Falls back to a no-op when IndexedDB is unavailable (very rare in
+ * Playwright's Chromium). The tutorial overlay defaults to "dismissed" on
+ * persistence errors (see useTutorialState.ts), so a failed init is harmless.
+ */
+export async function dismissTutorial(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    if (typeof indexedDB === 'undefined') return;
+    try {
+      const open = indexedDB.open('aurion');
+      open.onupgradeneeded = () => {
+        const db = open.result;
+        if (!db.objectStoreNames.contains('meta')) {
+          db.createObjectStore('meta', { keyPath: 'key' });
+        }
+      };
+      open.onsuccess = () => {
+        const db = open.result;
+        if (!db.objectStoreNames.contains('meta')) {
+          db.close();
+          return;
+        }
+        const tx = db.transaction('meta', 'readwrite');
+        tx.objectStore('meta').put({
+          key: 'aurion:tutorial-dismissed',
+          value: true,
+        });
+        tx.oncomplete = () => db.close();
+        tx.onerror = () => db.close();
+      };
+    } catch {
+      // best-effort
+    }
+  });
+}
+
 /**
  * Run the new-game wizard end to end and land on the play page. Returns the
  * `saveId` extracted from the URL once the play screen has rendered.
+ *
+ * Phase 3 update: the wizard is now 5 steps. Defaults pick Ascesa di Aurion
+ * + Aurion + economic + normal + classic so existing tests stay representative.
  */
 export async function startNewGame(
   page: Page,
   opts: {
     locale: Locale;
     /** Scenario id button to click on step 1. Defaults to ascesa-aurion. */
-    scenarioId?: string;
+    scenarioId?: ScenarioId;
     /** Country id to pick on step 2. Defaults to aurion. */
     countryId?: string;
     /** Victory condition id to pick on step 3. Defaults to economic. */
@@ -25,6 +142,12 @@ export async function startNewGame(
       | 'scientific'
       | 'diplomatic'
       | 'domination';
+    /** Difficulty id to pick on step 4. Defaults to normal. */
+    difficultyId?: DifficultyId;
+    /** Game mode to pick on step 5. Defaults to classic. */
+    gameMode?: GameMode;
+    /** Pre-dismiss the first-time tutorial via an init script. Default true. */
+    dismissTutorialFirst?: boolean;
   },
 ): Promise<string> {
   const {
@@ -32,25 +155,34 @@ export async function startNewGame(
     scenarioId = 'ascesa-aurion',
     countryId = 'aurion',
     victoryId = 'economic',
+    difficultyId = 'normal',
+    gameMode = 'classic',
+    dismissTutorialFirst = true,
   } = opts;
+
+  if (dismissTutorialFirst) {
+    await dismissTutorial(page);
+  }
 
   await page.goto(`/${locale}/new`);
 
-  // Step 1 — scenario. The wizard renders scenario ids verbatim today, so we
-  // select the row whose text matches the id.
-  const scenarioRow = page.getByRole('button', {
-    name: new RegExp(`^${escapeRegex(scenarioId)}$`),
-  });
+  // Step 1 — scenario. The card's accessible name is the translated scenario
+  // display string. Match the start of the button (the card composes name +
+  // status badge + description into one button).
+  const scenarioLabel = SCENARIO_LABEL[locale][scenarioId];
+  const scenarioRow = page
+    .getByRole('button', {
+      name: new RegExp(`^${escapeRegex(scenarioLabel)}\\b`),
+    })
+    .first();
   await expect(scenarioRow).toBeVisible();
   await scenarioRow.click();
-  await page
-    .getByRole('button', { name: nextLabel(locale), exact: true })
-    .first()
-    .click();
+  await clickNext(page, locale);
 
   // Step 2 — country. The accessible name on each country button is
-  // "<nameKey> <id>" (e.g. "country.aurion.name aurion"). We match by the
-  // trailing id which is stable across locales / scenario message availability.
+  // "<localized name> <id>" (e.g. "country.aurion.name aurion"). We match by
+  // the trailing id which is stable across locales / scenario message
+  // availability.
   const countryRow = page
     .getByRole('button', {
       name: new RegExp(`\\b${escapeRegex(countryId)}\\b`),
@@ -58,16 +190,28 @@ export async function startNewGame(
     .first();
   await expect(countryRow).toBeVisible();
   await countryRow.click();
-  await page
-    .getByRole('button', { name: nextLabel(locale), exact: true })
-    .first()
-    .click();
+  await clickNext(page, locale);
 
-  // Step 3 — victory. The button text is the localised victory name, so we
-  // need to look up the right label per locale.
+  // Step 3 — victory. The button text is the localised victory name.
   const victoryName = VICTORY_LABEL[locale][victoryId];
   await page
     .getByRole('button', { name: new RegExp(escapeRegex(victoryName), 'i') })
+    .first()
+    .click();
+  await clickNext(page, locale);
+
+  // Step 4 — difficulty.
+  const difficultyName = DIFFICULTY_LABEL[locale][difficultyId];
+  await page
+    .getByRole('button', { name: new RegExp(`^${escapeRegex(difficultyName)}\\b`) })
+    .first()
+    .click();
+  await clickNext(page, locale);
+
+  // Step 5 — game mode.
+  const gameModeName = GAME_MODE_LABEL[locale][gameMode];
+  await page
+    .getByRole('button', { name: new RegExp(`\\b${escapeRegex(gameModeName)}\\b`) })
     .first()
     .click();
 
@@ -77,12 +221,20 @@ export async function startNewGame(
 
   // Wait for redirect to /<locale>/play/<saveId>
   await page.waitForURL(new RegExp(`/${locale}/play/[^/?#]+`), {
-    timeout: 15_000,
+    timeout: 20_000,
   });
   const url = new URL(page.url());
   const match = url.pathname.match(new RegExp(`/${locale}/play/([^/?#]+)$`));
   if (!match) throw new Error(`Could not parse saveId from URL: ${page.url()}`);
   return decodeURIComponent(match[1]!);
+}
+
+/** Click the wizard's "Next" button at any step. */
+async function clickNext(page: Page, locale: Locale): Promise<void> {
+  await page
+    .getByRole('button', { name: nextLabel(locale), exact: true })
+    .first()
+    .click();
 }
 
 /** Click one of the speed buttons in the HUD. */
@@ -136,11 +288,6 @@ export async function waitForPlayReady(page: Page, locale: Locale = 'it') {
  * inside the open dialog (any choice resolves the event in the store).
  *
  * Returns true if a modal was dismissed, false if none was open.
- *
- * NB: the choice button labels are currently broken — see the test report
- * (event.* i18n keys live in scenario message files but next-intl only loads
- * messages/{locale}.json). The button still works because `resolveCurrentEvent`
- * is wired by index, not by label.
  */
 export async function dismissEventModalIfPresent(page: Page): Promise<boolean> {
   const dialog = page.getByRole('dialog');
@@ -232,7 +379,7 @@ function nextLabel(locale: Locale): string {
 }
 
 function startLabel(locale: Locale): string {
-  return locale === 'it' ? 'Inizia partita' : 'Start game';
+  return locale === 'it' ? 'Avvia partita' : 'Start game';
 }
 
 function mapLabel(locale: Locale): string {

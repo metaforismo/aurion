@@ -568,10 +568,11 @@ function CountryStep({
             const factionsCount = Object.keys(country.politics?.factions ?? {})
               .length;
             // Display name resolves through the merged i18n bundle (or the
-            // country's id when no message file ships it). Same logic as the
-            // home/play screens use elsewhere.
-            const rawName = tCountry(country.nameKey);
-            const displayName = rawName === country.nameKey ? id : rawName;
+            // country's id when no message file ships it). The safeTranslate
+            // wrapper swallows next-intl's MISSING_MESSAGE warning so the
+            // wizard's console isn't flooded when a scenario doesn't ship
+            // the country's name in the global UI bundle.
+            const displayName = safeTranslate(tCountry, country.nameKey, id);
             return (
               <li key={id}>
                 <button
@@ -944,10 +945,10 @@ function ModifierChip({ name, value }: { name: string; value: number }) {
 // ---------------------------------------------------------------------------
 // Step 5: game mode (Phase 3)
 //
-// Three cards: Classic / Eternal / Dethrone. The player commits to one of
-// these before pressing the final "Avvia partita" button. The 4th union
-// member, `'era-paced'`, is intentionally not pickable — Wave 9 doesn't
-// implement era summary screens; the spec defers them to Wave 10.
+// Four cards: Classic / Eternal / Dethrone / Era-paced. The player commits to
+// one before pressing the final "Avvia partita" button. `'era-paced'` is only
+// pickable when the active scenario provides an `eras[]` schedule; otherwise
+// the card is rendered disabled.
 //
 // `'dethrone'` shows an extra info banner when the active scenario doesn't
 // have blocs (Quick Start, Ascesa di Aurion). The mode is still selectable
@@ -1158,4 +1159,23 @@ function GameModeCard({
       ) : null}
     </button>
   );
+}
+
+/**
+ * Resolve `key` through next-intl, swallowing the MISSING_MESSAGE warning
+ * when the merged scenario bundle doesn't ship a translation for it.
+ * Falls back to `fallback` (typically the entity id) so the UI still
+ * renders something meaningful instead of crashing or showing the raw key.
+ */
+function safeTranslate(
+  t: ReturnType<typeof useTranslations>,
+  key: string,
+  fallback: string,
+): string {
+  try {
+    const out = t(key);
+    return out === key ? fallback : out;
+  } catch {
+    return fallback;
+  }
 }

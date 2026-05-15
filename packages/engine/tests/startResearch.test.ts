@@ -62,4 +62,37 @@ describe('applyStartResearch', () => {
     );
     expect(r2.errors).toContain('errors.research.alreadyActive');
   });
+
+  it('rejects when the actor country is missing', () => {
+    const result = applyStartResearch(
+      baseState,
+      { type: 'startResearch', techId: 'tech_industry_basics' },
+      'ghostland',
+      sampleTechs,
+    );
+    expect(result.errors).toContain('errors.country.notFound');
+  });
+
+  it('rejects when the tech is already completed', () => {
+    const withCompleted = {
+      ...baseState,
+      countries: {
+        ...baseState.countries,
+        aurion: {
+          ...baseState.countries.aurion!,
+          science: {
+            ...baseState.countries.aurion!.science,
+            completedTechs: ['tech_industry_basics'],
+          },
+        },
+      },
+    };
+    const result = applyStartResearch(
+      withCompleted,
+      { type: 'startResearch', techId: 'tech_industry_basics' },
+      'aurion',
+      sampleTechs,
+    );
+    expect(result.errors).toContain('errors.research.alreadyCompleted');
+  });
 });

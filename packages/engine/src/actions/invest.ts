@@ -109,7 +109,3 @@ export function applyInvestEffects(country: Country, action: InvestAction): Coun
   }
 }
 
-/** Cost-per-spy export so AI knows what to budget. */
-export const investConstants = {
-  COST_PER_SPY,
-};

@@ -908,7 +908,6 @@ function computeAllianceEdges(state: GameState): AllianceEdge[] {
     if (ra !== rb) parent.set(ra, rb);
   };
 
-  type EdgePair = { a: CountryId; b: CountryId };
   const allianceRels: Relation[] = [];
   for (const r of Object.values(state.relations)) {
     if (r.treaties.includes('alliance')) {
@@ -946,9 +945,6 @@ function computeAllianceEdges(state: GameState): AllianceEdge[] {
       y2: pb.y,
     });
   }
-  // Suppress lint warning: EdgePair is exported via JSDoc-like comment for
-  // future readers; keep the type local but referenced.
-  void (null as unknown as EdgePair | null);
   return edges;
 }
 

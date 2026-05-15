@@ -31,6 +31,7 @@ import { applyLaunchTactical } from './launchTactical.js';
 import { applyLaunchStrategic } from './launchStrategic.js';
 import { applyDismantleNuclear } from './dismantleNuclear.js';
 import { ensureRelation } from './helpers.js';
+import { maybeTriggerFromAction } from '../un/index.js';
 
 export {
   applyDeployArmy,
@@ -73,39 +74,72 @@ export function applyAction(
   scenario?: Scenario,
 ): ApplyActionResult {
   const actor = countryId ?? state.playerCountryId;
+  let result: ApplyActionResult;
   switch (action.type) {
     case 'invest':
-      return applyInvest(state, action, actor);
+      result = applyInvest(state, action, actor);
+      break;
     case 'deploySpy':
-      return applyDeploySpy(state, action, actor, difficulty);
+      result = applyDeploySpy(state, action, actor, difficulty);
+      break;
     case 'startResearch':
-      return applyStartResearch(state, action, actor, techCatalog);
+      result = applyStartResearch(state, action, actor, techCatalog);
+      break;
     case 'setTaxRate':
-      return applySetTaxRate(state, action, actor);
+      result = applySetTaxRate(state, action, actor);
+      break;
     case 'diplomacy':
-      return applyDiplomacy(state, action, actor);
+      result = applyDiplomacy(state, action, actor);
+      break;
     case 'deployArmy':
-      return applyDeployArmy(state, action, actor);
+      result = applyDeployArmy(state, action, actor);
+      break;
     case 'placateFaction':
-      return applyPlacateFaction(state, action, actor);
+      result = applyPlacateFaction(state, action, actor);
+      break;
     case 'proposeUNResolution':
-      return applyProposeUNResolution(state, action, actor, scenario);
+      result = applyProposeUNResolution(state, action, actor, scenario);
+      break;
     case 'voteUN':
-      return applyVoteUN(state, action, actor, scenario);
+      result = applyVoteUN(state, action, actor, scenario);
+      break;
     case 'joinBloc':
-      return applyJoinBloc(state, action, actor);
+      result = applyJoinBloc(state, action, actor);
+      break;
     case 'leaveBloc':
-      return applyLeaveBloc(state, action, actor);
+      result = applyLeaveBloc(state, action, actor);
+      break;
     case 'acknowledgeEraTransition':
-      return applyAcknowledgeEraTransition(state, action, actor);
+      result = applyAcknowledgeEraTransition(state, action, actor);
+      break;
     // Phase 3 Wave 10: nuclear actions.
     case 'launchTactical':
-      return applyLaunchTactical(state, action, actor, scenario);
+      result = applyLaunchTactical(state, action, actor, scenario);
+      break;
     case 'launchStrategic':
-      return applyLaunchStrategic(state, action, actor, scenario);
+      result = applyLaunchStrategic(state, action, actor, scenario);
+      break;
     case 'dismantleNuclear':
-      return applyDismantleNuclear(state, action, actor);
+      result = applyDismantleNuclear(state, action, actor);
+      break;
   }
+  // Phase 3: contextual UN triggers via scenario.unTriggerMap (Q2). Wire after
+  // a successful action so reducers stay focused on their state slice. The
+  // launchTactical / launchStrategic reducers already emit their own
+  // condemnation resolutions directly (with stronger semantics — the strike
+  // is the proposer context), so we skip them here to avoid double-firing.
+  if (
+    scenario &&
+    result.errors.length === 0 &&
+    action.type !== 'launchTactical' &&
+    action.type !== 'launchStrategic'
+  ) {
+    const triggered = maybeTriggerFromAction(result.state, scenario, action, actor);
+    if (triggered !== result.state) {
+      result = { state: triggered, errors: result.errors };
+    }
+  }
+  return result;
 }
 
 const INVEST_TARGETS: readonly InvestTarget[] = [

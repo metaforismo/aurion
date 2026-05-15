@@ -48,4 +48,38 @@ describe('applyPlacateFaction', () => {
     );
     expect(result.errors).toContain('errors.placate.insufficientTreasury');
   });
+
+  it('rejects when the actor country is missing', () => {
+    const result = applyPlacateFaction(
+      baseState,
+      { type: 'placateFaction', factionId: 'army' },
+      'ghostland',
+    );
+    expect(result.errors).toContain('errors.country.notFound');
+  });
+
+  it('rejects when the faction id is unknown', () => {
+    // Engineer a state where the targeted faction key is genuinely missing
+    // from the factions record (e.g. truncated save data). Cast the action
+    // through the raw type to drive the unknown-faction branch.
+    const stripped = {
+      ...baseState,
+      countries: {
+        ...baseState.countries,
+        aurion: {
+          ...baseState.countries.aurion!,
+          politics: {
+            ...baseState.countries.aurion!.politics,
+            factions: {} as NonNullable<typeof baseState.countries.aurion>['politics']['factions'],
+          },
+        },
+      },
+    };
+    const result = applyPlacateFaction(
+      stripped,
+      { type: 'placateFaction', factionId: 'army' },
+      'aurion',
+    );
+    expect(result.errors).toContain('errors.placate.unknownFaction');
+  });
 });

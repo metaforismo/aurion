@@ -2887,6 +2887,21 @@
         "lossToleranceWeeks": 0.75,
         "eventChanceMultiplier": 1.15
       }
+    },
+    {
+      "id": "ironMan",
+      "nameKey": "difficulty.ironMan.name",
+      "modifiers": {
+        "aiAggression": 1.5,
+        "aiResearchSpeed": 1.3,
+        "playerIncome": 0.8,
+        "eventDifficulty": 1.4,
+        "aiAllianceBias": 1.75,
+        "spyDetectionAgainstPlayer": 1.4,
+        "lossToleranceWeeks": 0.6,
+        "eventChanceMultiplier": 1.2
+      },
+      "ironMan": true
     }
   ],
   "blocs": [

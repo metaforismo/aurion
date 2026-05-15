@@ -26,7 +26,11 @@ export function applyDismantleNuclear(
   if (!country.nuclear || country.nuclear.warheadCount <= 0) {
     return { state, errors: ['errors.nuclear.noArsenal'] };
   }
-  if (!Number.isFinite(action.count) || action.count <= 0) {
+  if (
+    !Number.isFinite(action.count) ||
+    action.count <= 0 ||
+    !Number.isInteger(action.count)
+  ) {
     return { state, errors: ['errors.nuclear.invalidCount'] };
   }
   if (action.count > country.nuclear.warheadCount) {

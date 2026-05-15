@@ -170,6 +170,43 @@ describe('joinBloc / leaveBloc reducers', () => {
     expect(r.state.countries.aurion?.blocId).toBeUndefined();
     expect(r.state.blocs?.western?.memberCountryIds).not.toContain('aurion');
   });
+
+  it('leaveBloc errors when scenario has no blocs', () => {
+    const noBlocs = createGame(makeScenario(), {
+      seed: 'noblocs-leave',
+      victory: 'economic',
+      playerCountryId: 'aurion',
+    });
+    const r = applyLeaveBloc(noBlocs, { type: 'leaveBloc' }, 'aurion');
+    expect(r.errors).toContain('errors.bloc.notAvailable');
+  });
+
+  it('leaveBloc errors when actor country is missing', () => {
+    const r = applyLeaveBloc(baseState, { type: 'leaveBloc' }, 'ghostland');
+    expect(r.errors).toContain('errors.country.notFound');
+  });
+
+  it('leaveBloc gracefully clears a stale blocId pointer', () => {
+    // Drop the bloc record but leave the country's `blocId` pointing at it.
+    // Simulates a mid-game data edit (e.g. a scenario hot-swap) where the
+    // reducer must clear the pointer instead of throwing.
+    const stale: typeof baseState = {
+      ...baseState,
+      blocs: {
+        ...(baseState.blocs ?? {}),
+        // Replace the western entry with `undefined` via Object.fromEntries so
+        // the lookup `state.blocs[country.blocId]` returns falsy.
+      } as typeof baseState.blocs,
+    };
+    if (stale.blocs) {
+      // Mutate the test fixture shape to remove the bloc entry while keeping
+      // the player's `blocId` pointer intact.
+      delete (stale.blocs as Record<string, unknown>).western;
+    }
+    const r = applyLeaveBloc(stale, { type: 'leaveBloc' }, 'aurion');
+    expect(r.errors).toEqual([]);
+    expect(r.state.countries.aurion?.blocId).toBeUndefined();
+  });
 });
 
 describe('isMemberOf', () => {

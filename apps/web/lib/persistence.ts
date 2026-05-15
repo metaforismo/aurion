@@ -11,6 +11,7 @@ import type {
   GameState,
   SaveId,
 } from '@aurion/engine';
+import { getScenarioMeta } from './scenarios';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -243,7 +244,11 @@ export async function loadSave(id: SaveId): Promise<SaveEntry | null> {
   if (!isPersistenceAvailable()) return null;
   const row = await db().saves.get(id);
   if (!row) return null;
-  return migrateSaveEntry(row);
+  // Read the replay-recording preference so the migration can decide whether
+  // to backfill `state.actionLog`. Defaulted via `getReplayRecordingPref`'s
+  // fallback when the meta table has no entry yet.
+  const recordReplay = await getReplayRecordingPref().catch(() => DEFAULT_REPLAY_RECORDING);
+  return migrateSaveEntry(row, { recordReplay });
 }
 
 /**
@@ -271,28 +276,108 @@ export function defaultCumulativeStats(): CumulativeStats {
 }
 
 /**
+ * Returns true when every numeric field on the supplied CumulativeStats is
+ * finite. Old code paths could produce NaN / Infinity (e.g. dividing by zero
+ * in a peakGdpRank computation before the engine guarded against empty
+ * country rosters); migrations sanitise those rows so the HUD never renders
+ * "NaN/3" badges.
+ */
+function isCumulativeStatsHealthy(stats: CumulativeStats | undefined): boolean {
+  if (!stats || typeof stats !== 'object') return false;
+  const values: unknown[] = [
+    stats.peakGdpRank,
+    stats.peakTreasury,
+    stats.totalTechsUnlocked,
+    stats.totalReputationGained,
+    stats.totalSpyOpsCompleted,
+    stats.totalTicksPlayed,
+  ];
+  for (const v of values) {
+    if (typeof v !== 'number' || !Number.isFinite(v)) return false;
+  }
+  return true;
+}
+
+/**
+ * Closed set of game modes the engine recognises. Anything outside the set is
+ * treated as a legacy / corrupt value and rewritten to `'classic'` during
+ * migration. Mirrors the union in `packages/engine/src/types.ts:GameMode`.
+ */
+const KNOWN_GAME_MODES: ReadonlySet<string> = new Set([
+  'classic',
+  'eternal',
+  'dethrone',
+  'era-paced',
+]);
+
+/**
  * Light, in-place migration for save entries loaded from disk. Handles
  * additive Phase 1→3 defaults so older saves load cleanly:
  *
  *   - `state.difficultyId`        — Phase 1 saves predate the wizard choice;
  *                                   default to `LEGACY_DIFFICULTY_ID`.
  *   - `state.gameMode`            — Phase 1/2 saves predate game-mode
- *                                   selection; default to `'classic'`.
+ *                                   selection; default to `'classic'`. Unknown
+ *                                   values are coerced to `'classic'` too so
+ *                                   downstream selectors don't have to defend
+ *                                   against typos.
  *   - `state.cumulativeStats`     — Phase 1/2 saves never carried these.
  *                                   Backfill with a zero baseline so the
- *                                   Eternal-mode HUD doesn't blow up.
+ *                                   Eternal-mode HUD doesn't blow up. Saves
+ *                                   that carry NaN / Infinity values (from a
+ *                                   prior bug) are also reset.
+ *   - `state.unlockedVictories`   — when the save reports `gameMode === 'eternal'`
+ *                                   but lacks the array, backfill with `[]` so
+ *                                   the milestone toast logic in the store has
+ *                                   a stable shape to diff against.
+ *   - `state.actionLog`           — backfill with `[]` when undefined so future
+ *                                   ticks can append regardless of when the
+ *                                   replay-recording preference was toggled.
  *
  * Returns the (possibly patched) entry. Kept as a pure function so persistence
  * tests can exercise it directly without spinning up Dexie.
  *
- * NOTE: we intentionally DO NOT initialise `_dethroneStreaks` or
- * `unlockedVictories` here — they're tracked by the engine and meaningful
- * only for runs in the matching mode. A `classic` save should never carry
- * those fields, so leaving them undefined is the correct default.
+ * NOTE: we intentionally DO NOT initialise `_dethroneStreaks` or any other
+ * Phase 3 system fields (reputation / blocs / unResolutions / eraState /
+ * spaceMilestones) here — they're tracked by the engine and meaningful only
+ * for runs in the matching mode (or scenarios that opt in). A `classic` /
+ * Phase-1 save should never carry those fields, so leaving them undefined
+ * is the correct default and the engine treats undefined as "system not in
+ * use".
+ *
+ * Also logs a console warning when `entry.scenarioId` is not present in the
+ * scenario registry — old beta saves carrying decommissioned scenario ids
+ * (e.g. `'mondo-fittizio'`) will fail to load anyway, but a clear warning
+ * up-front beats a cryptic ScenarioNotFoundError later.
  */
-export function migrateSaveEntry(entry: SaveEntry): SaveEntry {
+/**
+ * Optional knobs for `migrateSaveEntry`. Passed-in flags let callers reflect
+ * the player's current preferences (replay recording, etc.) without forcing
+ * the migration to be async. Defaults are the conservative no-op choices —
+ * the migration only adds fields that downstream code is known to require.
+ */
+export type MigrateSaveOptions = {
+  /**
+   * When true, `state.actionLog` is backfilled with an empty array if missing
+   * so the engine's next tick can append. Default false: a save that opts
+   * out of recording should not silently inflate with a replay buffer.
+   */
+  recordReplay?: boolean;
+};
+
+export function migrateSaveEntry(
+  entry: SaveEntry,
+  options: MigrateSaveOptions = {},
+): SaveEntry {
   const state = entry.state as GameState | undefined;
   if (!state) return entry;
+
+  if (entry.scenarioId && !getScenarioMeta(entry.scenarioId)) {
+    console.warn(
+      `[persistence] Save references unknown scenarioId "${entry.scenarioId}". ` +
+        `It is no longer in the registry; loading will fail. Consider deleting this save.`,
+    );
+  }
 
   let nextState = state;
   let mutated = false;
@@ -305,13 +390,37 @@ export function migrateSaveEntry(entry: SaveEntry): SaveEntry {
     mutated = true;
   }
 
-  if (typeof nextState.gameMode !== 'string') {
+  if (
+    typeof nextState.gameMode !== 'string' ||
+    !KNOWN_GAME_MODES.has(nextState.gameMode)
+  ) {
     nextState = { ...nextState, gameMode: 'classic' };
     mutated = true;
   }
 
-  if (!nextState.cumulativeStats) {
+  if (!isCumulativeStatsHealthy(nextState.cumulativeStats)) {
     nextState = { ...nextState, cumulativeStats: defaultCumulativeStats() };
+    mutated = true;
+  }
+
+  // Eternal-mode saves should always carry an `unlockedVictories` array so the
+  // store's milestone-toast diff has a stable shape. Older Wave 9 saves where
+  // the field hadn't been written yet would otherwise diff against `undefined`
+  // every tick (harmless, but noisy in the engine logs).
+  if (
+    nextState.gameMode === 'eternal' &&
+    !Array.isArray(nextState.unlockedVictories)
+  ) {
+    nextState = { ...nextState, unlockedVictories: [] };
+    mutated = true;
+  }
+
+  // Replay action log: scaffolded in Wave 9 so future ticks can append. Only
+  // backfill when the player actually has replay recording enabled — leaving
+  // the array undefined for opted-out players keeps the field truly optional
+  // (and avoids growing the save on every tick of a run that won't be replayed).
+  if (options.recordReplay === true && !Array.isArray(nextState.actionLog)) {
+    nextState = { ...nextState, actionLog: [] };
     mutated = true;
   }
 
@@ -377,7 +486,8 @@ export async function importSave(file: File): Promise<SaveEntry> {
   } catch {
     throw new InvalidSaveError('File is not valid JSON');
   }
-  const entry = migrateSaveEntry(normalizeImportedSave(parsed));
+  const recordReplay = await getReplayRecordingPref().catch(() => DEFAULT_REPLAY_RECORDING);
+  const entry = migrateSaveEntry(normalizeImportedSave(parsed), { recordReplay });
   await withWriteGuard(() => db().saves.put(entry));
   return entry;
 }

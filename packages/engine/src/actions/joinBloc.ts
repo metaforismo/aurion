@@ -1,6 +1,6 @@
 // Reducer for the 'joinBloc' action. Adds the actor to the requested bloc.
-// Wave 9 simplification: joining is immediate (no member-vote modal). The
-// bloc-vote workflow described in the spec is a Wave 10+ refinement; for now
+// Current behaviour: joining is immediate (no member-vote modal). The full
+// bloc-vote workflow described in the spec is a future refinement; for now
 // the reducer enforces only basic structural validity.
 
 import type {

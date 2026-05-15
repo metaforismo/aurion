@@ -2832,8 +2832,8 @@
       }
     },
     {
-      "id": "iron-man",
-      "nameKey": "difficulty.iron-man.name",
+      "id": "ironMan",
+      "nameKey": "difficulty.ironMan.name",
       "modifiers": {
         "aiAggression": 1.5,
         "aiResearchSpeed": 1.3,
