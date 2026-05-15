@@ -5,7 +5,12 @@
 // don't fail (IndexedDB is not available on the server).
 
 import Dexie, { type Table } from 'dexie';
-import type { AchievementId, GameState, SaveId } from '@aurion/engine';
+import type {
+  AchievementId,
+  CumulativeStats,
+  GameState,
+  SaveId,
+} from '@aurion/engine';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -249,24 +254,68 @@ export async function loadSave(id: SaveId): Promise<SaveEntry | null> {
 export const LEGACY_DIFFICULTY_ID = 'normal';
 
 /**
- * Light, in-place migration for save entries loaded from disk. Currently
- * handles a single concern: ensuring `state.difficultyId` is present on
- * Phase 1 saves that were written before the wizard collected the choice.
- * Returns the (possibly patched) entry.
+ * Zero-initialised CumulativeStats for legacy saves that predate Phase 3.
+ * The engine populates these correctly going forward (see
+ * `packages/engine/src/cumulativeStats/*`). Keeping the helper exported lets
+ * tests assert against the exact baseline used by the migration.
+ */
+export function defaultCumulativeStats(): CumulativeStats {
+  return {
+    peakGdpRank: 999,
+    peakTreasury: 0,
+    totalTechsUnlocked: 0,
+    totalReputationGained: 0,
+    totalSpyOpsCompleted: 0,
+    totalTicksPlayed: 0,
+  };
+}
+
+/**
+ * Light, in-place migration for save entries loaded from disk. Handles
+ * additive Phase 1→3 defaults so older saves load cleanly:
  *
- * Kept as a pure function so persistence tests can exercise it directly
- * without spinning up Dexie.
+ *   - `state.difficultyId`        — Phase 1 saves predate the wizard choice;
+ *                                   default to `LEGACY_DIFFICULTY_ID`.
+ *   - `state.gameMode`            — Phase 1/2 saves predate game-mode
+ *                                   selection; default to `'classic'`.
+ *   - `state.cumulativeStats`     — Phase 1/2 saves never carried these.
+ *                                   Backfill with a zero baseline so the
+ *                                   Eternal-mode HUD doesn't blow up.
+ *
+ * Returns the (possibly patched) entry. Kept as a pure function so persistence
+ * tests can exercise it directly without spinning up Dexie.
+ *
+ * NOTE: we intentionally DO NOT initialise `_dethroneStreaks` or
+ * `unlockedVictories` here — they're tracked by the engine and meaningful
+ * only for runs in the matching mode. A `classic` save should never carry
+ * those fields, so leaving them undefined is the correct default.
  */
 export function migrateSaveEntry(entry: SaveEntry): SaveEntry {
   const state = entry.state as GameState | undefined;
   if (!state) return entry;
-  if (typeof state.difficultyId === 'string' && state.difficultyId.length > 0) {
-    return entry;
+
+  let nextState = state;
+  let mutated = false;
+
+  if (
+    typeof nextState.difficultyId !== 'string' ||
+    nextState.difficultyId.length === 0
+  ) {
+    nextState = { ...nextState, difficultyId: LEGACY_DIFFICULTY_ID };
+    mutated = true;
   }
-  return {
-    ...entry,
-    state: { ...state, difficultyId: LEGACY_DIFFICULTY_ID },
-  };
+
+  if (typeof nextState.gameMode !== 'string') {
+    nextState = { ...nextState, gameMode: 'classic' };
+    mutated = true;
+  }
+
+  if (!nextState.cumulativeStats) {
+    nextState = { ...nextState, cumulativeStats: defaultCumulativeStats() };
+    mutated = true;
+  }
+
+  return mutated ? { ...entry, state: nextState } : entry;
 }
 
 export type SaveGameInput = {
@@ -482,6 +531,41 @@ export async function setAudioVolumes(prefs: AudioVolumePrefs): Promise<void> {
     mutedSfx: prefs.mutedSfx === true,
   };
   await setMeta(AUDIO_VOLUMES_META_KEY, normalized);
+}
+
+// ---------------------------------------------------------------------------
+// Replay recording preference (Phase 3 / Wave 9 scaffolding for future Wave
+// 11+ Replay UI). When enabled, the engine populates `state.actionLog` with
+// every action / tick. Default ON per spec Q9 — overhead is negligible and
+// most players will want the option to relive their best runs later.
+// ---------------------------------------------------------------------------
+
+/** Reserved meta key for the replay-recording opt-in/out toggle. */
+export const REPLAY_RECORDING_META_KEY = 'aurion:replay-recording';
+
+/** Default value when no preference has been stored yet. */
+export const DEFAULT_REPLAY_RECORDING = true;
+
+/**
+ * Read whether replay recording is currently enabled. Defaults to
+ * `DEFAULT_REPLAY_RECORDING` (true) when no preference has been stored OR
+ * persistence is unavailable (SSR, private browsing). Returning a Promise
+ * mirrors the rest of the meta surface so callers can `await` without
+ * branching.
+ */
+export async function getReplayRecordingPref(): Promise<boolean> {
+  const value = await getMeta<boolean>(REPLAY_RECORDING_META_KEY);
+  if (value === null) return DEFAULT_REPLAY_RECORDING;
+  return value === true;
+}
+
+/**
+ * Persist the replay-recording preference. Stored as a boolean in the meta
+ * table so it survives across saves and isn't competing with the localStorage
+ * budget Zustand uses for speed/panel prefs.
+ */
+export async function setReplayRecordingPref(value: boolean): Promise<void> {
+  await setMeta(REPLAY_RECORDING_META_KEY, value === true);
 }
 
 // ---------------------------------------------------------------------------

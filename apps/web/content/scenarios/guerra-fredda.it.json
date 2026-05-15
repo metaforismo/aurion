@@ -275,5 +275,24 @@
   "difficulty.easy.name": "Facile",
   "difficulty.normal.name": "Normale",
   "difficulty.hard.name": "Difficile",
-  "difficulty.iron-man.name": "Iron Man"
+  "difficulty.iron-man.name": "Iron Man",
+
+  "bloc.gf.western.name": "Blocco Atlantico",
+  "bloc.gf.eastern.name": "Blocco Orientale",
+  "bloc.gf.non-aligned.name": "Movimento dei Non Allineati",
+
+  "un.gf.peacekeeping.title": "Forza d'interposizione nel teatro di crisi",
+  "un.gf.peacekeeping.description": "Mozione per dispiegare osservatori e contingenti di pace nelle aree del conflitto, congelando le linee del fronte.",
+  "un.gf.condemnation.tactical.title": "Condanna dell'impiego tattico atomico",
+  "un.gf.condemnation.tactical.description": "Risoluzione d'urgenza che condanna l'uso di ordigni nucleari tattici e invoca una moratoria immediata.",
+  "un.gf.condemnation.strategic.title": "Condanna dell'attacco strategico",
+  "un.gf.condemnation.strategic.description": "Sessione straordinaria del Consiglio per condannare l'attacco strategico e discutere contromisure collettive.",
+  "un.gf.humanitarian.title": "Programma di soccorso umanitario",
+  "un.gf.humanitarian.description": "Aiuti coordinati a popolazioni colpite da conflitti regionali, carestie o spostamenti forzati.",
+  "un.gf.condemnation.sanctions.title": "Mozione contro le sanzioni unilaterali",
+  "un.gf.condemnation.sanctions.description": "Discussione sulla legittimità del regime sanzionatorio imposto e sulle ricadute sulla popolazione civile.",
+  "un.gf.climate.tension.title": "Patto di distensione internazionale",
+  "un.gf.climate.tension.description": "Quadro multilaterale per ridurre la tensione fra i blocchi e prevenire un'escalation a catena.",
+  "un.gf.climate.periodic.title": "Convenzione sull'ambiente comune",
+  "un.gf.climate.periodic.description": "Trattato periodico per coordinare la tutela dell'ambiente al di sopra delle divisioni di blocco."
 }

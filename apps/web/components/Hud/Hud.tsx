@@ -14,8 +14,10 @@ import { DateBadge } from './DateBadge';
 import { IronManBadge } from './IronManBadge';
 import { MenuButton } from './MenuButton';
 import { PopularityBadge } from './PopularityBadge';
+import { ReputationBadges } from './ReputationBadges';
 import { SpeedControls } from './SpeedControls';
 import { TreasuryBadge } from './TreasuryBadge';
+import { VictoryCounter } from './VictoryCounter';
 
 export type HudProps = {
   /** Optional toast callback for menu actions. */
@@ -54,6 +56,13 @@ export function Hud({ onNotify }: HudProps) {
       {ironMan ? <IronManBadge /> : null}
       <TreasuryBadge />
       <PopularityBadge />
+      {/* Phase 3 — bloc reputation chips. Hide themselves when the active
+          scenario does not opt into the bloc system (i.e. state.reputation
+          is undefined), so Phase 1/2 saves see the previous HUD layout. */}
+      <ReputationBadges />
+      {/* Phase 3 — Eternal-mode multi-victory counter. Hides itself unless
+          state.gameMode === 'eternal'. */}
+      <VictoryCounter />
       <div className="ml-2">
         <SpeedControls />
       </div>

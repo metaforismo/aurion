@@ -1,26 +1,35 @@
 // Single tick of the simulation. Pure function: returns a new GameState,
-// never mutates `state`. Implements the 10-step loop from docs/SPEC.md.
+// never mutates `state`. Implements the 10-step base loop from docs/SPEC.md
+// extended in Phase 3 with reputation, UN, blocs, cumulative stats and
+// multi-victory tracking (steps 11–15).
 
 import { applyAction } from './actions/index.js';
 import { decideAiAction } from './ai/index.js';
-import { checkWinLoss } from './checkWinLoss.js';
+import { checkWinLoss, evaluateVictory } from './checkWinLoss.js';
 import { createRng, type Rng } from './rng.js';
 import type {
   Country,
   CountryId,
+  CumulativeStats,
   DifficultyTuning,
   EventDefinition,
   GameEvent,
   GameState,
   MilitaryDeployment,
   Relation,
+  Scenario,
   ScienceState,
   SpyOperation,
   TechDefinition,
   TechEffect,
+  VictoryConditionDef,
+  VictoryConditionId,
   VictoryRule,
 } from './types.js';
 import { clamp } from './actions/helpers.js';
+import { tickReputation } from './reputation/index.js';
+import { tickBlocs } from './blocs/index.js';
+import { tickUN } from './un/index.js';
 
 export type TickContext = {
   /** Tech catalog from the current scenario; used to complete research and apply effects. */
@@ -33,6 +42,13 @@ export type TickContext = {
   aiCadenceTicks?: number;
   /** Difficulty tuning. When omitted all multipliers default to 1.0 (Normal). */
   difficulty?: DifficultyTuning;
+  /**
+   * Phase 3: full Scenario reference required by the UN tick step (for
+   * permanent member lookup, trigger map, dethrone isolation flag) and by
+   * the unlocked-victories tracker. When omitted, Phase 3 tick steps that
+   * need scenario data degrade to no-op.
+   */
+  scenario?: Scenario;
 };
 
 const DEFAULT_AI_CADENCE = 4;
@@ -78,6 +94,7 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
     techCatalog,
     ctx.aiCadenceTicks ?? DEFAULT_AI_CADENCE,
     difficulty,
+    ctx.scenario,
   );
 
   // 8. Events. Random events scaled by `eventChanceMultiplier`.
@@ -87,10 +104,101 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
   next = stepWorldTension(next);
 
   // 10. Win/loss. Loss-streak thresholds scaled by `lossToleranceWeeks`.
-  next = checkWinLoss(next, ctx.victoryRule, difficulty);
+  next = checkWinLoss(
+    next,
+    ctx.victoryRule,
+    difficulty,
+    ctx.scenario?.dethroneIsolationOnByDefault === true,
+  );
+
+  // ----- Phase 3 extensions (steps 11–15) -----
+  // 11. Apply queued reputation deltas + decay toward 0.
+  next = tickReputation(next);
+
+  // 12. Run UN tick step (advance voting windows, AI proposals, periodic triggers).
+  if (ctx.scenario) next = tickUN(next, ctx.scenario, rng);
+
+  // 13. Run bloc tick step (periodic leader recompute, AI defections).
+  next = tickBlocs(next);
+
+  // 14. Track cumulative stats & dethrone-mode counters where applicable.
+  next = tickCumulativeStats(next);
+
+  // 15. Multi-victory tracking for Eternal mode: never push duplicates.
+  if (ctx.scenario) next = tickUnlockedVictories(next, ctx.scenario);
 
   // Finally bump tick.
   return { ...next, tick: next.tick + 1 };
+}
+
+// ---------- 14. Cumulative stats / Dethrone-mode counters ----------
+
+function tickCumulativeStats(state: GameState): GameState {
+  if (!state.cumulativeStats) return state;
+  const cs = state.cumulativeStats;
+  const player = state.countries[state.playerCountryId];
+  if (!player) return state;
+
+  // Compute current GDP rank (1-based).
+  const sortedGdp = Object.values(state.countries)
+    .map((c) => ({ id: c.id, gdp: c.economy.gdp }))
+    .sort((a, b) => b.gdp - a.gdp);
+  const idx = sortedGdp.findIndex((s) => s.id === player.id);
+  const currentRank = idx >= 0 ? idx + 1 : 999;
+
+  // peakGdpRank is "best ever" — lowest number wins.
+  const peakGdpRank = Math.min(cs.peakGdpRank, currentRank);
+  const peakTreasury = Math.max(cs.peakTreasury, player.economy.treasury);
+  const totalTechsUnlocked = player.science.completedTechs.length;
+  const totalSpyOpsCompleted = state.spyOperations.filter(
+    (op) => op.ownerCountryId === player.id && op.status === 'completed',
+  ).length;
+  // Reputation gained: sum of pending positive deltas (already drained at this
+  // step, but cumulative reads the pre-drain queue indirectly via state diff —
+  // we approximate by tracking each tick's per-bloc rep over zero).
+  let totalReputationGained = cs.totalReputationGained;
+  if (state.reputation) {
+    let positiveSum = 0;
+    for (const v of Object.values(state.reputation)) {
+      if (typeof v === 'number' && v > 0) positiveSum += v;
+    }
+    // Smoothing: only add the current frame's positive surplus normalized
+    // by 100 — keeps the metric finite. This intentionally trades exactness
+    // for simplicity; replay tooling can reconstruct precise totals.
+    totalReputationGained += positiveSum / 100;
+  }
+  const totalTicksPlayed = cs.totalTicksPlayed + 1;
+
+  const updated: CumulativeStats = {
+    peakGdpRank,
+    peakTreasury,
+    totalTechsUnlocked,
+    totalReputationGained,
+    totalSpyOpsCompleted,
+    totalTicksPlayed,
+  };
+  return { ...state, cumulativeStats: updated };
+}
+
+// ---------- 15. Multi-victory tracking ----------
+
+function tickUnlockedVictories(state: GameState, scenario: Scenario): GameState {
+  if (!state.unlockedVictories) return state;
+  // Avoid recomputing every tick if all victories already met.
+  if (state.unlockedVictories.length >= scenario.victoryConditions.length) {
+    return state;
+  }
+  const unlocked = new Set<VictoryConditionId>(state.unlockedVictories);
+  let mutated = false;
+  for (const def of scenario.victoryConditions as readonly VictoryConditionDef[]) {
+    if (unlocked.has(def.id)) continue;
+    if (evaluateVictory(state, def.rule)) {
+      unlocked.add(def.id);
+      mutated = true;
+    }
+  }
+  if (!mutated) return state;
+  return { ...state, unlockedVictories: Array.from(unlocked) };
 }
 
 // ---------- 1. Economy ----------
@@ -563,6 +671,7 @@ function stepAi(
   techCatalog: readonly TechDefinition[],
   cadence: number,
   difficulty: DifficultyTuning | undefined,
+  scenario: Scenario | undefined,
 ): GameState {
   let next = state;
   for (const country of Object.values(state.countries)) {
@@ -573,7 +682,7 @@ function stepAi(
     if ((state.tick + offset) % cadence !== 0) continue;
     const action = decideAiAction(next, country.id, rng, techCatalog, difficulty);
     if (!action) continue;
-    const result = applyAction(next, action, country.id, techCatalog, difficulty);
+    const result = applyAction(next, action, country.id, techCatalog, difficulty, scenario);
     if (result.errors.length === 0) {
       next = result.state;
     }

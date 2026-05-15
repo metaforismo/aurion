@@ -325,5 +325,24 @@
   "difficulty.easy.name": "Easy",
   "difficulty.normal.name": "Normal",
   "difficulty.hard.name": "Hard",
-  "difficulty.ironMan.name": "Iron Man"
+  "difficulty.ironMan.name": "Iron Man",
+
+  "bloc.ascesa.western.name": "Pact of Auriana",
+  "bloc.ascesa.eastern.name": "Borean Sphere",
+  "bloc.ascesa.non-aligned.name": "Movement of the Free Lands",
+
+  "un.ascesa.peacekeeping.title": "Council mediation in the contested region",
+  "un.ascesa.peacekeeping.description": "The Council of Nations proposes a neutral force to separate the belligerents and freeze the front line.",
+  "un.ascesa.condemnation.tactical.title": "Condemnation of prohibited weapon use",
+  "un.ascesa.condemnation.tactical.description": "Resolution formally condemning the use of tactical mass-destruction arms in the theatre of war.",
+  "un.ascesa.condemnation.strategic.title": "Condemnation of strategic strike",
+  "un.ascesa.condemnation.strategic.description": "Emergency Council session to condemn the strategic strike and weigh joint retaliatory measures.",
+  "un.ascesa.humanitarian.title": "Aid programme for the poorer lands",
+  "un.ascesa.humanitarian.description": "Coordinated support for the most fragile populations hit by famine, displacement and regional conflict.",
+  "un.ascesa.condemnation.sanctions.title": "Motion against unilateral sanctions",
+  "un.ascesa.condemnation.sanctions.description": "Formal debate on the legitimacy of the imposed sanctions regime and its impact on civilian populations.",
+  "un.ascesa.climate.tension.title": "Council de-escalation pact",
+  "un.ascesa.climate.tension.description": "Multilateral framework to lower tension between the spheres of influence and head off a cascading escalation.",
+  "un.ascesa.climate.periodic.title": "Convention on world balance",
+  "un.ascesa.climate.periodic.description": "Periodic treaty on climate and the use of natural resources, binding for every Council signatory."
 }

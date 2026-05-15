@@ -1,7 +1,13 @@
 // Win/Loss evaluation. Pure given input state.
 
-import { getStreaks, withStreaks } from './internal.js';
+import {
+  getDethroneStreaks,
+  getStreaks,
+  withDethroneStreaks,
+  withStreaks,
+} from './internal.js';
 import type {
+  ActiveBlocId,
   Country,
   DifficultyTuning,
   GameState,
@@ -17,6 +23,15 @@ export const LOSS_NEGATIVE_TREASURY_WEEKS = 26;
 export const LOSS_CAPITAL_OCCUPIED_WEEKS = 26;
 export const LOSS_ALL_FACTIONS_ANGRY_WEEKS = 12;
 
+/** Dethrone-mode: weeks out of GDP top-3 before game over. */
+export const DETHRONE_OUT_OF_TOP3_WEEKS = 260;
+
+/** Dethrone-mode: weeks of isolation (rep < -50 in all blocs) before game over. */
+export const DETHRONE_ISOLATION_WEEKS = 260;
+
+/** Reputation threshold below which the player is "isolated" in a bloc. */
+export const DETHRONE_ISOLATION_REP_THRESHOLD = -50;
+
 const ALL_FACTIONS_ANGRY_THRESHOLD = 20;
 const LOW_POP_THRESHOLD = 10;
 
@@ -30,11 +45,16 @@ const LOW_POP_THRESHOLD = 10;
  *
  * The optional `difficulty` scales the four LOSS_*_WEEKS thresholds by
  * `modifiers.lossToleranceWeeks`. Easy uses >1 (more forgiving), Hard <1.
+ *
+ * `dethroneIsolationEnabled` (Phase 3) controls whether the isolation streak
+ * is armed as a loss trigger. Defaults to false — only scenarios that opt in
+ * via `scenario.dethroneIsolationOnByDefault` enable it.
  */
 export function checkWinLoss(
   state: GameState,
   victoryRule?: VictoryRule,
   difficulty?: DifficultyTuning,
+  dethroneIsolationEnabled = false,
 ): GameState {
   const player = state.countries[state.playerCountryId];
   if (!player) return { ...state, winLoss: state.winLoss };
@@ -70,7 +90,17 @@ export function checkWinLoss(
   const factionsThr = LOSS_ALL_FACTIONS_ANGRY_WEEKS * tolerance;
 
   let winLoss: WinLossState = state.winLoss;
+  let withStreaksState = withStreaks(state, next);
+
+  // Dethrone mode: maintain GDP-top3 / isolation streaks regardless of win
+  // outcome so the HUD can show "x weeks until dethroned" warnings. Losses
+  // from these streaks DO trigger in eternal mode (only victories are deferred).
+  if (state.gameMode === 'dethrone') {
+    withStreaksState = updateDethroneStreaks(withStreaksState);
+  }
+
   if (winLoss === 'playing') {
+    // Loss conditions are checked regardless of game mode.
     if (
       next.lowPopularityWeeks >= popThr ||
       next.negativeTreasuryWeeks >= treasuryThr ||
@@ -78,13 +108,70 @@ export function checkWinLoss(
       next.allFactionsAngryWeeks >= factionsThr
     ) {
       winLoss = 'lost';
+    } else if (
+      state.gameMode === 'dethrone' &&
+      isDethroneLoss(withStreaksState, dethroneIsolationEnabled)
+    ) {
+      winLoss = 'lost';
     } else if (victoryRule && evaluateVictory(state, victoryRule)) {
-      winLoss = 'won';
+      // Eternal mode: victories accumulate in `unlockedVictories` instead of
+      // ending the game. The tick step handles the tracking; here we just
+      // refrain from setting winLoss.
+      if (state.gameMode !== 'eternal') {
+        winLoss = 'won';
+      }
     }
   }
 
-  const withStreaksState = withStreaks(state, next);
   return { ...withStreaksState, winLoss };
+}
+
+/**
+ * Update the dethrone streak counters from current state. Pure: returns a
+ * new state with the streaks attached.
+ */
+function updateDethroneStreaks(state: GameState): GameState {
+  const prev = getDethroneStreaks(state);
+  const next = { ...prev };
+
+  // Out-of-top3 streak: consecutive ticks player is NOT in GDP top 3.
+  const sortedGdp = Object.values(state.countries)
+    .map((c) => ({ id: c.id, gdp: c.economy.gdp }))
+    .sort((a, b) => b.gdp - a.gdp);
+  const playerIdx = sortedGdp.findIndex((s) => s.id === state.playerCountryId);
+  const inTop3 = playerIdx >= 0 && playerIdx < 3;
+  next.outOfTop3Weeks = inTop3 ? 0 : prev.outOfTop3Weeks + 1;
+
+  // Isolation streak: rep < -50 in all blocs simultaneously.
+  if (state.reputation) {
+    const blocIds = Object.keys(state.reputation) as ActiveBlocId[];
+    if (blocIds.length === 0) {
+      next.isolationWeeks = 0;
+    } else {
+      const allBelow = blocIds.every(
+        (id) => (state.reputation?.[id] ?? 0) < DETHRONE_ISOLATION_REP_THRESHOLD,
+      );
+      next.isolationWeeks = allBelow ? prev.isolationWeeks + 1 : 0;
+    }
+  } else {
+    next.isolationWeeks = 0;
+  }
+
+  return withDethroneStreaks(state, next);
+}
+
+function isDethroneLoss(state: GameState, isolationEnabled: boolean): boolean {
+  if (state.gameMode !== 'dethrone') return false;
+  const streaks = getDethroneStreaks(state);
+  if (streaks.outOfTop3Weeks >= DETHRONE_OUT_OF_TOP3_WEEKS) return true;
+  if (
+    isolationEnabled &&
+    state.reputation &&
+    streaks.isolationWeeks >= DETHRONE_ISOLATION_WEEKS
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -169,5 +256,10 @@ export function evaluateVictory(state: GameState, rule: VictoryRule): boolean {
 /** Convenience helper used when callers only have a Scenario in hand. */
 export function checkWinLossWithScenario(state: GameState, scenario: Scenario): GameState {
   const def = scenario.victoryConditions.find((v) => v.id === state.selectedVictoryCondition);
-  return checkWinLoss(state, def?.rule);
+  return checkWinLoss(
+    state,
+    def?.rule,
+    undefined,
+    scenario.dethroneIsolationOnByDefault === true,
+  );
 }

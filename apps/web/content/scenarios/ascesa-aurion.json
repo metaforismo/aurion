@@ -4764,5 +4764,155 @@
       },
       "ironMan": true
     }
-  ]
+  ],
+  "blocs": [
+    {
+      "id": "western",
+      "nameKey": "bloc.ascesa.western.name",
+      "foundingMembers": [
+        "aurion",
+        "velmara",
+        "korthia",
+        "sundria",
+        "calanthia",
+        "verdantia",
+        "tolmek"
+      ],
+      "leaderCountryId": "aurion"
+    },
+    {
+      "id": "eastern",
+      "nameKey": "bloc.ascesa.eastern.name",
+      "foundingMembers": [
+        "federazione-borea",
+        "tundria",
+        "norhavn",
+        "rusvenia",
+        "iskal"
+      ],
+      "leaderCountryId": "federazione-borea"
+    },
+    {
+      "id": "non-aligned",
+      "nameKey": "bloc.ascesa.non-aligned.name",
+      "foundingMembers": [
+        "xanaba",
+        "yureka",
+        "tenshido",
+        "hakaria",
+        "mireku",
+        "aolan",
+        "sankai",
+        "pelagia",
+        "karoun",
+        "saharel",
+        "mokshara",
+        "zembu",
+        "antarah"
+      ],
+      "leaderCountryId": "saharel"
+    }
+  ],
+  "unCouncilMembers": [
+    "aurion",
+    "federazione-borea",
+    "velmara",
+    "saharel",
+    "mireku"
+  ],
+  "unTriggerMap": {
+    "declareWar": {
+      "kind": "peacekeeping",
+      "titleKey": "un.ascesa.peacekeeping.title",
+      "descriptionKey": "un.ascesa.peacekeeping.description",
+      "votingDurationTicks": 12,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": -8 }
+        ],
+        "onFail": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 4 }
+        ]
+      }
+    },
+    "launchTactical": {
+      "kind": "condemnation",
+      "titleKey": "un.ascesa.condemnation.tactical.title",
+      "descriptionKey": "un.ascesa.condemnation.tactical.description",
+      "votingDurationTicks": 6,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 10 }
+        ],
+        "onFail": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 0 }
+        ]
+      }
+    },
+    "launchStrategic": {
+      "kind": "condemnation",
+      "titleKey": "un.ascesa.condemnation.strategic.title",
+      "descriptionKey": "un.ascesa.condemnation.strategic.description",
+      "votingDurationTicks": 4,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 15 }
+        ],
+        "onFail": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 5 }
+        ]
+      }
+    },
+    "tradeDealLowGdp": {
+      "kind": "humanitarian",
+      "titleKey": "un.ascesa.humanitarian.title",
+      "descriptionKey": "un.ascesa.humanitarian.description",
+      "votingDurationTicks": 8,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": -3 }
+        ],
+        "onFail": []
+      }
+    },
+    "sanctionsImposed": {
+      "kind": "condemnation",
+      "titleKey": "un.ascesa.condemnation.sanctions.title",
+      "descriptionKey": "un.ascesa.condemnation.sanctions.description",
+      "votingDurationTicks": 8,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 5 }
+        ],
+        "onFail": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 0 }
+        ]
+      }
+    },
+    "highWorldTension": {
+      "kind": "climate",
+      "titleKey": "un.ascesa.climate.tension.title",
+      "descriptionKey": "un.ascesa.climate.tension.description",
+      "votingDurationTicks": 16,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": -5 }
+        ],
+        "onFail": []
+      }
+    },
+    "climatePeriodic": {
+      "kind": "climate",
+      "titleKey": "un.ascesa.climate.periodic.title",
+      "descriptionKey": "un.ascesa.climate.periodic.description",
+      "votingDurationTicks": 16,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": -4 }
+        ],
+        "onFail": []
+      }
+    }
+  },
+  "dethroneIsolationOnByDefault": false
 }

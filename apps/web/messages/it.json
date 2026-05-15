@@ -38,7 +38,8 @@
       "scenario": "Scenario",
       "country": "Paese",
       "victory": "Vittoria",
-      "difficulty": "Difficoltà"
+      "difficulty": "Difficoltà",
+      "gameMode": "Modalità"
     },
     "stepScenario": {
       "title": "Scegli uno scenario",
@@ -97,7 +98,25 @@
       }
     },
     "start": "Avvia partita",
-    "preparing": "Preparazione partita…"
+    "preparing": "Preparazione partita…",
+    "gameMode": {
+      "title": "Scegli la modalità di gioco",
+      "description": "Definisce quando (e se) la partita può finire. Potrai apprezzarne le differenze nelle prime ore.",
+      "recommended": "Consigliata",
+      "classic": {
+        "name": "Classica",
+        "description": "Vinci una volta, partita finita. Il modo storico: chiudi al primo obiettivo raggiunto."
+      },
+      "eternal": {
+        "name": "Eterna",
+        "description": "Mai finisce. Sblocchi vittorie come milestone, continui finché vuoi. Bastano 30 minuti o decine di ore — sei tu a decidere."
+      },
+      "dethrone": {
+        "name": "Detronizzazione",
+        "description": "Diventa #1 e mantieni lo status: se cadi dal podio per 5 anni, perdi. Per chi vuole tensione anche dopo aver vinto.",
+        "isolationUnavailable": "Lo scenario non supporta il trigger isolamento; vincerai/perderai solo per posizione GDP."
+      }
+    }
   },
   "hud": {
     "date": "Settimana {tick}",
@@ -146,6 +165,20 @@
       "sfxLabel": "Effetti sonori",
       "mute": "Silenzia",
       "unmute": "Riattiva"
+    },
+    "reputation": {
+      "title": "Reputazione fra i blocchi",
+      "tooltip": "I tuoi rapporti col blocco {bloc}",
+      "bloc": {
+        "western": "Occidentale",
+        "eastern": "Orientale",
+        "non-aligned": "Non allineati"
+      }
+    },
+    "victory": {
+      "counter": "{unlocked}/{total} vittorie",
+      "unlocked": "vittorie",
+      "popoverTitle": "Vittorie sbloccate"
     }
   },
   "notifications": {
@@ -154,7 +187,10 @@
     "actionRequired": "Decisione richiesta",
     "chose": "Scelto: {label}",
     "justNow": "ora",
-    "ticksAgo": "{n, plural, one {1 settimana fa} other {# settimane fa}}"
+    "ticksAgo": "{n, plural, one {1 settimana fa} other {# settimane fa}}",
+    "victoryToast": {
+      "unlocked": "Vittoria sbloccata"
+    }
   },
   "modals": {
     "event": {
@@ -176,7 +212,9 @@
         "popularity": "La popolarità è scesa troppo a lungo: il governo è stato rovesciato.",
         "bankruptcy": "Le casse dello stato sono rimaste vuote troppo a lungo: la nazione è in bancarotta.",
         "occupation": "La capitale è stata occupata da una potenza nemica.",
-        "factionRevolt": "Tutte le fazioni hanno ritirato il loro appoggio: colpo di stato."
+        "factionRevolt": "Tutte le fazioni hanno ritirato il loro appoggio: colpo di stato.",
+        "dethroned": "Sei rimasto fuori dalla top 3 PIL per 5 anni: detronizzato dalle altre potenze.",
+        "isolated": "La tua reputazione è precipitata sotto -50 in tutti i blocchi per 5 anni: completamente isolato."
       },
       "ticksPlayed": "Settimane: {tick}",
       "peakPopularity": "Popolarità",
@@ -185,6 +223,17 @@
       "spyOpsLaunched": "Operazioni di spionaggio",
       "newGame": "Nuova partita",
       "backHome": "Torna alla home"
+    },
+    "unResolution": {
+      "title": "Nuova risoluzione ONU",
+      "voteNow": "Esprimi il tuo voto",
+      "viewInPanel": "Apri pannello",
+      "dismiss": "Per ora salta"
+    },
+    "eternalFirstVictory": {
+      "title": "Hai sbloccato la tua prima vittoria!",
+      "body": "Hai raggiunto la condizione \"{condition}\". In modalità Eterna la partita non finisce: continua a giocare e accumula altre vittorie. Le successive saranno notifiche più discrete in basso a destra.",
+      "continue": "Continua"
     }
   },
   "panels": {
@@ -193,7 +242,8 @@
     "military": "Militare",
     "spies": "Intelligence",
     "diplomacy": "Diplomazia",
-    "politics": "Politica interna"
+    "politics": "Politica interna",
+    "un": "ONU"
   },
   "panelRail": {
     "label": "Pannelli di sistema",
@@ -441,6 +491,114 @@
       "atTick": "Sett. {tick}"
     }
   },
+  "panelUN": {
+    "title": "Consiglio ONU",
+    "active": "Risoluzioni in voto",
+    "history": "Storico recente",
+    "empty": "Nessuna risoluzione in voto al momento.",
+    "historyEmpty": "Nessuna risoluzione risolta di recente.",
+    "unavailable": "ONU non disponibile in questo scenario.",
+    "councilMember": "Membro del consiglio",
+    "notCouncilMember": "Solo i membri del consiglio possono votare.",
+    "alreadyVoted": "Hai già votato: {vote}.",
+    "detailedVotes": "Vedi voti dettagliati",
+    "proposer": "Proponente:",
+    "votingClosesAt": "Chiusura voto:",
+    "weeksRemaining": "{n, plural, one {1 settimana} other {# settimane}}",
+    "tally": {
+      "label": "Distribuzione voti"
+    },
+    "target": {
+      "label": "Bersaglio:",
+      "country": "Paese",
+      "region": "Regione",
+      "none": "Nessuno"
+    },
+    "kind": {
+      "label": "Tipo:",
+      "sanctions": "Sanzioni",
+      "peacekeeping": "Peacekeeping",
+      "recognition": "Riconoscimento",
+      "humanitarian": "Aiuti umanitari",
+      "climate": "Accordo climatico",
+      "nonProliferation": "Non proliferazione",
+      "condemnation": "Condanna"
+    },
+    "kindDescription": {
+      "sanctions": "Imponi sanzioni economiche a una nazione bersaglio.",
+      "peacekeeping": "Schiera caschi blu in una regione contesa.",
+      "recognition": "Riconosci diplomaticamente un nuovo stato o governo.",
+      "humanitarian": "Coordina un fondo internazionale di emergenza.",
+      "climate": "Aderisci a un accordo globale sul clima.",
+      "nonProliferation": "Vieta nuovi armamenti di distruzione di massa.",
+      "condemnation": "Condanna formalmente le azioni di una nazione."
+    },
+    "status": {
+      "voting": "In voto",
+      "passed": "Approvata",
+      "failed": "Respinta",
+      "vetoed": "Vetata"
+    },
+    "vote": {
+      "yes": "Sì",
+      "no": "No",
+      "abstain": "Astieni",
+      "veto": "Veto",
+      "vetoHint": "Costo reputazionale alto.",
+      "pending": "In attesa"
+    },
+    "propose": {
+      "title": "Proponi risoluzione",
+      "kindLabel": "Tipo di risoluzione",
+      "targetCountryLabel": "Paese bersaglio",
+      "targetRegionLabel": "Regione bersaglio",
+      "targetPlaceholder": "Seleziona…",
+      "previewLabel": "Effetti previsti",
+      "submit": "Proponi all'ONU",
+      "notCouncil": "Solo i membri del consiglio permanente possono proporre risoluzioni.",
+      "pickCountry": "Seleziona un paese bersaglio.",
+      "pickRegion": "Seleziona una regione bersaglio.",
+      "preview": {
+        "sanctions": {
+          "income": "−20% reddito settimanale del bersaglio per 52 settimane.",
+          "tension": "+8 tensione globale.",
+          "repCost": "Reputazione: variabile per blocco."
+        },
+        "peacekeeping": {
+          "tension": "−10 tensione nella regione interessata.",
+          "repWestern": "+5 reputazione nel blocco Occidentale.",
+          "cost": "Costo: 50M dal proponente."
+        },
+        "recognition": {
+          "attitude": "+15 attitudine col paese riconosciuto.",
+          "repNonAligned": "+5 reputazione non allineata."
+        },
+        "humanitarian": {
+          "cost": "Costo: 100M condivisi fra i firmatari.",
+          "repAll": "+3 reputazione in tutti i blocchi."
+        },
+        "climate": {
+          "cost": "Costo: 80M dal proponente.",
+          "repWestern": "+5 reputazione nel blocco Occidentale.",
+          "repNonAligned": "+5 reputazione non allineata."
+        },
+        "nonProliferation": {
+          "tension": "−12 tensione globale.",
+          "repAll": "+4 reputazione in tutti i blocchi."
+        },
+        "condemnation": {
+          "attitude": "−15 attitudine col paese condannato.",
+          "tension": "+5 tensione globale."
+        }
+      }
+    },
+    "confirm": {
+      "veto": {
+        "title": "Porre il veto?",
+        "description": "Il veto blocca la risoluzione ma costa −10 di reputazione in tutti i blocchi attivi. Procedere?"
+      }
+    }
+  },
   "victory": {
     "economic": {
       "name": "Vittoria economica",
@@ -504,7 +662,9 @@
     "lostTitle": "Hai perso",
     "summary": "Riepilogo della partita",
     "ticksPlayed": "Settimane giocate: {tick}",
-    "backHome": "Torna alla home"
+    "backHome": "Torna alla home",
+    "dethroned": "Sei rimasto fuori dalla top 3 PIL per 5 anni: detronizzato dalle altre potenze.",
+    "isolated": "La tua reputazione è precipitata sotto -50 in tutti i blocchi per 5 anni: completamente isolato."
   },
   "errors": {
     "engineNotReady": "L'engine di gioco non è ancora disponibile.",
@@ -526,7 +686,13 @@
     "playerCountryUnselected": "Seleziona prima un paese giocabile.",
     "victoryNotSelected": "Seleziona una condizione di vittoria.",
     "saveLocked": "Salvataggi bloccati in Iron Man.",
-    "unknown": "Errore inatteso."
+    "unknown": "Errore inatteso.",
+    "un": {
+      "notCouncil": "Solo i membri del consiglio possono compiere questa azione.",
+      "alreadyVoted": "Hai già espresso il tuo voto su questa risoluzione.",
+      "votingClosed": "Il voto su questa risoluzione è chiuso.",
+      "invalidTarget": "Bersaglio non valido per questa risoluzione."
+    }
   },
   "play": {
     "placeholderMap": "MAPPA — sarà implementata nella Wave 2",
@@ -546,7 +712,17 @@
       "none": "Nessuno",
       "tension": "Tensione",
       "alliances": "Alleanze",
-      "intel": "Intelligence"
+      "intel": "Intelligence",
+      "blocs": "Blocchi",
+      "blocsUnavailable": "Lo scenario non usa il sistema di blocchi"
+    },
+    "legend": {
+      "bloc": {
+        "western": "Occidentale",
+        "eastern": "Orientale",
+        "non-aligned": "Non allineati",
+        "unaligned": "Senza blocco"
+      }
     },
     "zoom": {
       "in": "Ingrandisci",

@@ -4,7 +4,7 @@
 // state can still be passed everywhere as GameState, including JSON-serialized
 // to disk.
 
-import type { GameState } from './types.js';
+import type { DethroneStreaks, GameState } from './types.js';
 
 export type LoseStreaks = {
   lowPopularityWeeks: number;
@@ -15,6 +15,7 @@ export type LoseStreaks = {
 
 export type InternalState = GameState & {
   _loseStreaks?: LoseStreaks;
+  _dethroneStreaks?: DethroneStreaks;
 };
 
 export function getStreaks(state: GameState): LoseStreaks {
@@ -31,5 +32,25 @@ export function getStreaks(state: GameState): LoseStreaks {
 
 export function withStreaks(state: GameState, streaks: LoseStreaks): GameState {
   const next: InternalState = { ...(state as InternalState), _loseStreaks: streaks };
+  return next;
+}
+
+export function getDethroneStreaks(state: GameState): DethroneStreaks {
+  return (
+    (state as InternalState)._dethroneStreaks ?? {
+      outOfTop3Weeks: 0,
+      isolationWeeks: 0,
+    }
+  );
+}
+
+export function withDethroneStreaks(
+  state: GameState,
+  streaks: DethroneStreaks,
+): GameState {
+  const next: InternalState = {
+    ...(state as InternalState),
+    _dethroneStreaks: streaks,
+  };
   return next;
 }

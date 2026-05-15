@@ -33,11 +33,12 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     deployArmy: 0.1,
     deploySpy: 0.4,
     placateFaction: 0.5,
-    // Phase 3 actions: zero-weight stubs until Wave 9 AI scoring is wired
-    proposeUNResolution: 0,
-    voteUN: 0,
-    joinBloc: 0,
-    leaveBloc: 0,
+    // Phase 3: pacifist traders love humanitarian / peacekeeping votes and
+    // proposing soft resolutions. They prefer staying in their bloc.
+    proposeUNResolution: 0.5,
+    voteUN: 0.7,
+    joinBloc: 0.4,
+    leaveBloc: 0.05,
   },
   regional_bully: {
     invest: 0.6,
@@ -47,10 +48,10 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     deployArmy: 0.5,
     deploySpy: 0.6,
     placateFaction: 0.4,
-    proposeUNResolution: 0,
-    voteUN: 0,
-    joinBloc: 0,
-    leaveBloc: 0,
+    proposeUNResolution: 0.2,
+    voteUN: 0.3,
+    joinBloc: 0.15,
+    leaveBloc: 0.2,
   },
   cold_isolationist: {
     invest: 0.8,
@@ -60,10 +61,10 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     deployArmy: 0.4,
     deploySpy: 0.5,
     placateFaction: 0.6,
-    proposeUNResolution: 0,
-    voteUN: 0,
-    joinBloc: 0,
-    leaveBloc: 0,
+    proposeUNResolution: 0.1,
+    voteUN: 0.2,
+    joinBloc: 0.05,
+    leaveBloc: 0.4,
   },
   opportunist: {
     invest: 0.7,
@@ -73,10 +74,10 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     deployArmy: 0.5,
     deploySpy: 0.9,
     placateFaction: 0.4,
-    proposeUNResolution: 0,
-    voteUN: 0,
-    joinBloc: 0,
-    leaveBloc: 0,
+    proposeUNResolution: 0.3,
+    voteUN: 0.5,
+    joinBloc: 0.5,
+    leaveBloc: 0.3,
   },
   superpower: {
     invest: 0.7,
@@ -86,10 +87,11 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     deployArmy: 0.7,
     deploySpy: 0.7,
     placateFaction: 0.5,
-    proposeUNResolution: 0,
-    voteUN: 0,
-    joinBloc: 0,
-    leaveBloc: 0,
+    // Superpowers vote a lot (veto-leaning) but rarely change blocs.
+    proposeUNResolution: 0.4,
+    voteUN: 0.8,
+    joinBloc: 0.05,
+    leaveBloc: 0.02,
   },
 };
 
@@ -360,6 +362,45 @@ function scoreAction(
       if (!f) return -1;
       // Big bonus if the faction is angry.
       score += f.satisfaction < 30 ? 0.6 : -0.2;
+      break;
+    }
+    case 'proposeUNResolution': {
+      // Pacifist traders preferring soft kinds; superpowers all kinds.
+      if (action.kind === 'humanitarian' || action.kind === 'climate') {
+        if (personality.archetype === 'pacifist_trader') score += 0.3;
+        if (personality.archetype === 'superpower') score += 0.2;
+      }
+      if (action.kind === 'sanctions' || action.kind === 'condemnation') {
+        if (personality.archetype === 'regional_bully') score += 0.3;
+      }
+      break;
+    }
+    case 'voteUN': {
+      // Voting "yes" by default; veto only by superpowers, sparingly.
+      if (action.vote === 'veto') {
+        if (personality.archetype === 'superpower') score += 0.2;
+        else score -= 0.4;
+      }
+      if (action.vote === 'yes' && personality.archetype === 'pacifist_trader') {
+        score += 0.2;
+      }
+      break;
+    }
+    case 'joinBloc': {
+      if (country.blocId === action.blocId) return -1;
+      // Already in another bloc → small penalty (you'd have to leave first).
+      if (country.blocId) score -= 0.3;
+      // Opportunists swing toward whatever bloc looks dominant; pacifists
+      // toward the western bloc as a default heuristic.
+      if (personality.archetype === 'opportunist') score += 0.1;
+      break;
+    }
+    case 'leaveBloc': {
+      if (!country.blocId) return -1;
+      // Cold isolationists prefer freedom; regional bullies leave when
+      // dissatisfied; otherwise small penalty (alliances are sticky).
+      if (personality.archetype === 'cold_isolationist') score += 0.3;
+      else score -= 0.2;
       break;
     }
   }

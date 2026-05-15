@@ -286,5 +286,24 @@
 
   "difficulty.easy.name": "Easy",
   "difficulty.normal.name": "Normal",
-  "difficulty.hard.name": "Hard"
+  "difficulty.hard.name": "Hard",
+
+  "bloc.mc.western.name": "Western Alliance",
+  "bloc.mc.eastern.name": "Eastern Axis",
+  "bloc.mc.non-aligned.name": "Non-Aligned Movement",
+
+  "un.mc.peacekeeping.title": "Peacekeeping mission in the contested region",
+  "un.mc.peacekeeping.description": "A proposal to deploy blue helmets to areas affected by the conflict and contain further escalation.",
+  "un.mc.condemnation.tactical.title": "Condemnation of tactical-grade weaponry",
+  "un.mc.condemnation.tactical.description": "Formal condemnation of the use of tactical nuclear arms and call for an immediate moratorium.",
+  "un.mc.condemnation.strategic.title": "Condemnation of strategic strike",
+  "un.mc.condemnation.strategic.description": "Emergency session to condemn the strategic strike and weigh collective retaliatory measures.",
+  "un.mc.humanitarian.title": "Humanitarian aid programme",
+  "un.mc.humanitarian.description": "Coordinated support for populations facing poverty, disasters or regional tensions.",
+  "un.mc.condemnation.sanctions.title": "Condemnation of unilateral sanctions",
+  "un.mc.condemnation.sanctions.description": "Motion examining the legitimacy of imposed economic sanctions and their impact on civilians.",
+  "un.mc.climate.tension.title": "Global de-escalation pact",
+  "un.mc.climate.tension.description": "Multilateral framework to lower international tension and head off cascading crises.",
+  "un.mc.climate.periodic.title": "Periodic climate accord",
+  "un.mc.climate.periodic.description": "Update of the climate treaty with new binding emission-reduction targets."
 }

@@ -11,6 +11,9 @@ export { MilitaryPanel } from './MilitaryPanel';
 export { SpiesPanel } from './SpiesPanel';
 export { DiplomacyPanel } from './DiplomacyPanel';
 export { PoliticsPanel } from './PoliticsPanel';
+export { UNPanel } from './UNPanel';
+export { UNResolutionCard } from './UNResolutionCard';
+export { UNProposeForm } from './UNProposeForm';
 
 export { ActionButton } from './shared/ActionButton';
 export { EmptyState } from './shared/EmptyState';

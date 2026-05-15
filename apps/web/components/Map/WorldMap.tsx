@@ -48,8 +48,11 @@ import MapNation from './MapNation';
 import MapTooltip from './MapTooltip';
 import {
   AllianceEdges,
+  BlocLegend,
+  BLOC_COLOR,
   OverlayToggle,
   type AllianceEdge,
+  type BlocColorKey,
   type OverlayMode,
 } from './MapOverlay';
 import {
@@ -441,6 +444,73 @@ export default function WorldMap() {
     tension: tOverlay('tension'),
     alliances: tOverlay('alliances'),
     intel: tOverlay('intel'),
+    blocs: tOverlay('blocs'),
+  };
+
+  // Phase 3: scenarios that don't opt into the bloc system carry no
+  // `state.blocs` record. The overlay button stays visible (so the player
+  // can see the feature exists) but is disabled with an explanatory tooltip.
+  const blocsAvailable = state.blocs !== undefined;
+  const overlayDisabled: Partial<Record<OverlayMode, { tooltip?: string }>> =
+    blocsAvailable
+      ? {}
+      : { blocs: { tooltip: tOverlay('blocsUnavailable') } };
+
+  // Per-country bloc lookup. Falls back to the 'unaligned' sentinel for
+  // countries without a `blocId` (i.e. neutral / not yet joined a bloc).
+  // Only computed when the blocs overlay is active to keep render light.
+  const blocByCountry: Map<CountryId, BlocColorKey> = (() => {
+    const out = new Map<CountryId, BlocColorKey>();
+    if (overlay !== 'blocs') return out;
+    for (const c of countryEntries) {
+      out.set(c.id, c.blocId ?? 'unaligned');
+    }
+    return out;
+  })();
+
+  // Region tint per region id when the blocs overlay is active. We pick the
+  // dominant (most-represented) bloc among the region's countries; ties go
+  // to the bloc with the highest cumulative GDP. Regions with no member
+  // country, or where the dominant choice is 'unaligned', stay on their
+  // base biome fill.
+  const regionBlocTint: Map<string, BlocColorKey> = (() => {
+    const out = new Map<string, BlocColorKey>();
+    if (overlay !== 'blocs') return out;
+    type Counts = Map<BlocColorKey, { count: number; gdp: number }>;
+    const perRegion = new Map<string, Counts>();
+    for (const c of countryEntries) {
+      const key = c.blocId ?? 'unaligned';
+      let region = perRegion.get(c.regionId);
+      if (!region) {
+        region = new Map();
+        perRegion.set(c.regionId, region);
+      }
+      const slot = region.get(key) ?? { count: 0, gdp: 0 };
+      slot.count += 1;
+      slot.gdp += c.economy.gdp;
+      region.set(key, slot);
+    }
+    for (const [regionId, counts] of perRegion) {
+      let best: BlocColorKey | null = null;
+      let bestScore = -Infinity;
+      for (const [key, slot] of counts) {
+        // Sort by count first, then by GDP as a deterministic tiebreaker.
+        const score = slot.count * 1e15 + slot.gdp;
+        if (score > bestScore) {
+          best = key;
+          bestScore = score;
+        }
+      }
+      if (best && best !== 'unaligned') out.set(regionId, best);
+    }
+    return out;
+  })();
+
+  const blocLegendLabels: Record<BlocColorKey, string> = {
+    western: t('legend.bloc.western'),
+    eastern: t('legend.bloc.eastern'),
+    'non-aligned': t('legend.bloc.non-aligned'),
+    unaligned: t('legend.bloc.unaligned'),
   };
 
   const selectedCountry =
@@ -501,10 +571,20 @@ export default function WorldMap() {
             const r = REGIONS[id];
             if (!r) return null;
             const tension = overlay === 'tension' ? regionTension.get(id) ?? 0 : 0;
+            // Region fill resolution priority:
+            //   1. tension overlay → heatmap colour ramp
+            //   2. blocs overlay → tinted by dominant bloc (if any)
+            //   3. default → biome fill
+            const blocTintKey = overlay === 'blocs' ? regionBlocTint.get(id) : undefined;
             const fill =
               overlay === 'tension'
                 ? tensionToColor(tension)
-                : r.fill;
+                : blocTintKey
+                  ? BLOC_COLOR[blocTintKey]
+                  : r.fill;
+            // Blocs overlay washes the region with a low-opacity tint so the
+            // base biome silhouette stays readable underneath.
+            const fillOpacity = overlay === 'blocs' && blocTintKey ? 0.18 : 0.85;
             return (
               <g key={id}>
                 <path
@@ -512,7 +592,7 @@ export default function WorldMap() {
                   fill={fill}
                   stroke={r.stroke}
                   strokeWidth={2}
-                  fillOpacity={0.85}
+                  fillOpacity={fillOpacity}
                 />
                 <RegionLabel region={r} label={tRegions(r.nameKey)} />
               </g>
@@ -583,6 +663,33 @@ export default function WorldMap() {
             );
           })}
         </g>
+
+        {/* Bloc rings — only when the 'blocs' overlay is active. We render a
+            thin coloured ring just outside each nation circle so the bloc
+            assignment stays legible on top of the existing player halo /
+            selection ring without coupling to MapNation's prop surface. */}
+        {overlay === 'blocs' && blocsAvailable ? (
+          <g aria-hidden pointerEvents="none" data-overlay="blocs">
+            {countryEntries.map((c) => {
+              const pos = NATION_POSITIONS[c.id];
+              if (!pos) return null;
+              const blocKey = blocByCountry.get(c.id) ?? 'unaligned';
+              const radius = computeNationRadius(c, pos.sizeHint);
+              return (
+                <circle
+                  key={`bloc-${c.id}`}
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={radius + 2.5}
+                  fill="none"
+                  stroke={BLOC_COLOR[blocKey]}
+                  strokeWidth={1.75}
+                  strokeOpacity={blocKey === 'unaligned' ? 0.55 : 0.9}
+                />
+              );
+            })}
+          </g>
+        ) : null}
       </svg>
 
       {/* Overlay toggle UI (HTML, anchored absolute) */}
@@ -591,7 +698,14 @@ export default function WorldMap() {
         onChange={setOverlay}
         groupLabel={tOverlay('label')}
         labels={overlayLabels}
+        disabled={overlayDisabled}
       />
+
+      {/* Bloc legend — only when the blocs overlay is active and the
+          scenario actually carries a bloc roster. */}
+      {overlay === 'blocs' && blocsAvailable ? (
+        <BlocLegend labels={blocLegendLabels} />
+      ) : null}
 
       {/* Tooltip */}
       {tooltipId && tooltipCountry ? (

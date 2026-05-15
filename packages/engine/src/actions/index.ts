@@ -11,6 +11,7 @@ import type {
   FactionId,
   GameState,
   InvestTarget,
+  Scenario,
   TechDefinition,
 } from '../types.js';
 
@@ -21,6 +22,10 @@ import { applyInvest } from './invest.js';
 import { applyPlacateFaction, PLACATE_COST } from './placateFaction.js';
 import { applySetTaxRate } from './setTaxRate.js';
 import { applyStartResearch } from './startResearch.js';
+import { applyProposeUNResolution } from './proposeUNResolution.js';
+import { applyVoteUN } from './voteUN.js';
+import { applyJoinBloc } from './joinBloc.js';
+import { applyLeaveBloc } from './leaveBloc.js';
 import { ensureRelation } from './helpers.js';
 
 export {
@@ -31,6 +36,10 @@ export {
   applyPlacateFaction,
   applySetTaxRate,
   applyStartResearch,
+  applyProposeUNResolution,
+  applyVoteUN,
+  applyJoinBloc,
+  applyLeaveBloc,
   computeSpyProbabilities,
   isDeployAllowed,
   isDiplomacyAllowed,
@@ -42,6 +51,10 @@ export {
  *
  * `techCatalog` is required for `startResearch`. If omitted, startResearch will
  * fail with a 'errors.research.techNotFound' since we have no catalog to check.
+ *
+ * `scenario` is consulted by Phase 3 actions for permanent-member gating and
+ * (when wired) UN trigger maps. Omit when callers don't have it (legacy
+ * Phase 1/2 callers); the Phase 3 actions degrade gracefully.
  */
 export function applyAction(
   state: GameState,
@@ -49,6 +62,7 @@ export function applyAction(
   countryId?: CountryId,
   techCatalog: readonly TechDefinition[] = [],
   difficulty?: DifficultyTuning,
+  scenario?: Scenario,
 ): ApplyActionResult {
   const actor = countryId ?? state.playerCountryId;
   switch (action.type) {
@@ -66,14 +80,14 @@ export function applyAction(
       return applyDeployArmy(state, action, actor);
     case 'placateFaction':
       return applyPlacateFaction(state, action, actor);
-    // Phase 3 actions: scaffolded as no-op stubs until Wave 9 implementation
-    // agents replace them with the real bloc / UN logic. They return the state
-    // unchanged with a clear i18n key so callers can detect and skip.
     case 'proposeUNResolution':
+      return applyProposeUNResolution(state, action, actor, scenario);
     case 'voteUN':
+      return applyVoteUN(state, action, actor, scenario);
     case 'joinBloc':
+      return applyJoinBloc(state, action, actor);
     case 'leaveBloc':
-      return { state, errors: ['errors.phase3NotImplemented'] };
+      return applyLeaveBloc(state, action, actor);
   }
 }
 
@@ -234,6 +248,29 @@ export function getAvailableActions(
   if (country.economy.treasury >= PLACATE_COST) {
     for (const fid of FACTION_IDS) {
       actions.push({ type: 'placateFaction', factionId: fid });
+    }
+  }
+
+  // Phase 3: bloc actions only when blocs are in the game state.
+  if (state.blocs) {
+    // joinBloc: can join any bloc the country is not already in.
+    for (const id of Object.keys(state.blocs)) {
+      const blocId = id as keyof typeof state.blocs;
+      if (country.blocId === blocId) continue;
+      actions.push({ type: 'joinBloc', blocId });
+    }
+    // leaveBloc: only if we're currently in one.
+    if (country.blocId) actions.push({ type: 'leaveBloc' });
+  }
+
+  // Phase 3: UN voting on every active resolution we haven't voted on.
+  if (state.unResolutions) {
+    for (const r of state.unResolutions) {
+      if (r.status !== 'voting') continue;
+      if (r.votes[countryId] !== undefined) continue;
+      actions.push({ type: 'voteUN', resolutionId: r.id, vote: 'yes' });
+      actions.push({ type: 'voteUN', resolutionId: r.id, vote: 'no' });
+      actions.push({ type: 'voteUN', resolutionId: r.id, vote: 'abstain' });
     }
   }
 

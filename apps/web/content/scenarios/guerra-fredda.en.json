@@ -275,5 +275,24 @@
   "difficulty.easy.name": "Easy",
   "difficulty.normal.name": "Normal",
   "difficulty.hard.name": "Hard",
-  "difficulty.iron-man.name": "Iron Man"
+  "difficulty.iron-man.name": "Iron Man",
+
+  "bloc.gf.western.name": "Atlantic Bloc",
+  "bloc.gf.eastern.name": "Eastern Bloc",
+  "bloc.gf.non-aligned.name": "Non-Aligned Movement",
+
+  "un.gf.peacekeeping.title": "Interposition force in the crisis theatre",
+  "un.gf.peacekeeping.description": "Motion to deploy observers and peacekeeping contingents to the conflict areas and freeze the front lines.",
+  "un.gf.condemnation.tactical.title": "Condemnation of tactical nuclear use",
+  "un.gf.condemnation.tactical.description": "Emergency resolution condemning the use of tactical nuclear weapons and calling for an immediate moratorium.",
+  "un.gf.condemnation.strategic.title": "Condemnation of strategic strike",
+  "un.gf.condemnation.strategic.description": "Extraordinary Council session to condemn the strategic strike and consider collective countermeasures.",
+  "un.gf.humanitarian.title": "Humanitarian relief programme",
+  "un.gf.humanitarian.description": "Coordinated assistance to populations hit by regional conflicts, famine or forced displacement.",
+  "un.gf.condemnation.sanctions.title": "Motion against unilateral sanctions",
+  "un.gf.condemnation.sanctions.description": "Debate on the legitimacy of the imposed sanctions regime and its impact on the civilian population.",
+  "un.gf.climate.tension.title": "International détente pact",
+  "un.gf.climate.tension.description": "Multilateral framework to lower tension between the blocs and head off a cascading escalation.",
+  "un.gf.climate.periodic.title": "Convention on the common environment",
+  "un.gf.climate.periodic.description": "Periodic treaty coordinating environmental stewardship above the bloc divide."
 }

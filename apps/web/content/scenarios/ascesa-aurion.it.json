@@ -325,5 +325,24 @@
   "difficulty.easy.name": "Facile",
   "difficulty.normal.name": "Normale",
   "difficulty.hard.name": "Difficile",
-  "difficulty.ironMan.name": "Iron Man"
+  "difficulty.ironMan.name": "Iron Man",
+
+  "bloc.ascesa.western.name": "Patto di Auriana",
+  "bloc.ascesa.eastern.name": "Sfera Borea",
+  "bloc.ascesa.non-aligned.name": "Movimento dei Liberi",
+
+  "un.ascesa.peacekeeping.title": "Mediazione del Concilio sulla regione contesa",
+  "un.ascesa.peacekeeping.description": "Il Concilio delle Nazioni propone l'invio di una forza neutrale per separare i contendenti e congelare il fronte.",
+  "un.ascesa.condemnation.tactical.title": "Condanna dell'uso di armi proibite",
+  "un.ascesa.condemnation.tactical.description": "Risoluzione che condanna formalmente il ricorso ad armamenti tattici di distruzione di massa nel teatro di guerra.",
+  "un.ascesa.condemnation.strategic.title": "Condanna dell'attacco strategico",
+  "un.ascesa.condemnation.strategic.description": "Sessione d'emergenza del Concilio per condannare l'attacco strategico e valutare misure ritorsive comuni.",
+  "un.ascesa.humanitarian.title": "Programma d'aiuto alle terre povere",
+  "un.ascesa.humanitarian.description": "Sostegno coordinato alle popolazioni più fragili colpite da carestie, esodi e conflitti regionali.",
+  "un.ascesa.condemnation.sanctions.title": "Mozione contro le sanzioni unilaterali",
+  "un.ascesa.condemnation.sanctions.description": "Discussione formale sulla legittimità del regime di sanzioni imposto e sull'impatto sulle popolazioni civili.",
+  "un.ascesa.climate.tension.title": "Patto di distensione del Concilio",
+  "un.ascesa.climate.tension.description": "Quadro multilaterale per ridurre la tensione fra le sfere di influenza e prevenire un'escalation a catena.",
+  "un.ascesa.climate.periodic.title": "Convenzione sull'equilibrio del mondo",
+  "un.ascesa.climate.periodic.description": "Trattato periodico sul clima e l'uso delle risorse naturali, vincolante per tutti i firmatari del Concilio."
 }

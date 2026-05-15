@@ -38,7 +38,8 @@
       "scenario": "Scenario",
       "country": "Country",
       "victory": "Victory",
-      "difficulty": "Difficulty"
+      "difficulty": "Difficulty",
+      "gameMode": "Mode"
     },
     "stepScenario": {
       "title": "Choose a scenario",
@@ -97,7 +98,25 @@
       }
     },
     "start": "Start game",
-    "preparing": "Preparing game…"
+    "preparing": "Preparing game…",
+    "gameMode": {
+      "title": "Choose a game mode",
+      "description": "Decides when (and whether) the game can end. You'll feel the difference within the first hours.",
+      "recommended": "Recommended",
+      "classic": {
+        "name": "Classic",
+        "description": "Win once, game over. The traditional flow: meet your victory condition and you're done."
+      },
+      "eternal": {
+        "name": "Eternal",
+        "description": "Never ends. Victories become milestones; you keep playing as long as you want. 30 minutes or dozens of hours — your call."
+      },
+      "dethrone": {
+        "name": "Dethrone",
+        "description": "Become #1 and hold the throne: drop out of the top 3 for 5 years and you lose. For players who want tension even after winning.",
+        "isolationUnavailable": "This scenario doesn't support the isolation trigger; you'll only win or lose by GDP rank."
+      }
+    }
   },
   "hud": {
     "date": "Week {tick}",
@@ -146,6 +165,20 @@
       "sfxLabel": "Sound effects",
       "mute": "Mute",
       "unmute": "Unmute"
+    },
+    "reputation": {
+      "title": "Bloc reputation",
+      "tooltip": "Your standing with the {bloc} bloc",
+      "bloc": {
+        "western": "Western",
+        "eastern": "Eastern",
+        "non-aligned": "Non-aligned"
+      }
+    },
+    "victory": {
+      "counter": "{unlocked}/{total} victories",
+      "unlocked": "victories",
+      "popoverTitle": "Unlocked victories"
     }
   },
   "notifications": {
@@ -154,7 +187,10 @@
     "actionRequired": "Decision required",
     "chose": "Chose: {label}",
     "justNow": "now",
-    "ticksAgo": "{n, plural, one {1 week ago} other {# weeks ago}}"
+    "ticksAgo": "{n, plural, one {1 week ago} other {# weeks ago}}",
+    "victoryToast": {
+      "unlocked": "Victory unlocked"
+    }
   },
   "modals": {
     "event": {
@@ -176,7 +212,9 @@
         "popularity": "Popularity stayed too low for too long: the government was overthrown.",
         "bankruptcy": "The treasury stayed empty for too long: the nation went bankrupt.",
         "occupation": "Your capital was occupied by an enemy power.",
-        "factionRevolt": "Every faction withdrew its support: a coup d'état."
+        "factionRevolt": "Every faction withdrew its support: a coup d'état.",
+        "dethroned": "You stayed out of the GDP top 3 for 5 straight years: dethroned by rival powers.",
+        "isolated": "Your reputation collapsed below -50 in every bloc for 5 years: completely isolated."
       },
       "ticksPlayed": "Weeks: {tick}",
       "peakPopularity": "Popularity",
@@ -185,6 +223,17 @@
       "spyOpsLaunched": "Spy operations",
       "newGame": "New game",
       "backHome": "Back to home"
+    },
+    "unResolution": {
+      "title": "New UN resolution",
+      "voteNow": "Cast your vote",
+      "viewInPanel": "Open panel",
+      "dismiss": "Skip for now"
+    },
+    "eternalFirstVictory": {
+      "title": "First victory unlocked!",
+      "body": "You met the \"{condition}\" condition. In Eternal mode the run never ends — keep playing and rack up more victories. From here on, milestones surface as discreet bottom-right toasts.",
+      "continue": "Continue"
     }
   },
   "panels": {
@@ -193,7 +242,8 @@
     "military": "Military",
     "spies": "Intelligence",
     "diplomacy": "Diplomacy",
-    "politics": "Politics"
+    "politics": "Politics",
+    "un": "UN"
   },
   "panelRail": {
     "label": "System panels",
@@ -441,6 +491,114 @@
       "atTick": "Wk {tick}"
     }
   },
+  "panelUN": {
+    "title": "UN council",
+    "active": "Resolutions in voting",
+    "history": "Recent history",
+    "empty": "No resolution currently in voting.",
+    "historyEmpty": "No recently resolved resolution.",
+    "unavailable": "UN not available in this scenario.",
+    "councilMember": "Council member",
+    "notCouncilMember": "Only council members may vote.",
+    "alreadyVoted": "You already voted: {vote}.",
+    "detailedVotes": "View detailed votes",
+    "proposer": "Proposer:",
+    "votingClosesAt": "Voting closes:",
+    "weeksRemaining": "{n, plural, one {1 week} other {# weeks}}",
+    "tally": {
+      "label": "Vote distribution"
+    },
+    "target": {
+      "label": "Target:",
+      "country": "Country",
+      "region": "Region",
+      "none": "None"
+    },
+    "kind": {
+      "label": "Kind:",
+      "sanctions": "Sanctions",
+      "peacekeeping": "Peacekeeping",
+      "recognition": "Recognition",
+      "humanitarian": "Humanitarian aid",
+      "climate": "Climate accord",
+      "nonProliferation": "Non-proliferation",
+      "condemnation": "Condemnation"
+    },
+    "kindDescription": {
+      "sanctions": "Impose economic sanctions on a target nation.",
+      "peacekeeping": "Deploy blue helmets in a contested region.",
+      "recognition": "Diplomatically recognise a new state or government.",
+      "humanitarian": "Coordinate an international emergency fund.",
+      "climate": "Sign on to a global climate accord.",
+      "nonProliferation": "Ban new weapons of mass destruction.",
+      "condemnation": "Formally condemn a nation's actions."
+    },
+    "status": {
+      "voting": "Voting",
+      "passed": "Passed",
+      "failed": "Failed",
+      "vetoed": "Vetoed"
+    },
+    "vote": {
+      "yes": "Yes",
+      "no": "No",
+      "abstain": "Abstain",
+      "veto": "Veto",
+      "vetoHint": "High reputation cost.",
+      "pending": "Pending"
+    },
+    "propose": {
+      "title": "Propose resolution",
+      "kindLabel": "Resolution kind",
+      "targetCountryLabel": "Target country",
+      "targetRegionLabel": "Target region",
+      "targetPlaceholder": "Pick one…",
+      "previewLabel": "Expected effects",
+      "submit": "Propose to UN",
+      "notCouncil": "Only permanent council members can propose resolutions.",
+      "pickCountry": "Pick a target country.",
+      "pickRegion": "Pick a target region.",
+      "preview": {
+        "sanctions": {
+          "income": "−20% target weekly income for 52 weeks.",
+          "tension": "+8 global tension.",
+          "repCost": "Reputation: bloc-dependent."
+        },
+        "peacekeeping": {
+          "tension": "−10 tension in the affected region.",
+          "repWestern": "+5 reputation in the Western bloc.",
+          "cost": "Cost: 50M from the proposer."
+        },
+        "recognition": {
+          "attitude": "+15 attitude with the recognised country.",
+          "repNonAligned": "+5 non-aligned reputation."
+        },
+        "humanitarian": {
+          "cost": "Cost: 100M shared across signatories.",
+          "repAll": "+3 reputation in every bloc."
+        },
+        "climate": {
+          "cost": "Cost: 80M from the proposer.",
+          "repWestern": "+5 reputation in the Western bloc.",
+          "repNonAligned": "+5 non-aligned reputation."
+        },
+        "nonProliferation": {
+          "tension": "−12 global tension.",
+          "repAll": "+4 reputation in every bloc."
+        },
+        "condemnation": {
+          "attitude": "−15 attitude with the condemned country.",
+          "tension": "+5 global tension."
+        }
+      }
+    },
+    "confirm": {
+      "veto": {
+        "title": "Cast a veto?",
+        "description": "Vetoing blocks the resolution but costs −10 reputation in every active bloc. Proceed?"
+      }
+    }
+  },
   "victory": {
     "economic": {
       "name": "Economic victory",
@@ -504,7 +662,9 @@
     "lostTitle": "You lost",
     "summary": "Game summary",
     "ticksPlayed": "Weeks played: {tick}",
-    "backHome": "Back to home"
+    "backHome": "Back to home",
+    "dethroned": "You stayed out of the GDP top 3 for 5 straight years: dethroned by rival powers.",
+    "isolated": "Your reputation collapsed below -50 in every bloc for 5 years: completely isolated."
   },
   "errors": {
     "engineNotReady": "The game engine is not yet available.",
@@ -526,7 +686,13 @@
     "playerCountryUnselected": "Pick a playable country first.",
     "victoryNotSelected": "Pick a victory condition.",
     "saveLocked": "Saves are locked in Iron Man mode.",
-    "unknown": "Unexpected error."
+    "unknown": "Unexpected error.",
+    "un": {
+      "notCouncil": "Only council members may take this action.",
+      "alreadyVoted": "You have already voted on this resolution.",
+      "votingClosed": "Voting on this resolution has closed.",
+      "invalidTarget": "Invalid target for this resolution."
+    }
   },
   "play": {
     "placeholderMap": "MAP — to be implemented in Wave 2",
@@ -546,7 +712,17 @@
       "none": "None",
       "tension": "Tension",
       "alliances": "Alliances",
-      "intel": "Intelligence"
+      "intel": "Intelligence",
+      "blocs": "Blocs",
+      "blocsUnavailable": "This scenario does not use the bloc system"
+    },
+    "legend": {
+      "bloc": {
+        "western": "Western",
+        "eastern": "Eastern",
+        "non-aligned": "Non-aligned",
+        "unaligned": "Unaligned"
+      }
     },
     "zoom": {
       "in": "Zoom in",

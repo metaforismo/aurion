@@ -1,4 +1,4 @@
-// Vertical tab strip rendered on the left of the play screen. Hosts the 6
+// Vertical tab strip rendered on the left of the play screen. Hosts the 7
 // game-system panels and switches between them based on `selectedPanel` in
 // the store. Default export of the components/Panels package.
 
@@ -9,6 +9,7 @@ import {
   Coins,
   Flag,
   FlaskConical,
+  Globe,
   Landmark,
   Shield,
   UserSearch,
@@ -30,6 +31,7 @@ import { MilitaryPanel } from './MilitaryPanel';
 import { PoliticsPanel } from './PoliticsPanel';
 import { ResearchPanel } from './ResearchPanel';
 import { SpiesPanel } from './SpiesPanel';
+import { UNPanel } from './UNPanel';
 
 const PANEL_ICONS: Record<PanelId, LucideIcon> = {
   economy: Coins,
@@ -38,6 +40,7 @@ const PANEL_ICONS: Record<PanelId, LucideIcon> = {
   spies: UserSearch,
   diplomacy: Flag,
   politics: Landmark,
+  un: Globe,
 };
 
 const PANEL_COMPONENTS: Record<
@@ -50,6 +53,7 @@ const PANEL_COMPONENTS: Record<
   spies: SpiesPanel,
   diplomacy: DiplomacyPanel,
   politics: PoliticsPanel,
+  un: UNPanel,
 };
 
 export type PanelTabsProps = {

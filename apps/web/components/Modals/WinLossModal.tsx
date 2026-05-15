@@ -31,6 +31,13 @@ export function WinLossModal() {
 
   if (!state || state.winLoss === 'playing' || !player) return null;
 
+  // Eternal mode never *wins* — the engine should never set
+  // `winLoss = 'won'` for it, but we defend against a stale reconciliation by
+  // suppressing the modal in that case. Eternal-mode losses still surface
+  // normally so the player gets a post-mortem.
+  const gameMode = state.gameMode ?? 'classic';
+  if (gameMode === 'eternal' && state.winLoss === 'won') return null;
+
   const winLoss: Exclude<WinLossState, 'playing'> = state.winLoss;
   const isWin = winLoss === 'won';
 
@@ -104,6 +111,7 @@ function Reason({
 }) {
   const t = useTranslations('modals.winLoss');
   const tVictory = useTranslations('victory');
+  const tVictoryScreen = useTranslations('victoryScreen');
 
   if (winLoss === 'won') {
     // Look up the descriptive name of the chosen victory condition.
@@ -120,11 +128,17 @@ function Reason({
     );
   }
 
-  // Defeat — surface why.
-  const reason = lossReason ?? 'popularity';
-  return (
-    <p className="text-sm text-fg-muted">{t(`lossReason.${reason}`)}</p>
-  );
+  // Defeat — surface why. Dethrone-mode triggers live in their own
+  // `victoryScreen.*` namespace so the localisation team can iterate on the
+  // post-mortem copy independently from the classic loss reasons.
+  const reason: LossReason = lossReason ?? 'popularity';
+  const message =
+    reason === 'dethroned'
+      ? tVictoryScreen('dethroned')
+      : reason === 'isolated'
+        ? tVictoryScreen('isolated')
+        : t(`lossReason.${reason}`);
+  return <p className="text-sm text-fg-muted">{message}</p>;
 }
 
 /**

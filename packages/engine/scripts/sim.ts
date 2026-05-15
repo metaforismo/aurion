@@ -398,7 +398,7 @@ export function runOne(
       const r = applyAction(s, action, playerId, techCatalog);
       if (r.errors.length === 0) s = r.state;
     }
-    s = tick(s, { techCatalog, eventPool, victoryRule, difficulty });
+    s = tick(s, { techCatalog, eventPool, victoryRule, difficulty, scenario });
   }
 
   if (s.winLoss === 'won') return { outcome: 'won', ticks: s.tick };

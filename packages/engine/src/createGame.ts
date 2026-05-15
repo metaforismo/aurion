@@ -5,6 +5,7 @@ import type {
   CountryId,
   CountryInit,
   CreateGameOptions,
+  CumulativeStats,
   EconomySectors,
   GameState,
   Relation,
@@ -13,6 +14,9 @@ import type {
   Scenario,
   TechId,
 } from './types.js';
+import { initBlocs } from './blocs/index.js';
+import { initReputation } from './reputation/index.js';
+import { initUN } from './un/index.js';
 
 /** Stable RelationKey: lex-sorted pair so (A,B) and (B,A) collide. */
 export function relationKey(a: CountryId, b: CountryId): RelationKey {
@@ -90,6 +94,7 @@ function initCountry(init: CountryInit): Country {
     },
     isPlayer: init.isPlayer,
     ...(init.aiPersonality ? { aiPersonality: { ...init.aiPersonality } } : {}),
+    ...(init.blocId ? { blocId: init.blocId } : {}),
   };
   return country;
 }
@@ -177,7 +182,7 @@ export function createGame(scenario: Scenario, options: CreateGameOptions): Game
   const difficultyId = matchedDifficulty.id;
   const seed = options.seed ?? `${scenario.id}::${options.playerCountryId}::${Date.now()}`;
 
-  const state: GameState = {
+  const baseState: GameState = {
     tick: scenario.startTick,
     scenarioId: scenario.id,
     difficultyId,
@@ -191,6 +196,40 @@ export function createGame(scenario: Scenario, options: CreateGameOptions): Game
     winLoss: 'playing',
     selectedVictoryCondition: options.victory,
     rngSeed: seed,
+  };
+
+  // Phase 3 initialisation. All fields are optional and only populated when
+  // the scenario opts in (declares blocs / unTriggerMap / unCouncilMembers).
+  const reputation = initReputation(scenario);
+  const blocs = initBlocs(scenario, scenario.startTick);
+  const unResolutions = initUN(scenario);
+
+  // GameMode: only stamp the field when caller explicitly chose one. Saves
+  // without a gameMode are treated as 'classic' wherever the engine reads it.
+  const gameMode = options.gameMode;
+  const effectiveGameMode = gameMode ?? 'classic';
+
+  // Cumulative stats and unlockedVictories are tracked for non-classic modes.
+  const wantsCumulative = effectiveGameMode !== 'classic';
+  const cumulativeStats: CumulativeStats | undefined = wantsCumulative
+    ? {
+        peakGdpRank: 999,
+        peakTreasury: countries[options.playerCountryId]?.economy.treasury ?? 0,
+        totalTechsUnlocked: countries[options.playerCountryId]?.science.completedTechs.length ?? 0,
+        totalReputationGained: 0,
+        totalSpyOpsCompleted: 0,
+        totalTicksPlayed: 0,
+      }
+    : undefined;
+
+  const state: GameState = {
+    ...baseState,
+    ...(reputation !== undefined ? { reputation, pendingReputationDeltas: [] } : {}),
+    ...(blocs !== undefined ? { blocs } : {}),
+    ...(unResolutions !== undefined ? { unResolutions } : {}),
+    ...(gameMode !== undefined ? { gameMode } : {}),
+    ...(cumulativeStats !== undefined ? { cumulativeStats } : {}),
+    ...(wantsCumulative ? { unlockedVictories: [], actionLog: [] } : {}),
   };
   return state;
 }

@@ -1,8 +1,9 @@
-// New-game wizard: 4 steps — scenario → country → victory → difficulty.
-// Phase 2 expansion of the Phase 1 3-step skeleton: scenario selection picks
-// from a registry (with planned scenarios shown greyed out), and the player
-// commits to a difficulty preset whose modifiers are stamped into the save's
-// GameState.difficultyId.
+// New-game wizard: 5 steps — scenario → country → victory → difficulty →
+// gameMode. Phase 3 adds the game-mode picker as the final step before the
+// commit button so the player explicitly opts into Endless / Eternal /
+// Dethrone before the engine creates the initial state. Default is
+// 'classic'; saves loaded later without a `gameMode` get migrated to
+// 'classic' too — see lib/persistence.ts:migrateSaveEntry.
 
 'use client';
 
@@ -11,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type {
   CountryId,
   DifficultyTuning,
+  GameMode,
   Scenario,
   VictoryConditionId,
 } from '@aurion/engine';
@@ -31,8 +33,14 @@ import { tone, toneChip } from '../../../lib/theme';
 // Constants
 // ---------------------------------------------------------------------------
 
-type StepId = 'scenario' | 'country' | 'victory' | 'difficulty';
-const STEPS: readonly StepId[] = ['scenario', 'country', 'victory', 'difficulty'];
+type StepId = 'scenario' | 'country' | 'victory' | 'difficulty' | 'gameMode';
+const STEPS: readonly StepId[] = [
+  'scenario',
+  'country',
+  'victory',
+  'difficulty',
+  'gameMode',
+];
 
 const VICTORY_IDS: readonly VictoryConditionId[] = [
   'economic',
@@ -44,6 +52,42 @@ const VICTORY_IDS: readonly VictoryConditionId[] = [
 
 /** Difficulty id treated as the recommended default in the picker. */
 const RECOMMENDED_DIFFICULTY = 'normal';
+
+/**
+ * Game-mode options the wizard surfaces in step 5. `'era-paced'` is declared
+ * in the engine type union but Wave 9 does not implement it (Wave 10+); it's
+ * intentionally omitted here so the picker only shows the three modes the
+ * engine actually supports.
+ */
+type SelectableGameMode = Exclude<GameMode, 'era-paced'>;
+const GAME_MODES: readonly SelectableGameMode[] = [
+  'classic',
+  'eternal',
+  'dethrone',
+];
+
+/** Default game mode pre-selected when the player lands on step 5. */
+const DEFAULT_GAME_MODE: SelectableGameMode = 'classic';
+
+/**
+ * Game mode flagged with a "recommended" badge in the picker. Eternal is the
+ * mode the spec recommends for most new players (open-ended, milestones
+ * instead of hard endings).
+ */
+const RECOMMENDED_GAME_MODE: SelectableGameMode = 'eternal';
+
+/**
+ * Scenario ids whose blocs make the Dethrone-loss `isolation` trigger
+ * meaningful. When a player picks Dethrone on a scenario NOT in this set the
+ * wizard surfaces an informational warning explaining that only the
+ * out-of-top-3 trigger will apply. Mirrors the spec's
+ * `dethroneIsolationOnByDefault` flag (we don't read the JSON here because
+ * the wizard already knows which scenarios are bloc-based).
+ */
+const DETHRONE_BLOC_SCENARIOS: ReadonlySet<string> = new Set([
+  'mondo-contemporaneo',
+  'guerra-fredda',
+]);
 
 /**
  * Modifier display order. Anything not in this list is shown afterwards in
@@ -95,6 +139,11 @@ export default function NewGamePage() {
   const [countryId, setCountryId] = useState<CountryId | null>(null);
   const [victory, setVictory] = useState<VictoryConditionId | null>(null);
   const [difficultyId, setDifficultyId] = useState<string | null>(null);
+  // Phase 3: game mode is required (no UI path that skips this step), so we
+  // pre-seed it with the default rather than letting it be null.
+  const [gameMode, setGameMode] = useState<SelectableGameMode>(
+    DEFAULT_GAME_MODE,
+  );
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Load scenario data once a scenario is picked. Re-runs when the scenario
@@ -172,6 +221,7 @@ export default function NewGamePage() {
         playerCountryId: countryId,
         victory,
         difficultyId: finalDifficulty,
+        gameMode,
       });
       router.push(`/play/${encodeURIComponent(saveId)}`);
     } catch (err) {
@@ -238,6 +288,16 @@ export default function NewGamePage() {
           selected={difficultyId}
           onSelect={(id) => setDifficultyId(id)}
           onBack={() => setStep('victory')}
+          onNext={() => difficultyId && setStep('gameMode')}
+        />
+      ) : null}
+
+      {step === 'gameMode' ? (
+        <GameModeStep
+          scenarioId={scenarioId}
+          selected={gameMode}
+          onSelect={setGameMode}
+          onBack={() => setStep('difficulty')}
           onStart={handleStart}
           isLoading={isLoading}
         />
@@ -649,15 +709,13 @@ function DifficultyStep({
   selected,
   onSelect,
   onBack,
-  onStart,
-  isLoading,
+  onNext,
 }: {
   scenario: Scenario | null;
   selected: string | null;
   onSelect: (id: string) => void;
   onBack: () => void;
-  onStart: () => void;
-  isLoading: boolean;
+  onNext: () => void;
 }) {
   const t = useTranslations('setup');
   const tCommon = useTranslations('common');
@@ -699,16 +757,16 @@ function DifficultyStep({
         </button>
         <button
           type="button"
-          disabled={!selected || isLoading}
-          onClick={onStart}
+          disabled={!selected}
+          onClick={onNext}
           className={cn(
             'rounded-xl px-5 py-2 text-sm font-semibold transition-colors',
-            selected && !isLoading
-              ? 'bg-success text-bg hover:opacity-90'
+            selected
+              ? 'bg-accent text-bg hover:bg-accent-strong'
               : 'bg-surface-1 text-fg-faint',
           )}
         >
-          {isLoading ? t('preparing') : t('start')}
+          {tCommon('next')}
         </button>
       </div>
     </section>
@@ -852,5 +910,188 @@ function ModifierChip({ name, value }: { name: string; value: number }) {
       <span className={cn('font-medium', tone('neutral'))}>{label}</span>
       <span className="font-mono">{text}</span>
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step 5: game mode (Phase 3)
+//
+// Three cards: Classic / Eternal / Dethrone. The player commits to one of
+// these before pressing the final "Avvia partita" button. The 4th union
+// member, `'era-paced'`, is intentionally not pickable — Wave 9 doesn't
+// implement era summary screens; the spec defers them to Wave 10.
+//
+// `'dethrone'` shows an extra info banner when the active scenario doesn't
+// have blocs (Quick Start, Ascesa di Aurion). The mode is still selectable
+// in that case — we just warn that only the GDP-rank trigger will apply.
+// ---------------------------------------------------------------------------
+
+function GameModeStep({
+  scenarioId,
+  selected,
+  onSelect,
+  onBack,
+  onStart,
+  isLoading,
+}: {
+  scenarioId: ScenarioId | null;
+  selected: SelectableGameMode;
+  onSelect: (mode: SelectableGameMode) => void;
+  onBack: () => void;
+  onStart: () => void;
+  isLoading: boolean;
+}) {
+  const t = useTranslations('setup');
+  const tMode = useTranslations('setup.gameMode');
+  const tCommon = useTranslations('common');
+
+  // The dethrone "isolation" trigger only matters when the scenario has blocs.
+  // Surface a friendly note (not a hard block) so the player knows what
+  // they're opting into.
+  const showDethroneIsolationWarning =
+    selected === 'dethrone' &&
+    (!scenarioId || !DETHRONE_BLOC_SCENARIOS.has(scenarioId));
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-xl font-semibold text-fg">{tMode('title')}</h2>
+        <p className="mt-1 text-sm text-fg-muted">{tMode('description')}</p>
+      </div>
+      <ul className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        {GAME_MODES.map((mode) => (
+          <li key={mode}>
+            <GameModeCard
+              mode={mode}
+              selected={selected === mode}
+              onSelect={() => onSelect(mode)}
+            />
+          </li>
+        ))}
+      </ul>
+      {showDethroneIsolationWarning ? (
+        <p
+          role="note"
+          className={cn('rounded-md px-3 py-2 text-xs', toneChip('warning'))}
+        >
+          {tMode('dethrone.isolationUnavailable')}
+        </p>
+      ) : null}
+      <div className="flex justify-between">
+        <button
+          type="button"
+          onClick={onBack}
+          className="rounded-xl border border-border bg-surface-1 px-5 py-2 text-sm text-fg hover:border-border-strong"
+        >
+          ← {tCommon('back')}
+        </button>
+        <button
+          type="button"
+          disabled={isLoading}
+          onClick={onStart}
+          className={cn(
+            'rounded-xl px-5 py-2 text-sm font-semibold transition-colors',
+            !isLoading
+              ? 'bg-success text-bg hover:opacity-90'
+              : 'bg-surface-1 text-fg-faint',
+          )}
+        >
+          {isLoading ? t('preparing') : t('start')}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Tone token used by each game-mode card. Mirrors the spec's visual hint:
+ *   - Classic   → neutral chrome (no special highlight)
+ *   - Eternal   → accent (the recommended, default mode)
+ *   - Dethrone  → warning (tense, "spada di Damocle" framing)
+ */
+const GAME_MODE_TONE: Readonly<
+  Record<SelectableGameMode, 'neutral' | 'accent' | 'warning'>
+> = {
+  classic: 'neutral',
+  eternal: 'accent',
+  dethrone: 'warning',
+};
+
+/**
+ * Inline glyphs per game mode. Kept as text so we don't pull in lucide-react
+ * just for three icons — the card has its own border + tone treatment that
+ * carries the visual weight.
+ */
+const GAME_MODE_GLYPH: Readonly<Record<SelectableGameMode, string>> = {
+  classic: '\u{2691}', // flag
+  eternal: '\u{221E}', // infinity
+  dethrone: '\u{1F451}', // crown
+};
+
+function GameModeCard({
+  mode,
+  selected,
+  onSelect,
+}: {
+  mode: SelectableGameMode;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const tMode = useTranslations('setup.gameMode');
+  const cardTone = GAME_MODE_TONE[mode];
+  const glyph = GAME_MODE_GLYPH[mode];
+  const recommended = mode === RECOMMENDED_GAME_MODE;
+  const name = tMode(`${mode}.name`);
+  const description = tMode(`${mode}.description`);
+
+  // Selected card uses a stronger border + soft tinted background so the
+  // active choice is unambiguous; unselected cards reuse the standard surface
+  // chrome with the tone hint surfaced via the icon swatch only.
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        'flex h-full w-full flex-col gap-2 rounded-xl border px-4 py-4 text-left transition-colors',
+        selected
+          ? cn(
+              'shadow-md',
+              cardTone === 'accent'
+                ? 'border-accent bg-accent/15 text-fg'
+                : cardTone === 'warning'
+                  ? 'border-warning/70 bg-warning/15 text-fg'
+                  : 'border-border-strong bg-surface-2 text-fg',
+            )
+          : 'border-border bg-surface-1 text-fg hover:border-border-strong',
+        recommended && !selected && 'shadow-[0_0_0_1px_var(--color-accent-soft)]',
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className={cn(
+              'flex h-7 w-7 items-center justify-center rounded-full bg-surface-2 text-base',
+              tone(cardTone),
+            )}
+          >
+            {glyph}
+          </span>
+          <span className="text-base font-semibold">{name}</span>
+        </span>
+        {recommended ? (
+          <span
+            className={cn(
+              'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+              toneChip('accent'),
+            )}
+          >
+            {tMode('recommended')}
+          </span>
+        ) : null}
+      </div>
+      <p className="text-xs leading-relaxed text-fg-muted">{description}</p>
+    </button>
   );
 }

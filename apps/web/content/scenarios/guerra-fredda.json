@@ -2838,5 +2838,153 @@
       },
       "ironMan": true
     }
-  ]
+  ],
+  "blocs": [
+    {
+      "id": "western",
+      "nameKey": "bloc.gf.western.name",
+      "foundingMembers": [
+        "gf-usa",
+        "gf-canada",
+        "gf-uk",
+        "gf-france",
+        "gf-west-germany",
+        "gf-italy",
+        "gf-spain",
+        "gf-japan",
+        "gf-south-korea",
+        "gf-taiwan"
+      ],
+      "leaderCountryId": "gf-usa"
+    },
+    {
+      "id": "eastern",
+      "nameKey": "bloc.gf.eastern.name",
+      "foundingMembers": [
+        "gf-ussr",
+        "gf-east-germany",
+        "gf-poland",
+        "gf-hungary",
+        "gf-czechoslovakia",
+        "gf-romania",
+        "gf-north-vietnam",
+        "gf-cuba"
+      ],
+      "leaderCountryId": "gf-ussr"
+    },
+    {
+      "id": "non-aligned",
+      "nameKey": "bloc.gf.non-aligned.name",
+      "foundingMembers": [
+        "gf-india",
+        "gf-yugoslavia",
+        "gf-egypt",
+        "gf-algeria",
+        "gf-indonesia"
+      ],
+      "leaderCountryId": "gf-yugoslavia"
+    }
+  ],
+  "unCouncilMembers": [
+    "gf-usa",
+    "gf-ussr",
+    "gf-uk",
+    "gf-france",
+    "gf-india"
+  ],
+  "unTriggerMap": {
+    "declareWar": {
+      "kind": "peacekeeping",
+      "titleKey": "un.gf.peacekeeping.title",
+      "descriptionKey": "un.gf.peacekeeping.description",
+      "votingDurationTicks": 12,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": -8 }
+        ],
+        "onFail": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 4 }
+        ]
+      }
+    },
+    "launchTactical": {
+      "kind": "condemnation",
+      "titleKey": "un.gf.condemnation.tactical.title",
+      "descriptionKey": "un.gf.condemnation.tactical.description",
+      "votingDurationTicks": 6,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 12 }
+        ],
+        "onFail": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 0 }
+        ]
+      }
+    },
+    "launchStrategic": {
+      "kind": "condemnation",
+      "titleKey": "un.gf.condemnation.strategic.title",
+      "descriptionKey": "un.gf.condemnation.strategic.description",
+      "votingDurationTicks": 4,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 18 }
+        ],
+        "onFail": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 6 }
+        ]
+      }
+    },
+    "tradeDealLowGdp": {
+      "kind": "humanitarian",
+      "titleKey": "un.gf.humanitarian.title",
+      "descriptionKey": "un.gf.humanitarian.description",
+      "votingDurationTicks": 8,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": -3 }
+        ],
+        "onFail": []
+      }
+    },
+    "sanctionsImposed": {
+      "kind": "condemnation",
+      "titleKey": "un.gf.condemnation.sanctions.title",
+      "descriptionKey": "un.gf.condemnation.sanctions.description",
+      "votingDurationTicks": 8,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 5 }
+        ],
+        "onFail": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": 0 }
+        ]
+      }
+    },
+    "highWorldTension": {
+      "kind": "climate",
+      "titleKey": "un.gf.climate.tension.title",
+      "descriptionKey": "un.gf.climate.tension.description",
+      "votingDurationTicks": 16,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": -6 }
+        ],
+        "onFail": []
+      }
+    },
+    "climatePeriodic": {
+      "kind": "climate",
+      "titleKey": "un.gf.climate.periodic.title",
+      "descriptionKey": "un.gf.climate.periodic.description",
+      "votingDurationTicks": 16,
+      "effects": {
+        "onPass": [
+          { "type": "modifyStat", "target": "player", "stat": "worldTension", "delta": -4 }
+        ],
+        "onFail": []
+      }
+    }
+  },
+  "dethroneIsolationOnByDefault": true
 }

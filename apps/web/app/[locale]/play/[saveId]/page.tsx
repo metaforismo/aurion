@@ -21,7 +21,9 @@ import {
 import Hud from '../../../../components/Hud';
 import WorldMap from '../../../../components/Map';
 import ModalRoot from '../../../../components/Modals';
-import NotificationStream from '../../../../components/Notifications';
+import NotificationStream, {
+  VictoryToast,
+} from '../../../../components/Notifications';
 import PanelTabs from '../../../../components/Panels';
 import TutorialOverlay from '../../../../components/Tutorial';
 import { useGameStore } from '../../../../lib/store';
@@ -77,6 +79,11 @@ export default function PlayPage({
         {/* Cross-game achievement toast — self-managed: reads
             `pendingAchievementToast` from the store and auto-dismisses. */}
         <AchievementToast />
+        {/* Eternal-mode victory milestone toast — self-managed: reads
+            `pendingVictoryToast` from the store and auto-dismisses. The
+            celebratory first-victory modal lives in ModalRoot above; this
+            toast covers every subsequent milestone in an Eternal run. */}
+        <VictoryToast />
         {/* First-time tutorial — self-bootstraps from the persisted dismissed
             flag. Renders nothing once the player has seen / skipped it. */}
         <TutorialOverlay />

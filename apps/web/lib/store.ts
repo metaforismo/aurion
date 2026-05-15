@@ -15,6 +15,7 @@ import type {
   EventDefinition,
   EventEffect,
   GameEvent,
+  GameMode,
   GameState,
   SaveId,
   Scenario,
@@ -49,14 +50,20 @@ import { loadScenario, type ScenarioId } from './scenarios';
 
 export type Speed = 0 | 1 | 2 | 4;
 
-/** The 6 game-system panels the player can switch between in the left rail. */
+/**
+ * The 7 game-system panels the player can switch between in the left rail.
+ * Phase 3 adds the `'un'` panel (United Nations resolutions). When a scenario
+ * does not declare `unCouncilMembers`, the panel is still reachable but
+ * surfaces an "ONU not available" message instead of the propose form.
+ */
 export type PanelId =
   | 'economy'
   | 'research'
   | 'military'
   | 'spies'
   | 'diplomacy'
-  | 'politics';
+  | 'politics'
+  | 'un';
 
 export const PANEL_IDS: readonly PanelId[] = [
   'economy',
@@ -65,14 +72,25 @@ export const PANEL_IDS: readonly PanelId[] = [
   'spies',
   'diplomacy',
   'politics',
+  'un',
 ] as const;
 
-/** Reasons a player can lose. Mirrors the streak counters in `_loseStreaks`. */
+/**
+ * Reasons a player can lose. Mirrors the streak counters in `_loseStreaks`,
+ * extended in Phase 3 with the two Dethrone-loss triggers tracked in
+ * `state._dethroneStreaks`:
+ *   - `dethroned` — out of GDP top-3 for ≥ 5 in-game years.
+ *   - `isolated` — reputation < -50 in every active bloc for ≥ 5 in-game
+ *     years (only applicable when the scenario opts in via
+ *     `dethroneIsolationOnByDefault`).
+ */
 export type LossReason =
   | 'popularity'
   | 'bankruptcy'
   | 'occupation'
-  | 'factionRevolt';
+  | 'factionRevolt'
+  | 'dethroned'
+  | 'isolated';
 
 /**
  * A pending confirmation prompt. The UI renders a generic confirm modal when
@@ -100,6 +118,12 @@ export type StartNewGameParams = {
   /** Difficulty preset id (`easy`, `normal`, `hard`, `ironMan`). Required —
    * the wizard always commits to a choice before calling `startNewGame`. */
   difficultyId: string;
+  /**
+   * Game mode chosen at setup. Required — the Phase 3 wizard always commits
+   * to a choice before calling `startNewGame`. Phase 1/2 saves loaded later
+   * default to `'classic'` via persistence migration.
+   */
+  gameMode: GameMode;
   /** Optional fixed seed for deterministic playthroughs / tests. */
   seed?: string;
   /** Optional human-friendly save name. Defaults to the scenario name + date. */
@@ -140,6 +164,27 @@ export type GameStoreState = {
    * player has already seen.
    */
   unlockedAchievementIds: ReadonlySet<AchievementId>;
+  /**
+   * Eternal-mode milestone toast queue: id of the most recently unlocked
+   * victory that has not yet been shown. The toast component reads this and
+   * clears it via `dismissVictoryToast`. Null when no toast is queued.
+   *
+   * Subsequent victories that fire while a toast is still on screen are
+   * dropped on the floor — only one milestone is surfaced at a time and the
+   * full list is always reachable from `state.unlockedVictories`.
+   */
+  pendingVictoryToast: VictoryConditionId | null;
+  /**
+   * Tracks whether the celebratory "first eternal victory" modal has already
+   * been shown for the current run. The modal fires once when the FIRST
+   * milestone is unlocked; every subsequent milestone surfaces as a toast.
+   *
+   * Reset by `reset()` / `setState()` / `startNewGame()` so a fresh run can
+   * trigger the modal again. Saves loaded mid-run remember the most recent
+   * `unlockedVictories.length` so we don't replay the modal on re-open of an
+   * already-celebrated game.
+   */
+  eternalFirstVictoryShown: boolean;
 
   // ---- Actions ------------------------------------------------------------
   loadGame: (saveId: SaveId) => Promise<void>;
@@ -173,6 +218,13 @@ export type GameStoreState = {
   dismissCurrentEvent: () => void;
   /** Clear the currently displayed achievement toast. */
   dismissAchievementToast: () => void;
+  /** Clear the currently displayed Eternal-mode victory milestone toast. */
+  dismissVictoryToast: () => void;
+  /**
+   * Mark the celebratory first-eternal-victory modal as already shown for this
+   * run. Called by the modal after the player presses "Continua".
+   */
+  acknowledgeEternalFirstVictory: () => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -252,6 +304,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   selectedPanel: getInitialPanel(),
   pendingAchievementToast: null,
   unlockedAchievementIds: new Set<AchievementId>(),
+  pendingVictoryToast: null,
+  eternalFirstVictoryShown: false,
 
   reset: () => {
     set({
@@ -264,6 +318,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       speed: 0,
       selectedCountryId: null,
       pendingConfirm: null,
+      pendingVictoryToast: null,
+      eternalFirstVictoryShown: false,
     });
   },
 
@@ -277,6 +333,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       lastErrors: [],
       selectedCountryId: null,
       pendingConfirm: null,
+      pendingVictoryToast: null,
+      // Re-loaded saves that already have ≥1 unlocked victory should NOT
+      // re-trigger the celebratory modal — we treat those as "already
+      // celebrated". Fresh games start at 0 and the next victory opens it.
+      eternalFirstVictoryShown:
+        (state.unlockedVictories?.length ?? 0) > 0,
     });
   },
 
@@ -315,6 +377,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         isLoading: false,
         selectedCountryId: null,
         pendingConfirm: null,
+        pendingVictoryToast: null,
+        // A reloaded save that already has at least one unlocked victory has
+        // (by definition) been celebrated already; suppress the modal.
+        eternalFirstVictoryShown:
+          (entry.state.unlockedVictories?.length ?? 0) > 0,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -331,6 +398,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     playerCountryId,
     victory,
     difficultyId,
+    gameMode,
     seed,
     name,
   }) => {
@@ -341,6 +409,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         playerCountryId,
         victory,
         difficultyId,
+        gameMode,
         ...(seed !== undefined ? { seed } : {}),
       });
       const saveId = generateSaveId();
@@ -362,6 +431,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         isLoading: false,
         selectedCountryId: null,
         pendingConfirm: null,
+        // Fresh run — reset the eternal-mode UI gates so the very next
+        // milestone fires the celebratory modal once.
+        pendingVictoryToast: null,
+        eternalFirstVictoryShown: false,
       });
       return saveId;
     } catch (err) {
@@ -401,9 +474,32 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     });
     const reconciled = engineCheckWinLoss(next, victoryRule);
 
+    // — Eternal-mode victory milestone detection —
+    // The engine populates `state.unlockedVictories` and never sets
+    // `winLoss = 'won'` for eternal runs. We compare lengths pre/post-tick;
+    // every new entry fires a toast (we surface only the latest if multiple
+    // were unlocked in the same tick). The first unlocked victory ALSO opens
+    // the celebratory modal (gated by `eternalFirstVictoryShown`); the
+    // EternalFirstVictoryModal acknowledges itself when dismissed.
+    //
+    // Defensive fallbacks: arrays may be undefined if the engine has not yet
+    // shipped the tracking — treat as []. We never read `gameMode` directly
+    // from `current.state` because `setState` does not always carry the mode
+    // forward in test scenarios; reading from the reconciled tick is safer.
+    const isEternal = (reconciled.gameMode ?? 'classic') === 'eternal';
+    const prevUnlocked = current.state.unlockedVictories ?? [];
+    const nextUnlocked = reconciled.unlockedVictories ?? [];
+    let pendingVictoryToast = current.pendingVictoryToast;
+    if (isEternal && nextUnlocked.length > prevUnlocked.length) {
+      // Most recently unlocked id wins the toast slot.
+      const latest = nextUnlocked[nextUnlocked.length - 1] ?? null;
+      pendingVictoryToast = latest;
+    }
+
     set({
       state: reconciled,
       ticksThisSession: current.ticksThisSession + 1,
+      pendingVictoryToast,
     });
 
     // Achievements: ask the engine which definitions are now satisfied, then
@@ -522,6 +618,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   dismissAchievementToast: () => {
     set({ pendingAchievementToast: null });
+  },
+
+  dismissVictoryToast: () => {
+    set({ pendingVictoryToast: null });
+  },
+
+  acknowledgeEternalFirstVictory: () => {
+    set({ eternalFirstVictoryShown: true });
   },
 }));
 
@@ -659,15 +763,53 @@ export function selectOpenEvent(s: GameStoreState): GameEvent | null {
 }
 
 /**
+ * Threshold (in ticks / weeks) at which a Dethrone streak counter trips the
+ * loss condition. 5 in-game years × 52 weeks. Mirrors the engine constant.
+ */
+const DETHRONE_THRESHOLD_WEEKS = 260;
+
+/**
  * Derive the loss reason from the engine's `_loseStreaks` counters. Returns
  * null when the player isn't in a `lost` state. Mirrors the thresholds in
  * `packages/engine/src/checkWinLoss.ts`.
+ *
+ * In Dethrone-loss mode, also considers the `_dethroneStreaks` counters and
+ * surfaces `dethroned` / `isolated` when they trip — these win out over the
+ * classic streak reasons because the engine can only set `winLoss = 'lost'`
+ * once one trigger fires, and the dethrone-mode triggers are the dominant
+ * cause of death in that mode.
  */
 export function selectLossReason(s: GameStoreState): LossReason | null {
   const state = s.state;
   if (!state || state.winLoss !== 'lost') return null;
+
+  // Dethrone-mode triggers take precedence — they're the whole point of the
+  // mode and we want the post-mortem screen to surface them clearly.
+  if (selectIsDethrone(s)) {
+    const dStreaks = state._dethroneStreaks;
+    if (dStreaks) {
+      if (dStreaks.outOfTop3Weeks >= DETHRONE_THRESHOLD_WEEKS) {
+        return 'dethroned';
+      }
+      if (dStreaks.isolationWeeks >= DETHRONE_THRESHOLD_WEEKS) {
+        return 'isolated';
+      }
+    }
+  }
+
   const streaks = state._loseStreaks;
-  if (!streaks) return null;
+  if (!streaks) {
+    // Engine reported `lost` without any classic streak — fall back to the
+    // highest dethrone counter if present, else null.
+    const dStreaks = state._dethroneStreaks;
+    if (dStreaks) {
+      if (dStreaks.outOfTop3Weeks >= dStreaks.isolationWeeks) {
+        return dStreaks.outOfTop3Weeks > 0 ? 'dethroned' : null;
+      }
+      return dStreaks.isolationWeeks > 0 ? 'isolated' : null;
+    }
+    return null;
+  }
   if (streaks.capitalOccupiedWeeks >= 4) return 'occupation';
   if (streaks.allFactionsAngryWeeks >= 6) return 'factionRevolt';
   if (streaks.lowPopularityWeeks >= 12) return 'popularity';
@@ -683,6 +825,60 @@ export function selectLossReason(s: GameStoreState): LossReason | null {
   entries.sort((a, b) => b[1] - a[1]);
   const top = entries[0];
   return top && top[1] > 0 ? top[0] : null;
+}
+
+/**
+ * Phase 3 Eternal-mode helper: returns how many of the scenario's victory
+ * conditions the player has met so far, alongside the total. Reads
+ * `state.unlockedVictories` (treats undefined as `[]` for backwards
+ * compatibility with Phase 1/2 saves) and `scenario.victoryConditions`.
+ *
+ * Used by the HUD's `<VictoryCounter />` chip to render "N/M vittorie".
+ * Returning a small derived object (rather than two separate selectors) lets
+ * callers grab both numbers in a single store subscription.
+ */
+export function selectVictoryProgress(
+  s: GameStoreState,
+): { unlocked: VictoryConditionId[]; total: number } {
+  const unlocked = s.state?.unlockedVictories ?? [];
+  const total = s.scenario?.victoryConditions.length ?? 0;
+  return { unlocked: [...unlocked], total };
+}
+
+/**
+ * True when the active game is in Eternal mode. Saves loaded without a
+ * `gameMode` field default to `'classic'`, so this is `false` for legacy
+ * Phase 1/2 saves — never undefined, callers can use it as a UI gate
+ * without nil checks.
+ */
+export function selectIsEternal(s: GameStoreState): boolean {
+  return (s.state?.gameMode ?? 'classic') === 'eternal';
+}
+
+/**
+ * True when the active game is in Dethrone-loss mode. Same backwards-compat
+ * semantics as `selectIsEternal`: legacy saves are never reported as dethrone.
+ */
+export function selectIsDethrone(s: GameStoreState): boolean {
+  return (s.state?.gameMode ?? 'classic') === 'dethrone';
+}
+
+/**
+ * True when the celebratory "first eternal victory" modal should be visible.
+ * Fires when:
+ *   - the game is in eternal mode AND
+ *   - exactly one victory has been unlocked AND
+ *   - the player has not yet acknowledged the modal for this run.
+ *
+ * Subsequent unlocked victories surface as toasts via `pendingVictoryToast`.
+ */
+export function selectShouldShowEternalFirstVictory(
+  s: GameStoreState,
+): boolean {
+  if (!selectIsEternal(s)) return false;
+  const unlocked = s.state?.unlockedVictories ?? [];
+  if (unlocked.length === 0) return false;
+  return s.eternalFirstVictoryShown === false;
 }
 
 /** Re-export the autosave id so callers don't have to import persistence directly. */

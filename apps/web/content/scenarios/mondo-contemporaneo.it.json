@@ -286,5 +286,24 @@
 
   "difficulty.easy.name": "Facile",
   "difficulty.normal.name": "Normale",
-  "difficulty.hard.name": "Difficile"
+  "difficulty.hard.name": "Difficile",
+
+  "bloc.mc.western.name": "Alleanza Occidentale",
+  "bloc.mc.eastern.name": "Asse Orientale",
+  "bloc.mc.non-aligned.name": "Movimento dei Non Allineati",
+
+  "un.mc.peacekeeping.title": "Missione di pace nella regione contesa",
+  "un.mc.peacekeeping.description": "Una proposta per dispiegare caschi blu nelle aree colpite dal conflitto e contenere l'escalation.",
+  "un.mc.condemnation.tactical.title": "Condanna per l'uso di armamenti tattici",
+  "un.mc.condemnation.tactical.description": "Risoluzione di condanna formale all'impiego di armi nucleari tattiche e richiesta di immediata moratoria.",
+  "un.mc.condemnation.strategic.title": "Condanna per attacco strategico",
+  "un.mc.condemnation.strategic.description": "Sessione d'emergenza per condannare l'attacco strategico e valutare misure ritorsive collettive.",
+  "un.mc.humanitarian.title": "Programma di aiuti umanitari",
+  "un.mc.humanitarian.description": "Sostegno coordinato a popolazioni colpite da povertà, disastri o tensioni regionali.",
+  "un.mc.condemnation.sanctions.title": "Condanna delle sanzioni unilaterali",
+  "un.mc.condemnation.sanctions.description": "Mozione che valuta la legittimità delle sanzioni economiche imposte e l'impatto sui civili.",
+  "un.mc.climate.tension.title": "Patto di distensione globale",
+  "un.mc.climate.tension.description": "Quadro multilaterale per ridurre la tensione internazionale e prevenire crisi a catena.",
+  "un.mc.climate.periodic.title": "Accordo periodico sul clima",
+  "un.mc.climate.periodic.description": "Aggiornamento del trattato climatico con nuovi obiettivi vincolanti di riduzione delle emissioni."
 }

@@ -30,6 +30,11 @@ import type {
   TechDefinition,
   EventDefinition,
   EventTag,
+  ActionTriggerKey,
+  UNResolutionKind,
+  ScenarioBlocInit,
+  UNResolutionTemplate,
+  ActiveBlocId,
 } from '@aurion/engine';
 
 // Mirror the EventTag union as a runtime allow-list so the validator can warn
@@ -47,6 +52,35 @@ const KNOWN_EVENT_TAGS: ReadonlySet<EventTag> = new Set<EventTag>([
   'crisis',
   'opportunity',
   'narrative',
+]);
+
+// Phase 3 — closed enumerations mirrored as runtime allow-lists. Keep in sync
+// with `ActionTriggerKey`, `UNResolutionKind` and `ActiveBlocId` in
+// packages/engine/src/types.ts.
+const KNOWN_ACTION_TRIGGER_KEYS: ReadonlySet<ActionTriggerKey> = new Set<ActionTriggerKey>([
+  'declareWar',
+  'launchTactical',
+  'launchStrategic',
+  'tradeDealLowGdp',
+  'sanctionsImposed',
+  'highWorldTension',
+  'climatePeriodic',
+]);
+
+const KNOWN_UN_RESOLUTION_KINDS: ReadonlySet<UNResolutionKind> = new Set<UNResolutionKind>([
+  'sanctions',
+  'peacekeeping',
+  'recognition',
+  'humanitarian',
+  'climate',
+  'nonProliferation',
+  'condemnation',
+]);
+
+const KNOWN_ACTIVE_BLOC_IDS: ReadonlySet<ActiveBlocId> = new Set<ActiveBlocId>([
+  'western',
+  'eastern',
+  'non-aligned',
 ]);
 
 // ---------------------------------------------------------------------------
@@ -304,6 +338,164 @@ function validateScenario(bundle: ScenarioBundle): { errors: number; warnings: n
   }
 
   // -------------------------------------------------------------------------
+  // Step 9 (Phase 3 — optional fields). When `blocs`, `unCouncilMembers`,
+  // `unTriggerMap` or `dethroneIsolationOnByDefault` are present we cross-
+  // check them against `countries[]`, the engine's closed enumerations, and
+  // the i18n bundles. Scenarios that do not opt into Phase 3 (e.g. quick-
+  // start) skip every check below.
+  // -------------------------------------------------------------------------
+
+  const phase3Errors: string[] = [];
+  const phase3Stats: {
+    blocs: number;
+    blocMembersTotal: number;
+    councilMembers: number;
+    triggers: number;
+    dethroneIsolation: boolean | null;
+  } = {
+    blocs: 0,
+    blocMembersTotal: 0,
+    councilMembers: 0,
+    triggers: 0,
+    dethroneIsolation: null,
+  };
+
+  // 9a — blocs
+  if (scenario.blocs !== undefined) {
+    if (!Array.isArray(scenario.blocs)) {
+      phase3Errors.push('Phase 3: blocs must be an array');
+    } else {
+      phase3Stats.blocs = scenario.blocs.length;
+      const seenBlocIds = new Set<string>();
+      for (const bloc of scenario.blocs as ScenarioBlocInit[]) {
+        if (!KNOWN_ACTIVE_BLOC_IDS.has(bloc.id)) {
+          phase3Errors.push(`Phase 3: bloc has unknown id "${String(bloc.id)}"`);
+        }
+        if (seenBlocIds.has(bloc.id)) {
+          phase3Errors.push(`Phase 3: duplicate bloc id "${bloc.id}"`);
+        }
+        seenBlocIds.add(bloc.id);
+        if (!Array.isArray(bloc.foundingMembers) || bloc.foundingMembers.length === 0) {
+          phase3Errors.push(`Phase 3: bloc "${bloc.id}" has empty foundingMembers`);
+        } else {
+          for (const member of bloc.foundingMembers) {
+            if (!countryIds.has(member)) {
+              phase3Errors.push(
+                `Phase 3: bloc "${bloc.id}" foundingMember "${member}" does not exist in countries[]`,
+              );
+            }
+          }
+          phase3Stats.blocMembersTotal += bloc.foundingMembers.length;
+        }
+        if (bloc.leaderCountryId !== undefined) {
+          if (!countryIds.has(bloc.leaderCountryId)) {
+            phase3Errors.push(
+              `Phase 3: bloc "${bloc.id}" leaderCountryId "${bloc.leaderCountryId}" does not exist in countries[]`,
+            );
+          } else if (!bloc.foundingMembers.includes(bloc.leaderCountryId)) {
+            phase3Errors.push(
+              `Phase 3: bloc "${bloc.id}" leaderCountryId "${bloc.leaderCountryId}" is not in foundingMembers`,
+            );
+          }
+        }
+      }
+      // A country may belong to at most one bloc at start.
+      const memberToBloc = new Map<string, string>();
+      for (const bloc of scenario.blocs as ScenarioBlocInit[]) {
+        for (const member of bloc.foundingMembers) {
+          const existing = memberToBloc.get(member);
+          if (existing !== undefined && existing !== bloc.id) {
+            phase3Errors.push(
+              `Phase 3: country "${member}" is a foundingMember of both "${existing}" and "${bloc.id}"`,
+            );
+          }
+          memberToBloc.set(member, bloc.id);
+        }
+      }
+    }
+  }
+
+  // 9b — unCouncilMembers
+  if (scenario.unCouncilMembers !== undefined) {
+    if (!Array.isArray(scenario.unCouncilMembers)) {
+      phase3Errors.push('Phase 3: unCouncilMembers must be an array');
+    } else {
+      phase3Stats.councilMembers = scenario.unCouncilMembers.length;
+      const seenCouncil = new Set<string>();
+      for (const id of scenario.unCouncilMembers) {
+        if (!countryIds.has(id)) {
+          phase3Errors.push(
+            `Phase 3: unCouncilMembers entry "${id}" does not exist in countries[]`,
+          );
+        }
+        if (seenCouncil.has(id)) {
+          phase3Errors.push(`Phase 3: duplicate unCouncilMembers entry "${id}"`);
+        }
+        seenCouncil.add(id);
+      }
+    }
+  }
+
+  // 9c — unTriggerMap
+  if (scenario.unTriggerMap !== undefined) {
+    if (typeof scenario.unTriggerMap !== 'object' || scenario.unTriggerMap === null) {
+      phase3Errors.push('Phase 3: unTriggerMap must be an object');
+    } else {
+      const entries = Object.entries(scenario.unTriggerMap) as Array<
+        [string, UNResolutionTemplate | undefined]
+      >;
+      phase3Stats.triggers = entries.length;
+      for (const [key, template] of entries) {
+        if (!KNOWN_ACTION_TRIGGER_KEYS.has(key as ActionTriggerKey)) {
+          phase3Errors.push(`Phase 3: unTriggerMap key "${key}" is not a valid ActionTriggerKey`);
+        }
+        if (!template || typeof template !== 'object') {
+          phase3Errors.push(`Phase 3: unTriggerMap entry "${key}" must be a UNResolutionTemplate`);
+          continue;
+        }
+        if (!KNOWN_UN_RESOLUTION_KINDS.has(template.kind)) {
+          phase3Errors.push(
+            `Phase 3: unTriggerMap entry "${key}" has unknown kind "${String(template.kind)}"`,
+          );
+        }
+        if (typeof template.titleKey !== 'string' || template.titleKey.length === 0) {
+          phase3Errors.push(`Phase 3: unTriggerMap entry "${key}" missing titleKey`);
+        }
+        if (typeof template.descriptionKey !== 'string' || template.descriptionKey.length === 0) {
+          phase3Errors.push(`Phase 3: unTriggerMap entry "${key}" missing descriptionKey`);
+        }
+        if (
+          typeof template.votingDurationTicks !== 'number' ||
+          template.votingDurationTicks <= 0
+        ) {
+          phase3Errors.push(
+            `Phase 3: unTriggerMap entry "${key}" votingDurationTicks must be > 0`,
+          );
+        }
+        if (
+          !template.effects ||
+          typeof template.effects !== 'object' ||
+          !Array.isArray(template.effects.onPass) ||
+          !Array.isArray(template.effects.onFail)
+        ) {
+          phase3Errors.push(
+            `Phase 3: unTriggerMap entry "${key}" must declare effects.onPass and effects.onFail arrays`,
+          );
+        }
+      }
+    }
+  }
+
+  // 9d — dethroneIsolationOnByDefault
+  if (scenario.dethroneIsolationOnByDefault !== undefined) {
+    if (typeof scenario.dethroneIsolationOnByDefault !== 'boolean') {
+      phase3Errors.push('Phase 3: dethroneIsolationOnByDefault must be a boolean');
+    } else {
+      phase3Stats.dethroneIsolation = scenario.dethroneIsolationOnByDefault;
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // Aggregate + per-scenario report.
   // -------------------------------------------------------------------------
 
@@ -317,6 +509,7 @@ function validateScenario(bundle: ScenarioBundle): { errors: number; warnings: n
     ...relationErrors,
     ...victoryErrors,
     ...difficultyErrors,
+    ...phase3Errors,
   ];
 
   const archetypeCounts: Record<string, number> = {};
@@ -351,6 +544,31 @@ function validateScenario(bundle: ScenarioBundle): { errors: number; warnings: n
   console.log('  i18n keys referenced:', referencedKeys.length);
   console.log('  IT entries:          ', Object.keys(it).length, `(orphans: ${orphanIt.length})`);
   console.log('  EN entries:          ', Object.keys(en).length, `(orphans: ${orphanEn.length})`);
+
+  const hasPhase3 =
+    scenario.blocs !== undefined ||
+    scenario.unCouncilMembers !== undefined ||
+    scenario.unTriggerMap !== undefined ||
+    scenario.dethroneIsolationOnByDefault !== undefined;
+  if (hasPhase3) {
+    console.log(
+      '  Phase 3 — blocs:     ',
+      phase3Stats.blocs,
+      `(${phase3Stats.blocMembersTotal} member${phase3Stats.blocMembersTotal === 1 ? '' : 's'} total)`,
+    );
+    console.log('  Phase 3 — UN council:', phase3Stats.councilMembers);
+    console.log('  Phase 3 — UN triggers:', phase3Stats.triggers);
+    console.log(
+      '  Phase 3 — dethrone isolation:',
+      phase3Stats.dethroneIsolation === null
+        ? '(unset → default off)'
+        : phase3Stats.dethroneIsolation
+          ? 'on'
+          : 'off',
+    );
+  } else {
+    console.log('  Phase 3:              not in use');
+  }
 
   if (orphanIt.length > 0) {
     console.warn('  IT orphan keys (not referenced in scenario):');
