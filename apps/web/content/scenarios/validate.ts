@@ -18,6 +18,9 @@ import ascesaEn from './ascesa-aurion.en.json' with { type: 'json' };
 import quickStartJson from './quick-start.json' with { type: 'json' };
 import quickStartIt from './quick-start.it.json' with { type: 'json' };
 import quickStartEn from './quick-start.en.json' with { type: 'json' };
+import mondoJson from './mondo-contemporaneo.json' with { type: 'json' };
+import mondoIt from './mondo-contemporaneo.it.json' with { type: 'json' };
+import mondoEn from './mondo-contemporaneo.en.json' with { type: 'json' };
 import type {
   Scenario,
   CountryInit,
@@ -72,6 +75,12 @@ const SCENARIO_FILES: readonly RegistryEntry[] = [
     scenarioJson: quickStartJson,
     it: quickStartIt,
     en: quickStartEn,
+  },
+  {
+    id: 'mondo-contemporaneo',
+    scenarioJson: mondoJson,
+    it: mondoIt,
+    en: mondoEn,
   },
 ];
 

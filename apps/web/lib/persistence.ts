@@ -73,6 +73,53 @@ export class SaveVersionMismatchError extends Error {
   }
 }
 
+/**
+ * Thrown when the UI tries to persist a save while Iron Man is active and the
+ * game is still in `playing` state. Iron Man games are permadeath: the player
+ * may only commit a single save once the run resolves to `won` or `lost`.
+ *
+ * The store layer (see `lib/store.ts`) guards calls into `saveGame` with this
+ * error so the UI can surface a localised toast (`errors.saveLocked`) without
+ * having to re-encode the rule itself.
+ */
+export class SaveLockedError extends Error {
+  /** Discriminator so future "locked" reasons can be added without breaking callers. */
+  readonly reason: 'ironMan';
+  constructor(message = 'Saves are locked while Iron Man is in play') {
+    super(message);
+    this.name = 'SaveLockedError';
+    this.reason = 'ironMan';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Difficulty UI helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Map a difficulty preset id to a small icon hint the UI may render next to
+ * its label. Returns a lucide-react icon name (e.g. `Skull` for Iron Man,
+ * `Flame` for Hard) or `null` when no icon is appropriate. Callers are free
+ * to ignore this — it's purely cosmetic — and the engine never reads it.
+ *
+ * The function is data-only so it can be used outside React (tests, SSR
+ * helpers, headless tooling).
+ */
+export function iconForDifficulty(difficultyId: string): string | null {
+  switch (difficultyId) {
+    case 'easy':
+      return 'Sprout';
+    case 'normal':
+      return 'Sword';
+    case 'hard':
+      return 'Flame';
+    case 'ironMan':
+      return 'Skull';
+    default:
+      return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // DB schema
 // ---------------------------------------------------------------------------
@@ -319,4 +366,29 @@ export async function getMeta<T>(key: string): Promise<T | null> {
   if (!isPersistenceAvailable()) return null;
   const row = await db().meta.get(key);
   return row ? (row.value as T) : null;
+}
+
+// ---------------------------------------------------------------------------
+// Tutorial flag — convenience wrappers around the meta store so callers don't
+// have to remember the magic key string. The flag is intentionally kept in the
+// `meta` table (not localStorage) so it survives storage clearing of other
+// origins and is part of a future "reset progress" sweep.
+// ---------------------------------------------------------------------------
+
+/** Reserved meta key for the first-time tutorial dismissal flag. */
+export const TUTORIAL_DISMISSED_META_KEY = 'aurion:tutorial-dismissed';
+
+/**
+ * Read whether the player has already dismissed (or completed) the first-time
+ * tutorial. Defaults to `false` when no flag is stored or when persistence is
+ * unavailable (SSR, private browsing without IndexedDB).
+ */
+export async function getTutorialDismissed(): Promise<boolean> {
+  const value = await getMeta<boolean>(TUTORIAL_DISMISSED_META_KEY);
+  return value === true;
+}
+
+/** Persist the tutorial dismissal flag. */
+export async function setTutorialDismissed(value: boolean): Promise<void> {
+  await setMeta(TUTORIAL_DISMISSED_META_KEY, value);
 }

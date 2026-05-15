@@ -59,7 +59,7 @@ export const SCENARIO_REGISTRY: Record<ScenarioId, ScenarioMeta> = {
     id: 'mondo-contemporaneo',
     nameKey: 'scenario.mondo-contemporaneo.name',
     descriptionKey: 'scenario.mondo-contemporaneo.description',
-    status: 'planned',
+    status: 'available',
     sortOrder: 20,
   },
   'guerra-fredda': {
@@ -142,6 +142,11 @@ export async function loadScenario(id: ScenarioId): Promise<Scenario> {
         '../content/scenarios/quick-start.json'
       )) as { default: Scenario };
       scenario = mod.default;
+    } else if (id === 'mondo-contemporaneo') {
+      const mod = (await import(
+        '../content/scenarios/mondo-contemporaneo.json'
+      )) as { default: Scenario };
+      scenario = mod.default;
     } else {
       throw new ScenarioNotFoundError(id);
     }
@@ -193,6 +198,16 @@ export async function loadScenarioMessages(
     } else if (id === 'quick-start' && locale === 'en') {
       const mod = (await import(
         '../content/scenarios/quick-start.en.json'
+      )) as { default: Record<string, string> };
+      messages = mod.default;
+    } else if (id === 'mondo-contemporaneo' && locale === 'it') {
+      const mod = (await import(
+        '../content/scenarios/mondo-contemporaneo.it.json'
+      )) as { default: Record<string, string> };
+      messages = mod.default;
+    } else if (id === 'mondo-contemporaneo' && locale === 'en') {
+      const mod = (await import(
+        '../content/scenarios/mondo-contemporaneo.en.json'
       )) as { default: Record<string, string> };
       messages = mod.default;
     }

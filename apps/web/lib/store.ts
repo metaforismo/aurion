@@ -31,6 +31,7 @@ import {
   autosave as persistenceAutosave,
   generateSaveId,
   loadSave,
+  SaveLockedError,
   saveGame as persistenceSaveGame,
 } from './persistence';
 import { loadScenario, type ScenarioId } from './scenarios';
@@ -383,7 +384,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // Autosave every 30 ticks of game time. Fire-and-forget — failures here
     // should not interrupt gameplay; they'll surface via the next manual save.
-    if (current.scenario && reconciled.tick % 30 === 0) {
+    //
+    // Iron Man explicitly forbids autosaves: the whole point of the mode is
+    // that a single defeat ends the run permanently. We compute the flag from
+    // the `next` reconciled state (post-tick) so a difficulty change between
+    // ticks (which shouldn't happen, but is cheap to defend against) is
+    // honoured at the very tick the change becomes visible.
+    const ironManActive = isIronManActive(current.scenario, reconciled);
+    if (current.scenario && !ironManActive && reconciled.tick % 30 === 0) {
       const scenarioId = reconciled.scenarioId;
       const name = current.saveName ?? `Autosave (${scenarioId})`;
       void persistenceAutosave({
@@ -400,6 +408,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const { state, scenario, saveId, saveName } = get();
     if (!state || !scenario) {
       throw new Error('saveGame: no active game to save');
+    }
+    // Iron Man permadeath: the player may not commit a save while the run is
+    // still in progress. We allow saves once `winLoss !== 'playing'` so the
+    // final state can be preserved as a post-mortem (loaded for review only).
+    if (isIronManActive(scenario, state) && state.winLoss === 'playing') {
+      throw new SaveLockedError();
     }
     const id = saveId ?? generateSaveId();
     const finalName = name ?? saveName ?? `${state.scenarioId} — ${new Date().toLocaleString()}`;
@@ -516,6 +530,22 @@ export function selectActiveDifficulty(s: GameStoreState) {
 }
 
 /**
+ * True when the active scenario's selected difficulty has `ironMan === true`.
+ * Returns `false` when no game / scenario is loaded so callers can use it
+ * directly as a UI gate without needing a null check. The selector reads
+ * `state.difficultyId` (the engine stamps it at `createGame` time) and looks
+ * up the matching entry in `scenario.difficulties[]`.
+ *
+ * Iron Man is a UI-only concern (the engine ignores the flag) — it gates
+ * autosave, save / load / export / import in the HUD menu, and renders a
+ * permanent "Iron Man" badge in the HUD bar.
+ */
+export function selectIronMan(s: GameStoreState): boolean {
+  const tuning = selectActiveDifficulty(s);
+  return tuning?.ironMan === true;
+}
+
+/**
  * The most recent unresolved narrative event, or null. Returned as-is so the
  * caller can render the event modal (and look up the matching definition in
  * the active scenario).
@@ -568,6 +598,21 @@ function findEventDefinition(
 ): EventDefinition | null {
   if (!scenario) return null;
   return scenario.eventPool.find((e) => e.id === id) ?? null;
+}
+
+/**
+ * Internal: same logic as `selectIronMan`, but takes raw `(scenario, state)`
+ * arguments so the store actions (`advanceTick`, `saveGame`) can call it
+ * without going through the selector indirection. Falsy unless the scenario
+ * declares the currently-active difficulty AND that entry has `ironMan: true`.
+ */
+function isIronManActive(
+  scenario: Scenario | null,
+  state: GameState | null,
+): boolean {
+  if (!scenario || !state) return false;
+  const tuning = scenario.difficulties.find((d) => d.id === state.difficultyId);
+  return tuning?.ironMan === true;
 }
 
 /**

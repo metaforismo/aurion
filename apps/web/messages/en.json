@@ -130,6 +130,13 @@
       "saveOk": "Game saved.",
       "exportOk": "Export complete.",
       "importOk": "Save imported."
+    },
+    "ironMan": {
+      "badge": "Iron Man",
+      "tooltip": "Saves are disabled. A single defeat ends the run for good.",
+      "menuDisabled": "Disabled in Iron Man",
+      "menuHint": "Disabled in Iron Man — you can only save once the run ends.",
+      "exitWarning": "Iron Man has no autosave. Leaving now abandons the run permanently."
     }
   },
   "notifications": {
@@ -509,6 +516,7 @@
     "scenarioNotFound": "Scenario not available.",
     "playerCountryUnselected": "Pick a playable country first.",
     "victoryNotSelected": "Pick a victory condition.",
+    "saveLocked": "Saves are locked in Iron Man mode.",
     "unknown": "Unexpected error."
   },
   "play": {
@@ -562,6 +570,42 @@
     },
     "nation": {
       "aria": "{name}, {region} region, GDP {gdp}, army {army}"
+    }
+  },
+  "tutorial": {
+    "title": "Welcome to Aurion",
+    "intro": {
+      "body": "Aurion is a real-time strategy game: the world keeps moving, but you can pause whenever you need to plan. Let's give you a quick tour of the essential controls — it takes under a minute."
+    },
+    "start": "Start tour",
+    "next": "Next",
+    "prev": "Back",
+    "skip": "Skip all",
+    "complete": "Tutorial complete",
+    "dontShowAgain": "Don't show again",
+    "footerNote": "Press ESC at any time to advance to the next step.",
+    "stepLabel": "Step {current} of {total}",
+    "steps": {
+      "hud": {
+        "title": "The top bar",
+        "body": "Here you'll find the current date, your treasury, popularity, and the speed controls. Keep an eye on these numbers — they're your main health indicators."
+      },
+      "map": {
+        "title": "The world map",
+        "body": "Click a nation to select it; hover for a quick summary. The buttons below the map toggle informational overlays: tension, alliances, and intelligence."
+      },
+      "panels": {
+        "title": "The system panels",
+        "body": "On the left you have the six game panels: Economy, Research, Military, Spies, Diplomacy, Politics. The active one is highlighted in amber."
+      },
+      "speed": {
+        "title": "Control time",
+        "body": "Pause, 1×, 2×, and 4× set the game speed. Spacebar is a shortcut: it toggles pause and play when you aren't typing in a field."
+      },
+      "outro": {
+        "title": "That's it!",
+        "body": "You've seen the essentials. The game will resume at 1× speed as soon as you close this window. Have fun."
+      }
     }
   }
 }

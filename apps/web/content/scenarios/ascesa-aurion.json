@@ -4748,6 +4748,21 @@
         "lossToleranceWeeks": 0.75,
         "eventChanceMultiplier": 1.15
       }
+    },
+    {
+      "id": "ironMan",
+      "nameKey": "difficulty.ironMan.name",
+      "modifiers": {
+        "aiAggression": 1.4,
+        "aiResearchSpeed": 1.25,
+        "playerIncome": 0.75,
+        "eventDifficulty": 1.35,
+        "aiAllianceBias": 1.6,
+        "spyDetectionAgainstPlayer": 1.35,
+        "lossToleranceWeeks": 0.6,
+        "eventChanceMultiplier": 1.2
+      },
+      "ironMan": true
     }
   ]
 }

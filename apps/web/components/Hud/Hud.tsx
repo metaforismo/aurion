@@ -7,8 +7,10 @@
 import { useEffect, useState } from 'react';
 
 import { useTicker } from '../../lib/ticker';
+import { selectIronMan, useGameStore } from '../../lib/store';
 
 import { DateBadge } from './DateBadge';
+import { IronManBadge } from './IronManBadge';
 import { MenuButton } from './MenuButton';
 import { PopularityBadge } from './PopularityBadge';
 import { SpeedControls } from './SpeedControls';
@@ -21,6 +23,7 @@ export type HudProps = {
 
 export function Hud({ onNotify }: HudProps) {
   const ticker = useTicker();
+  const ironMan = useGameStore(selectIronMan);
   const [internalToast, setInternalToast] = useState<string | null>(null);
 
   // Spacebar = toggle pause. Ignored when the user is typing in an input or
@@ -47,6 +50,7 @@ export function Hud({ onNotify }: HudProps) {
   return (
     <header className="glass-surface sticky top-0 z-20 flex h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4">
       <DateBadge />
+      {ironMan ? <IronManBadge /> : null}
       <TreasuryBadge />
       <PopularityBadge />
       <div className="ml-2">

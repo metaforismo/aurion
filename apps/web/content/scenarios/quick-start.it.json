@@ -105,5 +105,6 @@
 
   "difficulty.easy.name": "Facile",
   "difficulty.normal.name": "Normale",
-  "difficulty.hard.name": "Difficile"
+  "difficulty.hard.name": "Difficile",
+  "difficulty.ironMan.name": "Iron Man"
 }

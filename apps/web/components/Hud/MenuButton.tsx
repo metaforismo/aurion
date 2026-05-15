@@ -15,9 +15,10 @@ import {
   importSave,
   isPersistenceAvailable,
   listSaves,
+  SaveLockedError,
   type SaveSummary,
 } from '../../lib/persistence';
-import { useGameStore } from '../../lib/store';
+import { selectIronMan, useGameStore } from '../../lib/store';
 
 export type MenuButtonProps = {
   /** Toast emitter so menu actions can surface feedback in the play page. */
@@ -27,6 +28,8 @@ export type MenuButtonProps = {
 export function MenuButton({ onNotify }: MenuButtonProps) {
   const t = useTranslations('hud');
   const tCommon = useTranslations('common');
+  const tErrors = useTranslations('errors');
+  const tIronMan = useTranslations('hud.ironMan');
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -39,6 +42,14 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
   const requestConfirm = useGameStore((s) => s.confirm);
   const reset = useGameStore((s) => s.reset);
   const loadGame = useGameStore((s) => s.loadGame);
+  const ironMan = useGameStore(selectIronMan);
+  const winLoss = useGameStore((s) => s.state?.winLoss ?? 'playing');
+
+  // Iron Man permadeath rules: while the run is in `playing`, the player
+  // cannot save / load / export / import — only `Esci` stays enabled (with
+  // an extra warning in the confirm modal). Once the game resolves to `won`
+  // / `lost`, we unlock save + export so the final state can be preserved.
+  const ironManLocked = ironMan && winLoss === 'playing';
 
   // Close on outside click. Capturing click + tab.
   useEffect(() => {
@@ -87,6 +98,10 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
       await persistedSave();
       onNotify?.(t('toast.saveOk'));
     } catch (err) {
+      if (err instanceof SaveLockedError) {
+        onNotify?.(tErrors('saveLocked'));
+        return;
+      }
       onNotify?.(err instanceof Error ? err.message : 'error');
     }
   };
@@ -140,9 +155,14 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
 
   const handleExit = () => {
     closeMenu();
+    // Iron Man uses a stronger warning copy: there is no autosave to fall
+    // back on, so leaving the page actively abandons the run forever.
+    const descriptionKey = ironManLocked
+      ? 'hud.ironMan.exitWarning'
+      : 'modals.confirm.exitGame.description';
     requestConfirm({
       titleKey: 'modals.confirm.exitGame.title',
-      descriptionKey: 'modals.confirm.exitGame.description',
+      descriptionKey,
       confirmKey: 'modals.confirm.exitGame.confirm',
       cancelKey: 'common.cancel',
       tone: 'danger',
@@ -175,20 +195,30 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
         <div
           role="menu"
           aria-label={t('menu')}
-          className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-lg border border-border-strong bg-surface-1/95 text-sm shadow-2xl backdrop-blur"
+          className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-lg border border-border-strong bg-surface-1/95 text-sm shadow-2xl backdrop-blur"
         >
+          {ironManLocked ? (
+            <div
+              role="note"
+              className="border-b border-danger/30 bg-danger/10 px-3 py-2 text-[11px] leading-snug text-danger"
+            >
+              {tIronMan('menuHint')}
+            </div>
+          ) : null}
           <MenuItem
             label={t('save')}
             onSelect={handleSave}
-            disabled={!persistenceOk}
+            disabled={!persistenceOk || ironManLocked}
+            disabledHint={ironManLocked ? tIronMan('menuDisabled') : undefined}
           />
           <MenuItem
             label={t('load')}
             onSelect={() => setShowSaves((v) => !v)}
-            disabled={!persistenceOk}
-            expanded={showSaves}
+            disabled={!persistenceOk || ironManLocked}
+            disabledHint={ironManLocked ? tIronMan('menuDisabled') : undefined}
+            expanded={ironManLocked ? undefined : showSaves}
           />
-          {showSaves ? (
+          {showSaves && !ironManLocked ? (
             <ul
               className="max-h-56 overflow-y-auto border-t border-border bg-bg/40 px-1 py-1"
               aria-label={t('savesList')}
@@ -227,12 +257,14 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
           <MenuItem
             label={t('export')}
             onSelect={handleExport}
-            disabled={!saveId}
+            disabled={!saveId || ironManLocked}
+            disabledHint={ironManLocked ? tIronMan('menuDisabled') : undefined}
           />
           <MenuItem
             label={t('import')}
             onSelect={handleImportPick}
-            disabled={!persistenceOk}
+            disabled={!persistenceOk || ironManLocked}
+            disabledHint={ironManLocked ? tIronMan('menuDisabled') : undefined}
           />
           <div className="border-t border-border" />
           <MenuItem label={t('exit')} onSelect={handleExit} tone="danger" />
@@ -254,12 +286,15 @@ function MenuItem({
   label,
   onSelect,
   disabled,
+  disabledHint,
   tone = 'default',
   expanded,
 }: {
   label: ReactNode;
   onSelect: () => void;
   disabled?: boolean;
+  /** Tooltip shown when the item is disabled (typed in by the caller). */
+  disabledHint?: string;
   tone?: 'default' | 'danger';
   expanded?: boolean;
 }) {
@@ -269,6 +304,8 @@ function MenuItem({
       role="menuitem"
       onClick={onSelect}
       disabled={disabled}
+      aria-disabled={disabled || undefined}
+      title={disabled ? disabledHint : undefined}
       aria-expanded={typeof expanded === 'boolean' ? expanded : undefined}
       className={cn(
         'flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-semibold transition',
@@ -278,7 +315,14 @@ function MenuItem({
         disabled && 'cursor-not-allowed text-fg-faint hover:bg-transparent',
       )}
     >
-      <span>{label}</span>
+      <span className="flex flex-col gap-0.5">
+        <span>{label}</span>
+        {disabled && disabledHint ? (
+          <span className="text-[10px] font-normal normal-case tracking-normal text-fg-faint">
+            {disabledHint}
+          </span>
+        ) : null}
+      </span>
       {typeof expanded === 'boolean' ? (
         <span aria-hidden="true" className="text-fg-faint">
           {expanded ? '▾' : '▸'}

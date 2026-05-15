@@ -10,6 +10,18 @@
 //   SIM_DIFFICULTY=easy|normal|hard             — which difficulty preset to use
 //   SIM_SCENARIO=ascesa-aurion|quick-start|...  — which scenario JSON to load
 //   SIM_COMPARE=true                            — run all 3 difficulties + table
+//   SIM_PLAYER_ARCHETYPE=pacifist_trader|opportunist|regional_bully|cold_isolationist|superpower
+//                                               — archetype for the player AI slot
+//   SIM_PLAYER_COUNTRY=<countryId>              — country in the player slot
+//   SIM_VICTORY=economic|military|scientific|diplomatic|domination
+//                                               — victory condition the player tries to reach
+//
+// Defaults are chosen to expose difficulty in the win/loss/timeout
+// distribution. The combination is `opportunist` player AI chasing the
+// `economic` (top-3 GDP) victory: Aurion starts well outside the top 3,
+// so the player has to actively grow / steal tech / outmaneuver larger
+// rivals. Easy gives them income room to do it, Hard makes the same
+// growth slow enough that timeouts dominate.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -20,19 +32,57 @@ import { createRng } from '../src/rng.js';
 import { tick } from '../src/tick.js';
 import type {
   Action,
+  AiArchetype,
   AiPersonality,
   DifficultyTuning,
   GameState,
   Scenario,
+  VictoryConditionId,
 } from '../src/index.js';
 
 export type DifficultyId = 'easy' | 'normal' | 'hard';
+
+const KNOWN_ARCHETYPES: readonly AiArchetype[] = [
+  'pacifist_trader',
+  'regional_bully',
+  'cold_isolationist',
+  'opportunist',
+  'superpower',
+];
+const KNOWN_VICTORIES: readonly VictoryConditionId[] = [
+  'economic',
+  'military',
+  'scientific',
+  'diplomatic',
+  'domination',
+];
 
 const RUNS = Number.parseInt(process.env['SIM_RUNS'] ?? '100', 10);
 const MAX_TICKS = 2000;
 const SCENARIO_ID = (process.env['SIM_SCENARIO'] ?? 'ascesa-aurion').trim();
 const COMPARE = (process.env['SIM_COMPARE'] ?? '').toLowerCase() === 'true';
 const DIFFICULTY_ID: DifficultyId = parseDifficulty(process.env['SIM_DIFFICULTY']);
+/**
+ * Default to an `opportunist` player: middle-of-the-road AI that does spend
+ * on research/military and is therefore exposed to bankruptcy and to wars
+ * it can't sustain — much more difficulty-sensitive than the historical
+ * `pacifist_trader` default which auto-wins by sitting on top GDP.
+ */
+const PLAYER_ARCHETYPE: AiArchetype = parseArchetype(process.env['SIM_PLAYER_ARCHETYPE']);
+const PLAYER_COUNTRY_OVERRIDE = (process.env['SIM_PLAYER_COUNTRY'] ?? '').trim() || undefined;
+/**
+ * Default to the `economic` victory (top-3 GDP). With an `opportunist`
+ * player on Aurion (who starts at GDP rank ~16/25), Easy lets the player
+ * out-grow rivals via tech / spies; Normal makes it a coin flip; Hard's
+ * `playerIncome` reduction + faster AI research keeps Aurion off the
+ * podium. This combo is empirically the cleanest difficulty signal on
+ * the current `ascesa-aurion` scenario — see `sim-balance` output. We
+ * deliberately avoid `military` / `domination` here because their
+ * `controlNCountries` rule interacts with `aiAllianceBias`: on Hard,
+ * AIs propose alliance with the player too eagerly and trivially win
+ * the count, inverting the difficulty signal.
+ */
+const VICTORY_ID: VictoryConditionId = parseVictory(process.env['SIM_VICTORY']);
 
 function parseDifficulty(raw: string | undefined): DifficultyId {
   const v = (raw ?? 'normal').toLowerCase();
@@ -40,6 +90,35 @@ function parseDifficulty(raw: string | undefined): DifficultyId {
   console.warn(`Unknown SIM_DIFFICULTY="${raw}", defaulting to "normal".`);
   return 'normal';
 }
+
+function parseArchetype(raw: string | undefined): AiArchetype {
+  if (!raw) return 'opportunist';
+  const v = raw.trim() as AiArchetype;
+  if (KNOWN_ARCHETYPES.includes(v)) return v;
+  console.warn(`Unknown SIM_PLAYER_ARCHETYPE="${raw}", defaulting to "opportunist".`);
+  return 'opportunist';
+}
+
+function parseVictory(raw: string | undefined): VictoryConditionId {
+  if (!raw) return 'economic';
+  const v = raw.trim() as VictoryConditionId;
+  if (KNOWN_VICTORIES.includes(v)) return v;
+  console.warn(`Unknown SIM_VICTORY="${raw}", defaulting to "economic".`);
+  return 'economic';
+}
+
+/**
+ * Personality presets per archetype. Mirrors the values used in the mock
+ * scenario below and in scenario JSONs; kept here so a single env knob
+ * (`SIM_PLAYER_ARCHETYPE`) is enough to retune the player slot for a sim run.
+ */
+export const PERSONALITY_BY_ARCHETYPE: Record<AiArchetype, AiPersonality> = {
+  pacifist_trader: { archetype: 'pacifist_trader', aggressiveness: 0.2, expansionism: 0.2, paranoia: 0.4, pragmatism: 0.7 },
+  regional_bully: { archetype: 'regional_bully', aggressiveness: 0.8, expansionism: 0.6, paranoia: 0.5, pragmatism: 0.3 },
+  cold_isolationist: { archetype: 'cold_isolationist', aggressiveness: 0.3, expansionism: 0.2, paranoia: 0.7, pragmatism: 0.4 },
+  opportunist: { archetype: 'opportunist', aggressiveness: 0.5, expansionism: 0.5, paranoia: 0.5, pragmatism: 0.6 },
+  superpower: { archetype: 'superpower', aggressiveness: 0.6, expansionism: 0.6, paranoia: 0.6, pragmatism: 0.5 },
+};
 
 function scenarioPath(id: string): string {
   return resolve(process.cwd(), `../../apps/web/content/scenarios/${id}.json`);
@@ -130,11 +209,11 @@ export function resolveDifficulty(scenario: Scenario, id: DifficultyId): Difficu
 
 function mockScenario(): Scenario {
   const personalities: AiPersonality[] = [
-    { archetype: 'pacifist_trader', aggressiveness: 0.2, expansionism: 0.2, paranoia: 0.4, pragmatism: 0.7 },
-    { archetype: 'regional_bully', aggressiveness: 0.8, expansionism: 0.6, paranoia: 0.5, pragmatism: 0.3 },
-    { archetype: 'opportunist', aggressiveness: 0.5, expansionism: 0.5, paranoia: 0.5, pragmatism: 0.6 },
-    { archetype: 'cold_isolationist', aggressiveness: 0.3, expansionism: 0.2, paranoia: 0.7, pragmatism: 0.4 },
-    { archetype: 'superpower', aggressiveness: 0.6, expansionism: 0.6, paranoia: 0.6, pragmatism: 0.5 },
+    PERSONALITY_BY_ARCHETYPE.pacifist_trader,
+    PERSONALITY_BY_ARCHETYPE.regional_bully,
+    PERSONALITY_BY_ARCHETYPE.opportunist,
+    PERSONALITY_BY_ARCHETYPE.cold_isolationist,
+    PERSONALITY_BY_ARCHETYPE.superpower,
   ];
   const colors = ['#aa3333', '#33aa33', '#3333aa', '#aaaa33', '#aa33aa'];
   const countries = Array.from({ length: 5 }, (_, i) => {
@@ -209,6 +288,12 @@ function mockScenario(): Scenario {
         descriptionKey: 'v.eco',
         rule: { kind: 'gdpRank', ofPlayer: true, rankAtMost: 1 },
       },
+      {
+        id: 'military',
+        nameKey: 'v.mil',
+        descriptionKey: 'v.mil',
+        rule: { kind: 'controlNCountries', n: 4 },
+      },
     ],
     // Mock ships all 3 phase-2 presets so a default sim works without a real
     // scenario JSON or a content-side update to add easy/hard tunings.
@@ -223,15 +308,57 @@ function mockScenario(): Scenario {
 type Outcome = 'won' | 'lost' | 'timeout';
 type Result = { outcome: Outcome; ticks: number };
 
+export type RunOptions = {
+  victoryId?: VictoryConditionId;
+  playerCountryId?: string;
+  playerArchetype?: AiArchetype;
+};
+
+/**
+ * Resolve the (victoryId, playerCountryId) the run should use, falling back to
+ * the scenario's first declarations and warning when an env override is
+ * incompatible with the loaded scenario.
+ */
+function resolveRunSetup(
+  scenario: Scenario,
+  options: RunOptions,
+): { victoryId: VictoryConditionId; playerCountryId: string } {
+  const requestedVictory = options.victoryId;
+  const victoryId: VictoryConditionId =
+    requestedVictory && scenario.victoryConditions.some((v) => v.id === requestedVictory)
+      ? requestedVictory
+      : ((scenario.victoryConditions[0]?.id ?? 'economic') as VictoryConditionId);
+  if (requestedVictory && victoryId !== requestedVictory) {
+    console.warn(
+      `Scenario "${scenario.id}" has no victory "${requestedVictory}"; falling back to "${victoryId}".`,
+    );
+  }
+  const requestedCountry = options.playerCountryId;
+  const playerCountryId =
+    requestedCountry && scenario.playableCountries.includes(requestedCountry)
+      ? requestedCountry
+      : (scenario.playableCountries[0] ?? scenario.countries[0]!.id);
+  if (requestedCountry && playerCountryId !== requestedCountry) {
+    console.warn(
+      `Scenario "${scenario.id}" has no playable country "${requestedCountry}"; falling back to "${playerCountryId}".`,
+    );
+  }
+  return { victoryId, playerCountryId };
+}
+
 export function runOne(
   scenario: Scenario,
   difficulty: DifficultyTuning,
   seed: string,
+  options: RunOptions = {},
 ): Result {
+  const { victoryId, playerCountryId: chosenPlayerId } = resolveRunSetup(scenario, options);
+  const archetype = options.playerArchetype ?? 'opportunist';
+
   let s: GameState = createGame(scenario, {
     seed,
-    victory: scenario.victoryConditions[0]?.id ?? 'economic',
-    playerCountryId: scenario.playableCountries[0] ?? scenario.countries[0]!.id,
+    victory: victoryId,
+    playerCountryId: chosenPlayerId,
     difficultyId: difficulty.id,
   });
 
@@ -239,34 +366,33 @@ export function runOne(
   const playerId = s.playerCountryId;
   const techCatalog = scenario.techTree;
   const eventPool = scenario.eventPool;
-  const victoryRule = scenario.victoryConditions[0]?.rule;
+  // Pick the rule that matches the chosen victory id (NOT victoryConditions[0])
+  // so the win check actually reflects the configured victory condition.
+  const victoryRule = scenario.victoryConditions.find((v) => v.id === victoryId)?.rule;
 
   // Force-attach an AI personality to the "player" so all countries are AI-driven.
-  // Default archetype matches the scenario fantasy ("small nation rising peacefully"):
-  // a pacifist_trader baseline keeps the sim from immediately auto-declaring war on
-  // every neighbour, so we measure scenario balance rather than self-induced collapse.
+  // The chosen archetype controls how exposed the player is to difficulty: a
+  // pacifist_trader hides behind GDP and trivializes Hard; an opportunist
+  // commits to research/military and feels Hard properly.
   s = {
     ...s,
     countries: {
       ...s.countries,
       [playerId]: {
         ...s.countries[playerId]!,
-        aiPersonality: s.countries[playerId]!.aiPersonality ?? {
-          archetype: 'pacifist_trader',
-          aggressiveness: 0.2,
-          expansionism: 0.2,
-          paranoia: 0.4,
-          pragmatism: 0.7,
-        },
+        aiPersonality: PERSONALITY_BY_ARCHETYPE[archetype],
       },
     },
   };
 
   for (let i = 0; i < MAX_TICKS; i++) {
     if (s.winLoss !== 'playing') break;
-    // Player slot: also let AI act. Note: we deliberately do NOT pass the
+    // Player slot: also let AI act. Note we deliberately do NOT pass the
     // difficulty into the player's AI scoring — difficulty modifiers describe
-    // the world the player faces, not the player's own behaviour.
+    // the world the player faces, not the player's own behaviour. Otherwise
+    // Hard would *also* boost the player's `proposeAlliance` weight via
+    // `aiAllianceBias` and trivialize the `military` victory by spamming
+    // alliances on the player slot itself.
     const action: Action | null = decideAiAction(s, playerId, playerRng, techCatalog);
     if (action) {
       const r = applyAction(s, action, playerId, techCatalog);
@@ -292,13 +418,14 @@ export function runMany(
   scenario: Scenario,
   difficulty: DifficultyTuning,
   runs: number,
+  options: RunOptions = {},
 ): Distribution {
   const counts: Record<Outcome, number> = { won: 0, lost: 0, timeout: 0 };
   let totalTicks = 0;
   let crashes = 0;
   for (let i = 0; i < runs; i++) {
     try {
-      const res = runOne(scenario, difficulty, `${difficulty.id}-seed-${i}`);
+      const res = runOne(scenario, difficulty, `${difficulty.id}-seed-${i}`, options);
       counts[res.outcome]++;
       totalTicks += res.ticks;
     } catch (e) {
@@ -358,15 +485,32 @@ function printCompareTable(scenario: Scenario, results: readonly Distribution[])
   for (const r of rows) console.log(fmt(r));
 }
 
+function printConfig(scenario: Scenario, options: RunOptions): void {
+  const { victoryId, playerCountryId } = resolveRunSetup(scenario, options);
+  console.log('Sim configuration:');
+  console.log(`  Scenario:          ${scenario.id}`);
+  console.log(`  Player country:    ${playerCountryId}`);
+  console.log(`  Player archetype:  ${options.playerArchetype ?? 'opportunist'}`);
+  console.log(`  Victory condition: ${victoryId}`);
+  console.log(`  Runs:              ${RUNS}`);
+  console.log(`  Max ticks/run:     ${MAX_TICKS}`);
+}
+
 function main(): void {
   const scenario = loadScenario(SCENARIO_ID);
+  const options: RunOptions = {
+    victoryId: VICTORY_ID,
+    playerArchetype: PLAYER_ARCHETYPE,
+    ...(PLAYER_COUNTRY_OVERRIDE ? { playerCountryId: PLAYER_COUNTRY_OVERRIDE } : {}),
+  };
+  printConfig(scenario, options);
 
   if (COMPARE) {
     console.log(
       `Running ${RUNS} simulations per difficulty on scenario "${scenario.id}" (max ${MAX_TICKS} ticks each)…`,
     );
     const results: Distribution[] = (['easy', 'normal', 'hard'] as const).map((id) =>
-      runMany(scenario, resolveDifficulty(scenario, id), RUNS),
+      runMany(scenario, resolveDifficulty(scenario, id), RUNS, options),
     );
     printCompareTable(scenario, results);
     if (results.some((r) => r.crashes > 0)) process.exitCode = 1;
@@ -377,7 +521,7 @@ function main(): void {
   console.log(
     `Running ${RUNS} simulations on scenario "${scenario.id}" @ ${difficulty.id} (max ${MAX_TICKS} ticks each)…`,
   );
-  const dist = runMany(scenario, difficulty, RUNS);
+  const dist = runMany(scenario, difficulty, RUNS, options);
   printSingle(scenario, dist);
   if (dist.crashes > 0) process.exitCode = 1;
 }

@@ -130,6 +130,13 @@
       "saveOk": "Partita salvata.",
       "exportOk": "Esportazione completata.",
       "importOk": "Salvataggio importato."
+    },
+    "ironMan": {
+      "badge": "Iron Man",
+      "tooltip": "Salvataggi disabilitati. La partita finisce per sempre con la prima sconfitta.",
+      "menuDisabled": "Disabilitato in Iron Man",
+      "menuHint": "Disabilitato in Iron Man — puoi salvare solo a fine partita.",
+      "exitWarning": "L'Iron Man non ha autosave. Uscire ora abbandona definitivamente la partita."
     }
   },
   "notifications": {
@@ -509,6 +516,7 @@
     "scenarioNotFound": "Scenario non disponibile.",
     "playerCountryUnselected": "Seleziona prima un paese giocabile.",
     "victoryNotSelected": "Seleziona una condizione di vittoria.",
+    "saveLocked": "Salvataggi bloccati in Iron Man.",
     "unknown": "Errore inatteso."
   },
   "play": {
@@ -562,6 +570,42 @@
     },
     "nation": {
       "aria": "{name}, regione {region}, PIL {gdp}, esercito {army}"
+    }
+  },
+  "tutorial": {
+    "title": "Benvenuto in Aurion",
+    "intro": {
+      "body": "Aurion è un gioco strategico in tempo reale: il mondo non aspetta, ma puoi mettere in pausa quando vuoi per pianificare. Ti facciamo un tour rapido dei comandi essenziali — ci vogliono meno di un minuto."
+    },
+    "start": "Inizia tour",
+    "next": "Avanti",
+    "prev": "Indietro",
+    "skip": "Salta tutto",
+    "complete": "Tutorial finito",
+    "dontShowAgain": "Non mostrare più",
+    "footerNote": "Puoi premere ESC in qualsiasi momento per passare al prossimo passaggio.",
+    "stepLabel": "Passo {current} di {total}",
+    "steps": {
+      "hud": {
+        "title": "La barra in alto",
+        "body": "Qui trovi la data corrente, la tesoreria, la popolarità e i controlli di velocità. Tieni d'occhio questi numeri: sono i tuoi indicatori di salute principali."
+      },
+      "map": {
+        "title": "La mappa del mondo",
+        "body": "Clicca su una nazione per selezionarla; passa il mouse per un riepilogo rapido. I pulsanti sotto la mappa attivano gli strati informativi: tensione, alleanze e intelligence."
+      },
+      "panels": {
+        "title": "I pannelli di sistema",
+        "body": "Sulla sinistra ci sono i sei pannelli di gioco: Economia, Ricerca, Militare, Spie, Diplomazia, Politica. Quello attivo è evidenziato in arancione."
+      },
+      "speed": {
+        "title": "Controlla il tempo",
+        "body": "Pausa, 1×, 2× e 4× regolano la velocità del gioco. La barra spaziatrice è una scorciatoia: alterna pausa e ripresa quando non stai scrivendo in un campo."
+      },
+      "outro": {
+        "title": "Tutto qui!",
+        "body": "Hai visto i controlli essenziali. Il gioco riprenderà a velocità 1× appena chiudi questa finestra. Buona partita."
+      }
     }
   }
 }

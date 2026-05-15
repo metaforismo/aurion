@@ -349,6 +349,14 @@ function scoreAction(
   // Difficulty multipliers — applied AFTER score is otherwise final so the
   // existing situational logic is untouched. We multiply (rather than add) so
   // negative scores stay negative on Easy and grow on Hard.
+  //
+  // The aggression scaling on declareWar is already in place. We also add a
+  // small *additive* nudge for wars *against* the human player on Hard
+  // (`aggression > 1`): the spec calls for "AI to coalesce against the
+  // leader" and without it Hard's `aggression = 1.35` is too easily
+  // saturated by the war-power-ratio gate, leaving the player almost never
+  // attacked. The nudge is intentionally small (≤ 0.18 at the Hard preset)
+  // so it doesn't override the situational logic — it just tips ties.
   if (difficulty) {
     const aggression = difficulty.modifiers.aiAggression ?? 1;
     const allianceBias = difficulty.modifiers.aiAllianceBias ?? 1;
@@ -357,6 +365,9 @@ function scoreAction(
     } else if (action.type === 'diplomacy') {
       if (action.kind === 'declareWar') {
         score = scaleScore(score, aggression);
+        if (action.target === state.playerCountryId && aggression > 1) {
+          score += (aggression - 1) * 0.5;
+        }
       } else if (action.kind === 'proposeAlliance') {
         score = scaleScore(score, allianceBias);
       }

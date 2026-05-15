@@ -16,6 +16,7 @@ import WorldMap from '../../../../components/Map';
 import ModalRoot from '../../../../components/Modals';
 import NotificationStream from '../../../../components/Notifications';
 import PanelTabs from '../../../../components/Panels';
+import TutorialOverlay from '../../../../components/Tutorial';
 import { useGameStore } from '../../../../lib/store';
 import { useTicker } from '../../../../lib/ticker';
 
@@ -62,6 +63,9 @@ export default function PlayPage({
         <NotificationStream />
       </div>
       <ModalRoot />
+      {/* First-time tutorial — self-bootstraps from the persisted dismissed
+          flag. Renders nothing once the player has seen / skipped it. */}
+      <TutorialOverlay />
     </main>
   );
 }
