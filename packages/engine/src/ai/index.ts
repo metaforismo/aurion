@@ -39,6 +39,10 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     voteUN: 0.7,
     joinBloc: 0.4,
     leaveBloc: 0.05,
+    launchTactical: 0,
+    launchStrategic: 0,
+    dismantleNuclear: 0,
+    acknowledgeEraTransition: 0,
   },
   regional_bully: {
     invest: 0.6,
@@ -52,6 +56,10 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     voteUN: 0.3,
     joinBloc: 0.15,
     leaveBloc: 0.2,
+    launchTactical: 0,
+    launchStrategic: 0,
+    dismantleNuclear: 0,
+    acknowledgeEraTransition: 0,
   },
   cold_isolationist: {
     invest: 0.8,
@@ -65,6 +73,10 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     voteUN: 0.2,
     joinBloc: 0.05,
     leaveBloc: 0.4,
+    launchTactical: 0,
+    launchStrategic: 0,
+    dismantleNuclear: 0,
+    acknowledgeEraTransition: 0,
   },
   opportunist: {
     invest: 0.7,
@@ -78,6 +90,10 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     voteUN: 0.5,
     joinBloc: 0.5,
     leaveBloc: 0.3,
+    launchTactical: 0,
+    launchStrategic: 0,
+    dismantleNuclear: 0,
+    acknowledgeEraTransition: 0,
   },
   superpower: {
     invest: 0.7,
@@ -92,6 +108,10 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     voteUN: 0.8,
     joinBloc: 0.05,
     leaveBloc: 0.02,
+    launchTactical: 0,
+    launchStrategic: 0,
+    dismantleNuclear: 0,
+    acknowledgeEraTransition: 0,
   },
 };
 

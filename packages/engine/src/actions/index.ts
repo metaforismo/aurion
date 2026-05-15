@@ -88,6 +88,13 @@ export function applyAction(
       return applyJoinBloc(state, action, actor);
     case 'leaveBloc':
       return applyLeaveBloc(state, action, actor);
+    // Phase 3 Wave 10: scaffolded as no-ops until the nuclear/era agents
+    // replace them with real reducers.
+    case 'launchTactical':
+    case 'launchStrategic':
+    case 'dismantleNuclear':
+    case 'acknowledgeEraTransition':
+      return { state, errors: ['errors.wave10NotImplemented'] };
   }
 }
 

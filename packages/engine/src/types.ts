@@ -177,6 +177,8 @@ export type Country = {
   aiPersonality?: AiPersonality;
   /** Phase 3: which bloc this country currently belongs to. Undefined = unaligned. */
   blocId?: ActiveBlocId;
+  /** Phase 3 (Wave 10): nuclear arsenal. Absent = no nuclear capability. */
+  nuclear?: NuclearArsenal;
 };
 
 // ---------------------------------------------------------------------------
@@ -307,6 +309,14 @@ export type TechDefinition = {
   cost: number;
   prereqs: TechId[];
   effects: TechEffect[];
+  /**
+   * Phase 3 Wave 10 — space prestige.
+   * If set, the FIRST country to complete this tech receives `prestigeFirst`
+   * reputation across all blocs; subsequent achievers receive `prestigeFollow`.
+   * Engine tracks via state.spaceMilestones. Omit to skip prestige tracking.
+   */
+  prestigeFirst?: number;
+  prestigeFollow?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -438,7 +448,12 @@ export type Action =
     }
   | { type: 'voteUN'; resolutionId: string; vote: UNVote }
   | { type: 'joinBloc'; blocId: ActiveBlocId }
-  | { type: 'leaveBloc' };
+  | { type: 'leaveBloc' }
+  // — Phase 3 Wave 10: nuclear actions —
+  | { type: 'launchTactical'; targetRegionId: RegionId }
+  | { type: 'launchStrategic'; targetCountryId: CountryId }
+  | { type: 'dismantleNuclear'; count: number }
+  | { type: 'acknowledgeEraTransition' };
 
 // ---------------------------------------------------------------------------
 // Top-level game state.
@@ -496,6 +511,12 @@ export type GameState = {
   actionLog?: ActionLogEntry[];
   /** Engine-managed Dethrone-mode streak counters. */
   _dethroneStreaks?: DethroneStreaks;
+
+  // — Phase 3 Wave 10 (all optional) —
+  /** Per-tech first-achiever / followers tracking for space prestige. */
+  spaceMilestones?: SpaceMilestoneState;
+  /** Era runtime state when gameMode === 'era-paced'. */
+  eraState?: EraRuntimeState;
 };
 
 // ---------------------------------------------------------------------------
@@ -717,4 +738,75 @@ export type ActionLogEntry = {
   tick: number;
   countryId: CountryId;
   action: Action;
+};
+
+// ===========================================================================
+// PHASE 3 — Wave 10 additions (nuclear, space prestige, era runtime)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// Nuclear weapons (deterrent / tactical / strategic + MAD)
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-country nuclear arsenal. Only present once a country has researched
+ * `tech_*_nuclear_arsenal`. Absent = country has no nuclear capability and
+ * cannot launch.
+ */
+export type NuclearArsenal = {
+  warheadCount: number;
+  /**
+   * Delivery sophistication:
+   *   0 = strategic bombers (slow, easier to intercept)
+   *   1 = ICBM (fast, hard to intercept)
+   *   2 = hypersonic (instant, near-impossible to intercept)
+   */
+  deliverySystemLevel: 0 | 1 | 2;
+  /** Convenience flag: warheadCount > 0. Engine keeps in sync; UI reads this. */
+  mad: boolean;
+};
+
+// ---------------------------------------------------------------------------
+// Space prestige milestones
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-tech milestone tracking. Populated only for techs that declare
+ * `prestigeFirst` / `prestigeFollow` in TechDefinition. Engine fills in
+ * `firstAchieverCountryId` and `firstAchievedAtTick` the first time any
+ * country completes the tech; subsequent achievers receive the smaller
+ * `prestigeFollow` reputation boost.
+ */
+export type SpaceMilestoneEntry = {
+  techId: TechId;
+  firstAchieverCountryId: CountryId | null;
+  firstAchievedAtTick: number | null;
+  /** Country IDs that have completed this tech, in achievement order. */
+  achievers: CountryId[];
+};
+
+export type SpaceMilestoneState = Record<TechId, SpaceMilestoneEntry>;
+
+// ---------------------------------------------------------------------------
+// Era runtime state (Era-paced mode)
+// ---------------------------------------------------------------------------
+
+/**
+ * Tracks the player's progression through scenario.eras when game mode is
+ * 'era-paced'. The pendingTransition field is set non-null when an era ends
+ * and the UI should show the EraTransitionModal (engine auto-pauses).
+ */
+export type EraRuntimeState = {
+  /** Index into scenario.eras[] of the currently active era. */
+  currentEraIndex: number;
+  /** Era IDs the player has completed (chapter screens shown for each). */
+  completedEraIds: string[];
+  /** Set when an era boundary fires; cleared by acknowledgeEraTransition action. */
+  pendingTransition: {
+    fromEraId: string;
+    toEraId: string;
+    ticksAtTransition: number;
+    /** Snapshot of cumulative stats at the transition (shown in summary). */
+    statsSnapshot: CumulativeStats;
+  } | null;
 };
