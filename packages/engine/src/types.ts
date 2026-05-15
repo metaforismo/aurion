@@ -175,6 +175,8 @@ export type Country = {
   isPlayer: boolean;
   /** Required for non-player countries; undefined for the human-controlled one. */
   aiPersonality?: AiPersonality;
+  /** Phase 3: which bloc this country currently belongs to. Undefined = unaligned. */
+  blocId?: ActiveBlocId;
 };
 
 // ---------------------------------------------------------------------------
@@ -388,6 +390,28 @@ export type Scenario = {
   victoryConditions: VictoryConditionDef[];
   /** Phase 1: exactly one entry. Phase 2: three. */
   difficulties: DifficultyTuning[];
+
+  // — Phase 3 (optional; absent = scenario doesn't participate in Phase 3 systems) —
+  /** Bloc declarations + initial membership. If absent, no blocs / no reputation system. */
+  blocs?: ScenarioBlocInit[];
+  /** Country IDs that hold permanent UN council seats (with veto). */
+  unCouncilMembers?: CountryId[];
+  /** Map from action trigger key → UN resolution template (Q2 contextual triggers). */
+  unTriggerMap?: Partial<Record<ActionTriggerKey, UNResolutionTemplate>>;
+  /** When true + game mode is 'dethrone', the isolation streak counts as a loss trigger. */
+  dethroneIsolationOnByDefault?: boolean;
+  /** Era schedule for era-paced mode (Wave 10+). */
+  eras?: Era[];
+};
+
+/** A bloc as declared in scenario data (without runtime fields like leader). */
+export type ScenarioBlocInit = {
+  id: ActiveBlocId;
+  nameKey: string;
+  /** Country IDs that start in this bloc. */
+  foundingMembers: CountryId[];
+  /** Optional explicit leader; otherwise computed from GDP+military weight. */
+  leaderCountryId?: CountryId;
 };
 
 // ---------------------------------------------------------------------------
@@ -404,7 +428,17 @@ export type Action =
   | { type: 'setTaxRate'; rate: number }
   | { type: 'diplomacy'; target: CountryId; kind: DiplomacyKind }
   | { type: 'deployArmy'; target: RegionId; units: number }
-  | { type: 'placateFaction'; factionId: FactionId };
+  | { type: 'placateFaction'; factionId: FactionId }
+  // — Phase 3 actions —
+  | {
+      type: 'proposeUNResolution';
+      kind: UNResolutionKind;
+      targetCountryId?: CountryId;
+      targetRegionId?: RegionId;
+    }
+  | { type: 'voteUN'; resolutionId: string; vote: UNVote }
+  | { type: 'joinBloc'; blocId: ActiveBlocId }
+  | { type: 'leaveBloc' };
 
 // ---------------------------------------------------------------------------
 // Top-level game state.
@@ -442,6 +476,26 @@ export type GameState = {
   rngSeed: string;
   /** Engine-managed loss-condition streaks. Optional so older saves load cleanly. */
   _loseStreaks?: LoseStreaks;
+
+  // — Phase 3 (all optional; undefined means "system not in use") —
+  /** Player's reputation in each active bloc. Initialized only when scenario has blocs. */
+  reputation?: ReputationByBloc;
+  /** Queue of pending deltas to apply at the next reputation tick step. */
+  pendingReputationDeltas?: ReputationDelta[];
+  /** Current bloc roster. Initialized from scenario.blocs at createGame. */
+  blocs?: BlocState;
+  /** Active + recently-resolved UN resolutions (capped ring buffer). */
+  unResolutions?: UNResolution[];
+  /** Game mode chosen at game setup. Undefined treated as 'classic'. */
+  gameMode?: GameMode;
+  /** Cumulative metrics shown in Eternal mode HUD. */
+  cumulativeStats?: CumulativeStats;
+  /** Victory conditions the player has already met (Eternal multi-victory counter). */
+  unlockedVictories?: VictoryConditionId[];
+  /** Action log for Replay mode (Wave 11+ consumes; Wave 9+ populates if enabled). */
+  actionLog?: ActionLogEntry[];
+  /** Engine-managed Dethrone-mode streak counters. */
+  _dethroneStreaks?: DethroneStreaks;
 };
 
 // ---------------------------------------------------------------------------
@@ -495,4 +549,172 @@ export type CreateGameOptions = {
   victory: VictoryConditionId;
   playerCountryId: CountryId;
   difficultyId?: string;
+  /** Phase 3: which game-mode to play (default 'classic' for backward compat). */
+  gameMode?: GameMode;
+};
+
+// ===========================================================================
+// PHASE 3 — World standing, blocs, UN, endless mode
+// ===========================================================================
+// All Phase 3 fields are OPTIONAL on the existing GameState / Country /
+// Scenario / Action types. This keeps Phase 1+2 saves and scenarios fully
+// backward-compatible. The engine treats undefined Phase 3 state as "system
+// not in use" (no-op tick steps, no UI badges, no resolutions).
+
+// ---------------------------------------------------------------------------
+// Blocs (NATO-style alliance groups)
+// ---------------------------------------------------------------------------
+
+/** Active blocs in Phase 3. `unaligned` is a sentinel for "not in any bloc". */
+export type BlocId = 'western' | 'eastern' | 'non-aligned' | 'unaligned';
+
+/** Real bloc ids that have a Bloc record (excludes the sentinel). */
+export type ActiveBlocId = Exclude<BlocId, 'unaligned'>;
+
+export type Bloc = {
+  id: ActiveBlocId;
+  /** i18n key for the bloc's display name. */
+  nameKey: string;
+  /** Highest GDP+military weight member. Null if bloc is unbalanced or empty. */
+  leaderCountryId: CountryId | null;
+  memberCountryIds: CountryId[];
+  /** Tick at which the bloc was instantiated (usually scenario.startTick). */
+  foundedAtTick: number;
+};
+
+export type BlocState = Record<ActiveBlocId, Bloc>;
+
+// ---------------------------------------------------------------------------
+// World reputation (per-bloc)
+// ---------------------------------------------------------------------------
+
+/** Player reputation in each active bloc (-100..+100). Unaligned not tracked. */
+export type ReputationByBloc = Record<ActiveBlocId, number>;
+
+/**
+ * A pending reputation delta to apply at the next reputation tick step.
+ * The engine accumulates these from action effects and event resolutions,
+ * then applies + decays once per tick. Persisted in GameState.
+ */
+export type ReputationDelta = {
+  bloc: BlocId; // 'unaligned' is a no-op sink
+  delta: number; // signed
+  /** i18n key for the reason shown in the reputation history panel. */
+  reasonKey: string;
+  /** Tick at which the delta was queued. */
+  queuedAtTick: number;
+};
+
+// ---------------------------------------------------------------------------
+// United Nations
+// ---------------------------------------------------------------------------
+
+export type UNResolutionKind =
+  | 'sanctions'
+  | 'peacekeeping'
+  | 'recognition'
+  | 'humanitarian'
+  | 'climate'
+  | 'nonProliferation'
+  | 'condemnation';
+
+export type UNVote = 'yes' | 'no' | 'abstain' | 'veto';
+
+export type UNResolution = {
+  id: string;
+  kind: UNResolutionKind;
+  /** Optional target depending on kind (sanctions / condemnation → country, peacekeeping → region). */
+  targetCountryId?: CountryId;
+  targetRegionId?: RegionId;
+  proposerCountryId: CountryId;
+  proposedAtTick: number;
+  /** Voting closes at this tick; resolution flips to passed/failed at that point. */
+  votingClosesAtTick: number;
+  /** Effect bundle applied based on outcome. References EventEffect for reuse. */
+  effects: { onPass: EventEffect[]; onFail: EventEffect[] };
+  /** Recorded votes per country. Permanent council members may use 'veto'. */
+  votes: Record<CountryId, UNVote>;
+  status: 'voting' | 'passed' | 'failed' | 'vetoed';
+  /** i18n key for a short title shown in the UN panel. */
+  titleKey: string;
+  /** i18n key for a one-line description shown in the resolution card. */
+  descriptionKey: string;
+};
+
+/**
+ * Template for an action-triggered UN resolution. Lives on the scenario's
+ * `unTriggerMap`; instantiated into a UNResolution when the matching action
+ * fires. The engine fills proposer/target from action context.
+ */
+export type UNResolutionTemplate = {
+  kind: UNResolutionKind;
+  titleKey: string;
+  descriptionKey: string;
+  votingDurationTicks: number;
+  effects: { onPass: EventEffect[]; onFail: EventEffect[] };
+};
+
+/** Keys used in `Scenario.unTriggerMap` for action → resolution mapping. */
+export type ActionTriggerKey =
+  | 'declareWar'
+  | 'launchTactical'
+  | 'launchStrategic'
+  | 'tradeDealLowGdp'
+  | 'sanctionsImposed'
+  | 'highWorldTension'
+  | 'climatePeriodic';
+
+// ---------------------------------------------------------------------------
+// Game modes (Phase 3 endless)
+// ---------------------------------------------------------------------------
+
+/**
+ * - 'classic' — Phase 1+2 behavior. First win condition met → game ends.
+ * - 'eternal' — never ends. Victories are toasts; the player chooses to quit.
+ * - 'dethrone' — game ends if player drops out of GDP top-3 for 5+ years OR
+ *   (when scenario has blocs and `dethroneIsolationOnByDefault`) reputation
+ *   < -50 in all blocs for 5+ years.
+ * - 'era-paced' — chapters with summary screens (Wave 10+).
+ */
+export type GameMode = 'classic' | 'eternal' | 'dethrone' | 'era-paced';
+
+/** Cumulative metrics tracked across an Eternal/Dethrone playthrough. */
+export type CumulativeStats = {
+  peakGdpRank: number;
+  peakTreasury: number;
+  totalTechsUnlocked: number;
+  totalReputationGained: number;
+  totalSpyOpsCompleted: number;
+  totalTicksPlayed: number;
+};
+
+/** Counters maintained by the engine for the Dethrone-loss check. */
+export type DethroneStreaks = {
+  /** Consecutive ticks the player has been outside GDP top-3. */
+  outOfTop3Weeks: number;
+  /** Consecutive ticks reputation has been < -50 in ALL blocs simultaneously. */
+  isolationWeeks: number;
+};
+
+// ---------------------------------------------------------------------------
+// Eras (Era-paced mode — Wave 10+)
+// ---------------------------------------------------------------------------
+
+export type Era = {
+  id: string;
+  nameKey: string;
+  /** Tick at which the era starts (relative to scenario.startTick). */
+  startTick: number;
+  /** Tick at which the era ends and a transition modal fires. */
+  endTick: number;
+};
+
+// ---------------------------------------------------------------------------
+// Action log (Replay — Wave 11+, scaffold here for Wave 9 onward to populate)
+// ---------------------------------------------------------------------------
+
+export type ActionLogEntry = {
+  tick: number;
+  countryId: CountryId;
+  action: Action;
 };

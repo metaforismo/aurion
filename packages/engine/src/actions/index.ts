@@ -66,6 +66,14 @@ export function applyAction(
       return applyDeployArmy(state, action, actor);
     case 'placateFaction':
       return applyPlacateFaction(state, action, actor);
+    // Phase 3 actions: scaffolded as no-op stubs until Wave 9 implementation
+    // agents replace them with the real bloc / UN logic. They return the state
+    // unchanged with a clear i18n key so callers can detect and skip.
+    case 'proposeUNResolution':
+    case 'voteUN':
+    case 'joinBloc':
+    case 'leaveBloc':
+      return { state, errors: ['errors.phase3NotImplemented'] };
   }
 }
 

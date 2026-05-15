@@ -33,6 +33,11 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     deployArmy: 0.1,
     deploySpy: 0.4,
     placateFaction: 0.5,
+    // Phase 3 actions: zero-weight stubs until Wave 9 AI scoring is wired
+    proposeUNResolution: 0,
+    voteUN: 0,
+    joinBloc: 0,
+    leaveBloc: 0,
   },
   regional_bully: {
     invest: 0.6,
@@ -42,6 +47,10 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     deployArmy: 0.5,
     deploySpy: 0.6,
     placateFaction: 0.4,
+    proposeUNResolution: 0,
+    voteUN: 0,
+    joinBloc: 0,
+    leaveBloc: 0,
   },
   cold_isolationist: {
     invest: 0.8,
@@ -51,6 +60,10 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     deployArmy: 0.4,
     deploySpy: 0.5,
     placateFaction: 0.6,
+    proposeUNResolution: 0,
+    voteUN: 0,
+    joinBloc: 0,
+    leaveBloc: 0,
   },
   opportunist: {
     invest: 0.7,
@@ -60,6 +73,10 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     deployArmy: 0.5,
     deploySpy: 0.9,
     placateFaction: 0.4,
+    proposeUNResolution: 0,
+    voteUN: 0,
+    joinBloc: 0,
+    leaveBloc: 0,
   },
   superpower: {
     invest: 0.7,
@@ -69,6 +86,10 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     deployArmy: 0.7,
     deploySpy: 0.7,
     placateFaction: 0.5,
+    proposeUNResolution: 0,
+    voteUN: 0,
+    joinBloc: 0,
+    leaveBloc: 0,
   },
 };
 
