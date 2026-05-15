@@ -241,6 +241,28 @@ export type EventTrigger =
   | { type: 'condition'; expression: string } // mini-DSL evaluated by the engine
   | { type: 'random'; chancePerTick: number };
 
+/**
+ * Closed taxonomy of categories an event can belong to. Panels filter the
+ * event log against this taxonomy (e.g. PoliticsPanel keeps `politics`,
+ * `faction`, `social`) instead of pattern-matching event ids. An event may
+ * carry 1..3 tags; engine code never reads the field directly.
+ *
+ * The runtime allows any string in JSON for forward compatibility, but the
+ * scenario validator warns on tags outside this union.
+ */
+export type EventTag =
+  | 'politics'
+  | 'faction'
+  | 'economy'
+  | 'military'
+  | 'diplomacy'
+  | 'intelligence'
+  | 'space'
+  | 'social'
+  | 'crisis'
+  | 'opportunity'
+  | 'narrative';
+
 export type EventDefinition = {
   id: EventId;
   nameKey: string;
@@ -250,6 +272,11 @@ export type EventDefinition = {
   /** Weight in random selection when several events are eligible at once. */
   weight: number;
   choices: EventChoice[];
+  /**
+   * Optional category tags used by UI panels to filter the event log.
+   * Pure metadata: the engine never reads this field.
+   */
+  tags?: readonly EventTag[];
 };
 
 export type GameEvent = {

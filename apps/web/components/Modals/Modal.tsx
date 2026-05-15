@@ -154,7 +154,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-bg/70 p-4 backdrop-blur-sm"
       onMouseDown={onBackdropClick}
       role="presentation"
     >
@@ -167,20 +167,20 @@ export function Modal({
         tabIndex={-1}
         onKeyDown={handleKeyDown}
         className={cn(
-          'relative flex w-full flex-col rounded-2xl border border-slate-800 bg-slate-900 text-slate-100 shadow-2xl outline-none',
+          'relative flex w-full flex-col rounded-2xl border border-border bg-surface-1 text-fg shadow-2xl outline-none',
           sizeClass,
           className,
         )}
       >
-        <header className="flex items-start gap-4 border-b border-slate-800 px-6 py-4">
-          <h2 id={titleId} className="flex-1 text-lg font-semibold text-slate-100">
+        <header className="flex items-start gap-4 border-b border-border px-6 py-4">
+          <h2 id={titleId} className="flex-1 text-lg font-semibold text-fg">
             {title}
           </h2>
           {dismissable ? (
             <button
               type="button"
               onClick={handleClose}
-              className="rounded-md border border-transparent p-1 text-slate-400 transition hover:border-slate-700 hover:text-slate-100"
+              className="rounded-md border border-transparent p-1 text-fg-muted transition hover:border-border-strong hover:text-fg"
               aria-label="close"
             >
               <svg
@@ -195,11 +195,11 @@ export function Modal({
             </button>
           ) : null}
         </header>
-        <div className="flex-1 overflow-y-auto px-6 py-5 text-sm text-slate-200">
+        <div className="flex-1 overflow-y-auto px-6 py-5 text-sm text-fg-muted">
           {children}
         </div>
         {footer ? (
-          <footer className="flex flex-wrap justify-end gap-2 border-t border-slate-800 px-6 py-4">
+          <footer className="flex flex-wrap justify-end gap-2 border-t border-border px-6 py-4">
             {footer}
           </footer>
         ) : null}

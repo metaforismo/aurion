@@ -10,19 +10,19 @@ import { cn } from '../../../lib/cn';
 export type StatBarTone = 'neutral' | 'positive' | 'warning' | 'danger' | 'info';
 
 const TONE_FILL: Record<StatBarTone, string> = {
-  neutral: 'bg-slate-400',
-  positive: 'bg-emerald-400',
-  warning: 'bg-amber-400',
-  danger: 'bg-rose-500',
-  info: 'bg-indigo-400',
+  neutral: 'bg-fg-muted',
+  positive: 'bg-success',
+  warning: 'bg-warning',
+  danger: 'bg-danger',
+  info: 'bg-info',
 };
 
 const TONE_TEXT: Record<StatBarTone, string> = {
-  neutral: 'text-slate-200',
-  positive: 'text-emerald-200',
-  warning: 'text-amber-200',
-  danger: 'text-rose-200',
-  info: 'text-indigo-200',
+  neutral: 'text-fg',
+  positive: 'text-success',
+  warning: 'text-warning',
+  danger: 'text-danger',
+  info: 'text-info',
 };
 
 export type StatBarProps = {
@@ -62,8 +62,8 @@ export function StatBar({
   return (
     <div className={cn('flex flex-col gap-1', className)}>
       <div className="flex items-baseline justify-between gap-2 text-xs">
-        <span className="font-medium text-slate-300">{label}</span>
-        <span className={cn('font-mono tabular-nums', TONE_TEXT[tone])}>
+        <span className="font-medium text-fg">{label}</span>
+        <span className={cn('font-mono numeric-tabular', TONE_TEXT[tone])}>
           {valueLabel ?? value}
         </span>
       </div>
@@ -75,7 +75,7 @@ export function StatBar({
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={Math.round(value)}
-        className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800"
+        className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2"
       >
         <div
           className={cn('h-full rounded-full transition-[width]', TONE_FILL[tone])}

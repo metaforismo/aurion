@@ -2904,6 +2904,7 @@
       },
       "cooldownTicks": 40,
       "weight": 10,
+      "tags": ["diplomacy", "military", "crisis"],
       "choices": [
         {
           "labelKey": "event.diplomacy.border_incident.choice.protest",
@@ -2960,6 +2961,7 @@
       },
       "cooldownTicks": 80,
       "weight": 8,
+      "tags": ["diplomacy", "crisis"],
       "choices": [
         {
           "labelKey": "event.diplomacy.borealis_pressure.choice.submit",
@@ -3020,6 +3022,7 @@
       },
       "cooldownTicks": 60,
       "weight": 7,
+      "tags": ["economy", "opportunity"],
       "choices": [
         {
           "labelKey": "event.economy.resource_boom.choice.exploit_quickly",
@@ -3078,6 +3081,7 @@
       },
       "cooldownTicks": 100,
       "weight": 9,
+      "tags": ["economy", "crisis"],
       "choices": [
         {
           "labelKey": "event.economy.financial_crisis.choice.austerity",
@@ -3141,6 +3145,7 @@
       },
       "cooldownTicks": 50,
       "weight": 8,
+      "tags": ["social", "politics", "crisis"],
       "choices": [
         {
           "labelKey": "event.social.protests.choice.crackdown",
@@ -3199,6 +3204,7 @@
       },
       "cooldownTicks": 70,
       "weight": 6,
+      "tags": ["social", "politics", "crisis"],
       "choices": [
         {
           "labelKey": "event.social.scandal.choice.cover_up",
@@ -3263,6 +3269,7 @@
       },
       "cooldownTicks": 90,
       "weight": 5,
+      "tags": ["social", "intelligence", "crisis"],
       "choices": [
         {
           "labelKey": "event.social.terror_attack.choice.security_state",
@@ -3320,6 +3327,7 @@
       },
       "cooldownTicks": 80,
       "weight": 5,
+      "tags": ["military", "intelligence"],
       "choices": [
         {
           "labelKey": "event.military.defection.choice.welcome",
@@ -3381,6 +3389,7 @@
       },
       "cooldownTicks": 100,
       "weight": 6,
+      "tags": ["military", "diplomacy", "crisis"],
       "choices": [
         {
           "labelKey": "event.military.naval_clash.choice.escalate",
@@ -3441,6 +3450,7 @@
       },
       "cooldownTicks": 50,
       "weight": 4,
+      "tags": ["military", "diplomacy", "opportunity"],
       "choices": [
         {
           "labelKey": "event.military.arms_offer.choice.accept_borealis",
@@ -3513,6 +3523,7 @@
       },
       "cooldownTicks": 50,
       "weight": 7,
+      "tags": ["intelligence", "diplomacy", "crisis"],
       "choices": [
         {
           "labelKey": "event.spy.caught_abroad.choice.disavow",
@@ -3576,6 +3587,7 @@
       },
       "cooldownTicks": 45,
       "weight": 7,
+      "tags": ["intelligence", "opportunity"],
       "choices": [
         {
           "labelKey": "event.spy.enemy_caught.choice.public_expose",
@@ -3626,6 +3638,7 @@
       },
       "cooldownTicks": 80,
       "weight": 5,
+      "tags": ["intelligence", "politics", "crisis"],
       "choices": [
         {
           "labelKey": "event.spy.blackmail.choice.pay",
@@ -3684,6 +3697,7 @@
       },
       "cooldownTicks": 100,
       "weight": 4,
+      "tags": ["intelligence", "opportunity"],
       "choices": [
         {
           "labelKey": "event.spy.double_agent.choice.feed_false_intel",
@@ -3735,6 +3749,7 @@
       },
       "cooldownTicks": 120,
       "weight": 3,
+      "tags": ["space", "crisis"],
       "choices": [
         {
           "labelKey": "event.space.lost_probe.choice.retry",
@@ -3791,6 +3806,7 @@
       },
       "cooldownTicks": 150,
       "weight": 4,
+      "tags": ["space", "opportunity"],
       "choices": [
         {
           "labelKey": "event.space.breakthrough.choice.publish",
@@ -3856,6 +3872,7 @@
       },
       "cooldownTicks": 80,
       "weight": 5,
+      "tags": ["diplomacy", "opportunity"],
       "choices": [
         {
           "labelKey": "event.diplomacy.alliance_offer.choice.accept",
@@ -3910,6 +3927,7 @@
       },
       "cooldownTicks": 60,
       "weight": 6,
+      "tags": ["diplomacy", "opportunity"],
       "choices": [
         {
           "labelKey": "event.diplomacy.summit_invite.choice.attend",
@@ -3970,6 +3988,7 @@
       },
       "cooldownTicks": 100,
       "weight": 5,
+      "tags": ["economy", "opportunity"],
       "choices": [
         {
           "labelKey": "event.economy.tech_sector_boom.choice.subsidize",
@@ -4035,6 +4054,7 @@
       },
       "cooldownTicks": 60,
       "weight": 7,
+      "tags": ["social", "faction", "crisis"],
       "choices": [
         {
           "labelKey": "event.social.strike.choice.concede",
@@ -4099,6 +4119,7 @@
       },
       "cooldownTicks": 90,
       "weight": 6,
+      "tags": ["diplomacy", "military", "crisis"],
       "choices": [
         {
           "labelKey": "event.diplomacy.karoun_aggression.choice.condemn",
@@ -4153,6 +4174,7 @@
       },
       "cooldownTicks": 60,
       "weight": 5,
+      "tags": ["economy", "intelligence"],
       "choices": [
         {
           "labelKey": "event.economy.smuggling_ring.choice.crack_down",
@@ -4211,6 +4233,7 @@
       },
       "cooldownTicks": 70,
       "weight": 5,
+      "tags": ["social", "faction", "crisis"],
       "choices": [
         {
           "labelKey": "event.social.religious_unrest.choice.appease",
@@ -4275,6 +4298,7 @@
       },
       "cooldownTicks": 70,
       "weight": 5,
+      "tags": ["military", "opportunity"],
       "choices": [
         {
           "labelKey": "event.military.recruitment_drive.choice.mass_conscription",
@@ -4333,6 +4357,7 @@
       },
       "cooldownTicks": 60,
       "weight": 5,
+      "tags": ["economy", "diplomacy"],
       "choices": [
         {
           "labelKey": "event.economy.trade_dispute.choice.tariff",
@@ -4395,6 +4420,7 @@
       },
       "cooldownTicks": 50,
       "weight": 6,
+      "tags": ["intelligence", "politics", "crisis"],
       "choices": [
         {
           "labelKey": "event.intel.foreign_propaganda.choice.censor",
@@ -4453,6 +4479,7 @@
       },
       "cooldownTicks": 120,
       "weight": 4,
+      "tags": ["diplomacy", "opportunity"],
       "choices": [
         {
           "labelKey": "event.diplomacy.oriana_pact.choice.join",
@@ -4506,6 +4533,7 @@
       },
       "cooldownTicks": 80,
       "weight": 4,
+      "tags": ["economy", "social", "crisis"],
       "choices": [
         {
           "labelKey": "event.economy.industrial_accident.choice.compensate",
@@ -4570,6 +4598,7 @@
       },
       "cooldownTicks": 90,
       "weight": 4,
+      "tags": ["intelligence", "opportunity"],
       "choices": [
         {
           "labelKey": "event.intel.recruit_dissident.choice.recruit",

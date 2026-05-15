@@ -35,29 +35,29 @@ export function TreasuryBadge() {
 
   const deltaClass =
     weekly > 0
-      ? 'text-emerald-300'
+      ? 'text-success'
       : weekly < 0
-        ? 'text-rose-300'
-        : 'text-slate-400';
+        ? 'text-danger'
+        : 'text-fg-muted';
   const arrow = weekly > 0 ? '▲' : weekly < 0 ? '▼' : '·';
 
   return (
     <div
-      className="flex items-baseline gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-3 py-1.5"
+      className="flex items-baseline gap-2 rounded-md border border-border bg-bg/40 px-3 py-1.5"
       title={t('treasury')}
     >
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-faint">
         {t('treasury')}
       </span>
       <span
         className={cn(
-          'font-mono text-sm tabular-nums',
-          isNegative ? 'text-rose-300' : 'text-slate-100',
+          'numeric-tabular font-mono text-sm',
+          isNegative ? 'text-danger' : 'text-fg',
         )}
       >
         {treasuryFormatted}
       </span>
-      <span className={cn('font-mono text-[11px] tabular-nums', deltaClass)}>
+      <span className={cn('numeric-tabular font-mono text-[11px]', deltaClass)}>
         <span aria-hidden="true">{arrow}</span> {weeklyFormatted}
         <span className="sr-only">/ {t('perWeek')}</span>
       </span>

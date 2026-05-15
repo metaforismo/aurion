@@ -32,7 +32,7 @@ export function Section({
   return (
     <section
       className={cn(
-        'flex flex-col rounded-lg border border-slate-800 bg-slate-900/40',
+        'flex flex-col rounded-lg border border-border bg-surface/40',
         className,
       )}
     >
@@ -42,7 +42,7 @@ export function Section({
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
       >
-        <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-300">
+        <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-fg">
           <span
             aria-hidden
             className={cn(
@@ -50,7 +50,7 @@ export function Section({
               open ? 'rotate-90' : 'rotate-0',
             )}
           >
-            <svg viewBox="0 0 12 12" className="h-3 w-3 text-slate-500">
+            <svg viewBox="0 0 12 12" className="h-3 w-3 text-fg-faint">
               <path
                 fill="currentColor"
                 d="M4 2.5v7l4-3.5z"
@@ -60,11 +60,11 @@ export function Section({
           {title}
         </span>
         {trailing ? (
-          <span className="text-xs text-slate-500">{trailing}</span>
+          <span className="text-xs text-fg-faint">{trailing}</span>
         ) : null}
       </button>
       {open ? (
-        <div className="border-t border-slate-800 px-3 py-3">{children}</div>
+        <div className="border-t border-border px-3 py-3">{children}</div>
       ) : null}
     </section>
   );

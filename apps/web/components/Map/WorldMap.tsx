@@ -77,13 +77,16 @@ function isSupportedLocale(s: string | undefined): s is SupportedLocale {
   return s === 'it' || s === 'en';
 }
 
+// Alliance edges use the five region accents in stable rotation, with the
+// brand accent as the sixth slot, so the union-find groups inherit the same
+// palette as the map regions themselves.
 const ALLIANCE_GROUP_COLORS = [
-  '#60a5fa', // blue-400
-  '#f472b6', // pink-400
-  '#34d399', // emerald-400
-  '#fb923c', // orange-400
-  '#a78bfa', // violet-400
-  '#facc15', // yellow-400
+  'var(--color-region-borealis)',
+  'var(--color-region-auriana)',
+  'var(--color-region-oriana)',
+  'var(--color-region-meridia)',
+  'var(--color-region-sahel)',
+  'var(--color-accent)',
 ];
 
 // ---------------------------------------------------------------------------
@@ -416,7 +419,7 @@ export default function WorldMap() {
     return (
       <div
         className={cn(
-          'flex min-h-[60vh] items-center justify-center rounded-xl border border-dashed border-slate-800 bg-slate-900/30 text-xs text-slate-500',
+          'flex min-h-[60vh] items-center justify-center rounded-xl border border-dashed border-border bg-surface/30 text-xs text-fg-faint',
         )}
         aria-label={t('label')}
       >
@@ -450,7 +453,7 @@ export default function WorldMap() {
   return (
     <div
       className={cn(
-        'relative h-full min-h-[60vh] w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-950',
+        'relative h-full min-h-[60vh] w-full overflow-hidden rounded-xl border border-border bg-bg',
       )}
       role="region"
       aria-label={t('label')}
@@ -485,7 +488,7 @@ export default function WorldMap() {
           y={MAP_VIEWBOX.y - 200}
           width={MAP_VIEWBOX.width + 400}
           height={MAP_VIEWBOX.height + 400}
-          fill="#020617"
+          fill="var(--color-bg)"
           onClick={handleBackgroundClick}
         />
 
@@ -807,7 +810,7 @@ function computeAllianceEdges(state: GameState): AllianceEdge[] {
     if (!groupColors.has(root)) {
       const colorIdx = groupColors.size % ALLIANCE_GROUP_COLORS.length;
       const color =
-        ALLIANCE_GROUP_COLORS[colorIdx] ?? '#cbd5e1';
+        ALLIANCE_GROUP_COLORS[colorIdx] ?? 'var(--color-fg-muted)';
       groupColors.set(root, color);
     }
   }
@@ -818,7 +821,7 @@ function computeAllianceEdges(state: GameState): AllianceEdge[] {
     const pb = NATION_POSITIONS[r.countryB];
     if (!pa || !pb) continue;
     const root = find(r.countryA);
-    const color = groupColors.get(root) ?? '#cbd5e1';
+    const color = groupColors.get(root) ?? 'var(--color-fg-muted)';
     edges.push({
       from: r.countryA,
       to: r.countryB,
@@ -888,7 +891,7 @@ function Grid() {
           <path
             d="M 80 0 L 0 0 0 80"
             fill="none"
-            stroke="#94a3b8"
+            stroke="var(--color-fg-faint)"
             strokeWidth={0.6}
           />
         </pattern>
@@ -913,7 +916,7 @@ function RegionLabel({ region, label }: { region: RegionDef; label: string }) {
       y={cy}
       textAnchor="middle"
       dominantBaseline="middle"
-      fill="#cbd5e1"
+      fill="var(--color-fg)"
       fillOpacity={0.18}
       fontSize={64}
       fontWeight={700}

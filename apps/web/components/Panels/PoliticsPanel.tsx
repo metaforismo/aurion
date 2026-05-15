@@ -2,13 +2,19 @@
 // - Big popularity dial
 // - 5 faction rows with satisfaction + influence + "placate" action
 // - Government type display
-// - Recent political events list (events tagged as politics-related)
+// - Recent political events list (filtered by EventTag taxonomy)
 
 'use client';
 
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-import type { FactionId, GameEvent, GovernmentType } from '@aurion/engine';
+import type {
+  EventDefinition,
+  EventTag,
+  FactionId,
+  GameEvent,
+  GovernmentType,
+} from '@aurion/engine';
 
 import { cn } from '../../lib/cn';
 import {
@@ -43,6 +49,17 @@ const GOVERNMENT_LABEL: Record<GovernmentType, string> = {
   monarchy: 'panelPolitics.government.monarchy',
 };
 
+/**
+ * Tags this panel cares about. Any event whose definition carries at least
+ * one of these tags shows up in the "Recent political events" list. Update
+ * this set rather than reach into event ids.
+ */
+const POLITICS_TAGS: ReadonlySet<EventTag> = new Set<EventTag>([
+  'politics',
+  'faction',
+  'social',
+]);
+
 export function PoliticsPanel({
   onErrors,
 }: {
@@ -61,17 +78,31 @@ export function PoliticsPanel({
   const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
   const { t: tScenario } = useScenarioMessages(scenarioId);
 
-  // Politics-related events: best-effort by definitionId substring match
-  // ("faction", "popularity", "election", "coup", "scandal"). Engines that
-  // tag events explicitly later can refine this filter.
+  // Build a lookup of definitionId -> tags from the scenario's eventPool so
+  // we can filter the recent-events log by the EventTag taxonomy. Falls back
+  // to an empty tag list when an event id is missing from the pool (defensive
+  // — keeps the panel usable mid-hot-reload).
+  const tagsByDefinitionId = useMemo<Map<string, readonly EventTag[]>>(() => {
+    const map = new Map<string, readonly EventTag[]>();
+    if (!scenario) return map;
+    for (const def of scenario.eventPool as readonly EventDefinition[]) {
+      map.set(def.id, def.tags ?? []);
+    }
+    return map;
+  }, [scenario]);
+
+  // Politics-related events: keep any whose definition carries a tag in
+  // POLITICS_TAGS. Cap to the most recent 8 for readability.
   const politicalEvents = useMemo<GameEvent[]>(() => {
     if (!state) return [];
-    const POLITICS_HINT = /(faction|popular|elect|coup|scandal|protest|riot|polit|rally)/i;
     return state.events
-      .filter((ev) => POLITICS_HINT.test(ev.definitionId))
+      .filter((ev) => {
+        const tags = tagsByDefinitionId.get(ev.definitionId) ?? [];
+        return tags.some((tag) => POLITICS_TAGS.has(tag));
+      })
       .slice(-8)
       .reverse();
-  }, [state]);
+  }, [state, tagsByDefinitionId]);
 
   if (!player || !state) {
     return (
@@ -89,27 +120,41 @@ export function PoliticsPanel({
     return errors;
   };
 
+  // Pick a semantic tone for the popularity readout itself. The dial uses the
+  // accent token unconditionally so the gauge stays visually anchored.
+  const popularityTone =
+    politics.popularity >= 60
+      ? 'text-success'
+      : politics.popularity >= 30
+        ? 'text-warning'
+        : 'text-danger';
+
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Popularity dial */}
-      <div className="flex flex-col items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+      <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-surface/40 p-4">
         <PopularityDial value={politics.popularity} />
         <div className="text-center">
-          <div className="text-[10px] uppercase tracking-wider text-slate-500">
+          <div className="text-[10px] uppercase tracking-wider text-fg-faint">
             {t('popularity')}
           </div>
-          <div className="font-mono text-2xl text-amber-300 tabular-nums">
+          <div
+            className={cn(
+              'numeric-tabular font-mono text-2xl',
+              popularityTone,
+            )}
+          >
             {Math.round(politics.popularity)}%
           </div>
         </div>
       </div>
 
       {/* Government type */}
-      <div className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-900/40 px-3 py-2">
-        <span className="text-[10px] uppercase tracking-wider text-slate-500">
+      <div className="flex items-center justify-between rounded-md border border-border bg-surface/40 px-3 py-2">
+        <span className="text-[10px] uppercase tracking-wider text-fg-faint">
           {t('governmentType')}
         </span>
-        <span className="font-mono text-xs text-slate-200">
+        <span className="font-mono text-xs text-fg">
           {tRoot(GOVERNMENT_LABEL[politics.governmentType])}
         </span>
       </div>
@@ -123,13 +168,13 @@ export function PoliticsPanel({
             return (
               <li
                 key={fid}
-                className="flex flex-col gap-2 rounded-md border border-slate-800 bg-slate-900/30 p-2"
+                className="flex flex-col gap-2 rounded-md border border-border bg-surface/30 p-2"
               >
                 <div className="flex items-baseline justify-between">
-                  <span className="text-xs font-medium text-slate-200">
+                  <span className="text-xs font-medium text-fg">
                     {t(`faction.${fid}`)}
                   </span>
-                  <span className="font-mono text-[11px] text-slate-500">
+                  <span className="numeric-tabular font-mono text-[11px] text-fg-faint">
                     {t('factions.influence', { n: Math.round(f.influence) })}
                   </span>
                 </div>
@@ -174,12 +219,12 @@ export function PoliticsPanel({
             {politicalEvents.map((ev, i) => (
               <li
                 key={`${ev.definitionId}-${ev.firedAtTick}-${i}`}
-                className="flex items-baseline justify-between gap-2 rounded border border-slate-800 px-2 py-1"
+                className="flex items-baseline justify-between gap-2 rounded border border-border px-2 py-1"
               >
-                <span className="truncate text-slate-200">
+                <span className="truncate text-fg">
                   {tScenario(`event.${ev.definitionId}.name`) || ev.definitionId}
                 </span>
-                <span className="font-mono text-[10px] text-slate-500">
+                <span className="numeric-tabular font-mono text-[10px] text-fg-faint">
                   {t('events.atTick', { tick: ev.firedAtTick })}
                 </span>
               </li>
@@ -191,7 +236,12 @@ export function PoliticsPanel({
   );
 }
 
-/** Simple SVG semicircle "dial" gauge for popularity. */
+/**
+ * Simple SVG semicircle "dial" gauge for popularity. The active arc uses the
+ * brand accent token so the gauge harmonises with the rest of the HUD; the
+ * track uses the standard border token. Colour intent (good / bad) lives on
+ * the numeric readout above, not on the dial itself.
+ */
 function PopularityDial({ value }: { value: number }) {
   const t = useTranslations('panelPolitics');
   const clamped = Math.max(0, Math.min(100, value));
@@ -205,8 +255,6 @@ function PopularityDial({ value }: { value: number }) {
   const endX = cx + r * Math.cos(Math.PI - angle);
   const endY = cy - r * Math.sin(Math.PI - angle);
   const largeArc = angle > Math.PI / 2 ? 1 : 0;
-  const stroke =
-    clamped >= 60 ? '#34d399' : clamped >= 30 ? '#fbbf24' : '#f87171';
 
   return (
     <svg
@@ -219,7 +267,7 @@ function PopularityDial({ value }: { value: number }) {
       <path
         d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
         fill="none"
-        stroke="#1e293b"
+        stroke="var(--color-border)"
         strokeWidth="6"
         strokeLinecap="round"
       />
@@ -227,7 +275,7 @@ function PopularityDial({ value }: { value: number }) {
         <path
           d={`M ${cx - r} ${cy} A ${r} ${r} 0 ${largeArc} 1 ${endX.toFixed(2)} ${endY.toFixed(2)}`}
           fill="none"
-          stroke={stroke}
+          stroke="var(--color-accent)"
           strokeWidth="6"
           strokeLinecap="round"
         />
@@ -235,9 +283,5 @@ function PopularityDial({ value }: { value: number }) {
     </svg>
   );
 }
-
-// Unused export guard — keeps cn in the import set when the dial becomes
-// configurable. (Avoids a lint warning during incremental development.)
-void cn;
 
 export default PoliticsPanel;

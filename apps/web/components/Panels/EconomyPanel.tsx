@@ -15,6 +15,7 @@ import {
   useGameStore,
   type GameStoreState,
 } from '../../lib/store';
+import { tone, type Tone } from '../../lib/theme';
 import { ActionButton } from './shared/ActionButton';
 import { EmptyState } from './shared/EmptyState';
 import { Section } from './shared/Section';
@@ -137,17 +138,17 @@ export function EconomyPanel({
     <div className="flex flex-col gap-4 p-4">
       {/* Headline stats */}
       <div className="grid grid-cols-2 gap-2">
-        <StatLabel label={t('treasury')} value={fmt.number(treasury)} tone="positive" />
+        <StatLabel label={t('treasury')} value={fmt.number(treasury)} t="success" />
         <StatLabel
           label={t('weeklyIncome')}
           value={fmt.number(economy.weeklyIncome)}
-          tone={economy.weeklyIncome >= 0 ? 'positive' : 'danger'}
+          t={economy.weeklyIncome >= 0 ? 'success' : 'danger'}
         />
-        <StatLabel label={t('gdp')} value={fmt.number(economy.gdp)} tone="info" />
+        <StatLabel label={t('gdp')} value={fmt.number(economy.gdp)} t="info" />
         <StatLabel
           label={t('taxRate')}
           value={`${Math.round(economy.taxRate)}%`}
-          tone="neutral"
+          t="neutral"
         />
       </div>
 
@@ -171,11 +172,11 @@ export function EconomyPanel({
       {/* Tax rate slider */}
       <Section title={t('tax.title')}>
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between text-xs text-slate-300">
+          <div className="flex items-center justify-between text-xs text-fg">
             <label htmlFor="economy-tax-rate" className="font-medium">
               {t('tax.label')}
             </label>
-            <span className="font-mono tabular-nums text-slate-200">
+            <span className="font-mono numeric-tabular text-fg">
               {ratePctLabel}
             </span>
           </div>
@@ -187,9 +188,9 @@ export function EconomyPanel({
             step={1}
             value={liveRate}
             onChange={(e) => setPendingRate(Number(e.target.value))}
-            className="w-full accent-indigo-400"
+            className="w-full accent-accent"
           />
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-fg-faint">
             {t('tax.preview', {
               income: fmt.number(projectedIncome, { maximumFractionDigits: 2 }),
             })}
@@ -200,7 +201,7 @@ export function EconomyPanel({
       {/* Investments */}
       <Section title={t('invest.title')}>
         <div className="flex flex-col gap-2">
-          <label htmlFor="economy-invest-amount" className="text-xs text-slate-300">
+          <label htmlFor="economy-invest-amount" className="text-xs text-fg">
             {t('invest.amountLabel')}
           </label>
           <input
@@ -213,10 +214,10 @@ export function EconomyPanel({
             value={investAmount}
             onChange={(e) => setInvestAmount(e.target.value)}
             className={cn(
-              'rounded-md border px-2 py-1 font-mono text-xs text-slate-100',
+              'rounded-md border px-2 py-1 font-mono numeric-tabular text-xs text-fg',
               investAmountTooHigh
-                ? 'border-rose-700 bg-rose-950/30'
-                : 'border-slate-700 bg-slate-900',
+                ? 'border-danger bg-danger/15'
+                : 'border-border-strong bg-surface-1',
             )}
             aria-invalid={investAmountTooHigh || undefined}
             aria-describedby={investHelpText ? 'economy-invest-help' : undefined}
@@ -224,7 +225,7 @@ export function EconomyPanel({
           {investHelpText ? (
             <p
               id="economy-invest-help"
-              className="text-[11px] text-rose-300"
+              className="text-[11px] text-danger"
               role="status"
             >
               {investHelpText}
@@ -268,7 +269,7 @@ export function EconomyPanel({
       {/* Income trend (recent weekly income — derived from rolling history) */}
       <Section title={t('history.title')}>
         <IncomeSparkline weeklyIncome={economy.weeklyIncome} />
-        <p className="mt-1 text-[11px] text-slate-500">
+        <p className="mt-1 text-[11px] text-fg-faint">
           {t('history.note')}
         </p>
       </Section>
@@ -283,24 +284,18 @@ export function EconomyPanel({
 function StatLabel({
   label,
   value,
-  tone,
+  t,
 }: {
   label: string;
   value: string;
-  tone: 'positive' | 'danger' | 'info' | 'neutral';
+  t: Tone;
 }) {
-  const toneText: Record<typeof tone, string> = {
-    positive: 'text-emerald-300',
-    danger: 'text-rose-300',
-    info: 'text-indigo-200',
-    neutral: 'text-slate-200',
-  };
   return (
-    <div className="rounded-md border border-slate-800 bg-slate-900/40 p-2">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500">
+    <div className="rounded-md border border-border bg-surface/40 p-2">
+      <div className="text-[10px] uppercase tracking-wider text-fg-faint">
         {label}
       </div>
-      <div className={cn('font-mono text-sm tabular-nums', toneText[tone])}>
+      <div className={cn('font-mono text-sm numeric-tabular', tone(t))}>
         {value}
       </div>
     </div>
@@ -329,7 +324,7 @@ function IncomeSparkline({ weeklyIncome }: { weeklyIncome: number }) {
 
   if (history.length < 2) {
     return (
-      <p className="text-[11px] text-slate-500">{t('history.empty')}</p>
+      <p className="text-[11px] text-fg-faint">{t('history.empty')}</p>
     );
   }
 
@@ -359,7 +354,7 @@ function IncomeSparkline({ weeklyIncome }: { weeklyIncome: number }) {
     >
       <polyline
         fill="none"
-        stroke={trendingUp ? '#34d399' : '#f87171'}
+        stroke={trendingUp ? 'var(--color-success)' : 'var(--color-danger)'}
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"

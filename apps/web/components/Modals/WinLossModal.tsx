@@ -40,7 +40,7 @@ export function WinLossModal() {
         <span
           className={cn(
             'text-2xl font-bold',
-            isWin ? 'text-emerald-300' : 'text-rose-300',
+            isWin ? 'text-success' : 'text-danger',
           )}
         >
           {isWin ? t('wonTitle') : t('lostTitle')}
@@ -55,13 +55,13 @@ export function WinLossModal() {
         <>
           <Link
             href="/"
-            className="rounded-md border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-600"
+            className="rounded-md border border-border-strong bg-surface-1 px-4 py-2 text-xs font-semibold text-fg-muted transition hover:border-border-strong hover:text-fg"
           >
             {t('backHome')}
           </Link>
           <Link
             href="/new"
-            className="rounded-md bg-indigo-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-400"
+            className="rounded-md bg-accent px-4 py-2 text-xs font-semibold text-bg transition hover:bg-accent-strong"
           >
             {t('newGame')}
           </Link>
@@ -112,7 +112,7 @@ function Reason({
     );
     const nameKey = cond?.nameKey;
     return (
-      <p className="text-sm text-slate-300">
+      <p className="text-sm text-fg-muted">
         {t('wonReason', {
           condition: nameKey ? tVictoryFallback(tVictory, nameKey) : selectedVictoryCondition,
         })}
@@ -123,7 +123,7 @@ function Reason({
   // Defeat — surface why.
   const reason = lossReason ?? 'popularity';
   return (
-    <p className="text-sm text-slate-300">{t(`lossReason.${reason}`)}</p>
+    <p className="text-sm text-fg-muted">{t(`lossReason.${reason}`)}</p>
   );
 }
 
@@ -180,8 +180,8 @@ function Summary({
   ).length;
 
   return (
-    <section className="mt-4 space-y-3 rounded-xl border border-slate-800 bg-slate-950/40 p-4">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+    <section className="mt-4 space-y-3 rounded-xl border border-border bg-bg/40 p-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-fg-faint">
         {labels.summary}
       </h3>
       <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -208,10 +208,10 @@ function Summary({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-[11px] uppercase tracking-wider text-slate-500">
+      <dt className="text-[11px] uppercase tracking-wider text-fg-faint">
         {label}
       </dt>
-      <dd className="font-mono text-sm text-slate-100">{value}</dd>
+      <dd className="numeric-tabular font-mono text-sm text-fg">{value}</dd>
     </div>
   );
 }

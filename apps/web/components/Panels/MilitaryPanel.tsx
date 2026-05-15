@@ -18,6 +18,7 @@ import {
   type GameStoreState,
 } from '../../lib/store';
 import { ScenarioId } from '../../lib/scenarios';
+import { tone, type Tone } from '../../lib/theme';
 import { ActionButton } from './shared/ActionButton';
 import { EmptyState } from './shared/EmptyState';
 import { Section } from './shared/Section';
@@ -143,16 +144,16 @@ export function MilitaryPanel({
     <div className="flex flex-col gap-4 p-4">
       {/* Stat headline */}
       <div className="grid grid-cols-2 gap-2">
-        <Stat label={t('armySize')} value={fmt.number(military.armySize)} tone="neutral" />
-        <Stat label={t('navy')} value={fmt.number(military.navy)} tone="info" />
-        <Stat label={t('airforce')} value={fmt.number(military.airforce)} tone="info" />
+        <Stat label={t('armySize')} value={fmt.number(military.armySize)} t="neutral" />
+        <Stat label={t('navy')} value={fmt.number(military.navy)} t="info" />
+        <Stat label={t('airforce')} value={fmt.number(military.airforce)} t="info" />
         <Stat
           label={t('doctrineLevel')}
           value={fmt.number(military.doctrineLevel, {
             style: 'percent',
             maximumFractionDigits: 0,
           })}
-          tone="positive"
+          t="success"
         />
       </div>
 
@@ -170,7 +171,7 @@ export function MilitaryPanel({
       {/* Train */}
       <Section title={t('train.title')}>
         <div className="flex flex-col gap-2">
-          <label htmlFor="military-train" className="text-xs text-slate-300">
+          <label htmlFor="military-train" className="text-xs text-fg">
             {t('train.amountLabel')}
           </label>
           <input
@@ -182,10 +183,10 @@ export function MilitaryPanel({
             value={trainAmount}
             onChange={(e) => setTrainAmount(e.target.value)}
             className={cn(
-              'rounded-md border px-2 py-1 font-mono text-xs text-slate-100',
+              'rounded-md border px-2 py-1 font-mono numeric-tabular text-xs text-fg',
               trainTooHigh
-                ? 'border-rose-700 bg-rose-950/30'
-                : 'border-slate-700 bg-slate-900',
+                ? 'border-danger bg-danger/15'
+                : 'border-border-strong bg-surface-1',
             )}
             aria-invalid={trainTooHigh || undefined}
           />
@@ -204,21 +205,21 @@ export function MilitaryPanel({
           >
             {t('train.cta')}
           </ActionButton>
-          <p className="text-[11px] text-slate-500">{t('train.hint')}</p>
+          <p className="text-[11px] text-fg-faint">{t('train.hint')}</p>
         </div>
       </Section>
 
       {/* Deploy */}
       <Section title={t('deploy.title')}>
         <div className="flex flex-col gap-2">
-          <label htmlFor="military-deploy-region" className="text-xs text-slate-300">
+          <label htmlFor="military-deploy-region" className="text-xs text-fg">
             {t('deploy.regionLabel')}
           </label>
           <select
             id="military-deploy-region"
             value={deployRegion}
             onChange={(e) => setDeployRegion(e.target.value)}
-            className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+            className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
           >
             <option value="">{t('deploy.regionPlaceholder')}</option>
             {regions.map((r) => (
@@ -227,7 +228,7 @@ export function MilitaryPanel({
               </option>
             ))}
           </select>
-          <label htmlFor="military-deploy-units" className="text-xs text-slate-300">
+          <label htmlFor="military-deploy-units" className="text-xs text-fg">
             {t('deploy.unitsLabel')}
           </label>
           <input
@@ -239,10 +240,10 @@ export function MilitaryPanel({
             value={deployUnits}
             onChange={(e) => setDeployUnits(e.target.value)}
             className={cn(
-              'rounded-md border px-2 py-1 font-mono text-xs text-slate-100',
+              'rounded-md border px-2 py-1 font-mono numeric-tabular text-xs text-fg',
               deployTooMany
-                ? 'border-rose-700 bg-rose-950/30'
-                : 'border-slate-700 bg-slate-900',
+                ? 'border-danger bg-danger/15'
+                : 'border-border-strong bg-surface-1',
             )}
             aria-invalid={deployTooMany || undefined}
           />
@@ -279,17 +280,17 @@ export function MilitaryPanel({
               return (
                 <li
                   key={dep.id}
-                  className="rounded-md border border-slate-800 bg-slate-900/40 p-2"
+                  className="rounded-md border border-border bg-surface/40 p-2"
                 >
                   <div className="flex items-baseline justify-between">
-                    <span className="text-xs font-medium text-slate-200">
+                    <span className="text-xs font-medium text-fg">
                       {regionLabel(dep.regionId)}
                     </span>
-                    <span className="font-mono text-[11px] text-slate-400">
+                    <span className="font-mono numeric-tabular text-[11px] text-fg-muted">
                       {fmt.number(dep.units)} {t('deployed.units')}
                     </span>
                   </div>
-                  <div className="text-[11px] text-slate-500">
+                  <div className="text-[11px] text-fg-faint">
                     {t('deployed.age', { weeks: age })}
                   </div>
                 </li>
@@ -308,7 +309,7 @@ export function MilitaryPanel({
             {wars.map((w) => (
               <li
                 key={w.with}
-                className="rounded-full border border-rose-700 bg-rose-950/40 px-2 py-0.5 text-[11px] text-rose-200"
+                className="rounded-full border border-danger bg-danger/15 px-2 py-0.5 text-[11px] text-danger"
               >
                 {w.name}
               </li>
@@ -323,24 +324,18 @@ export function MilitaryPanel({
 function Stat({
   label,
   value,
-  tone,
+  t,
 }: {
   label: string;
   value: string;
-  tone: 'positive' | 'danger' | 'info' | 'neutral';
+  t: Tone;
 }) {
-  const toneText: Record<typeof tone, string> = {
-    positive: 'text-emerald-300',
-    danger: 'text-rose-300',
-    info: 'text-indigo-200',
-    neutral: 'text-slate-200',
-  };
   return (
-    <div className="rounded-md border border-slate-800 bg-slate-900/40 p-2">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500">
+    <div className="rounded-md border border-border bg-surface/40 p-2">
+      <div className="text-[10px] uppercase tracking-wider text-fg-faint">
         {label}
       </div>
-      <div className={cn('font-mono text-sm tabular-nums', toneText[tone])}>
+      <div className={cn('font-mono text-sm numeric-tabular', tone(t))}>
         {value}
       </div>
     </div>

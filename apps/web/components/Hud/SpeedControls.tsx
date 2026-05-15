@@ -21,7 +21,7 @@ export function SpeedControls() {
   return (
     <div className="flex items-center gap-2">
       <div
-        className="flex items-center gap-0.5 rounded-md border border-slate-800 bg-slate-950/40 p-0.5"
+        className="flex items-center gap-0.5 rounded-md border border-border bg-bg/40 p-0.5"
         role="group"
         aria-label={t('label')}
       >
@@ -37,8 +37,8 @@ export function SpeedControls() {
               className={cn(
                 'rounded-sm px-2 py-1 text-xs font-mono transition',
                 active
-                  ? 'bg-indigo-500/30 text-indigo-200 shadow-inner'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100',
+                  ? 'bg-accent/20 text-accent shadow-inner'
+                  : 'text-fg-muted hover:bg-surface-2 hover:text-fg',
               )}
             >
               <span aria-hidden="true">{speedGlyph(s)}</span>
@@ -47,7 +47,7 @@ export function SpeedControls() {
         })}
       </div>
       {ticker.isAutoPaused ? (
-        <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-200">
+        <span className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-warning">
           {tHud('autoPaused')}
         </span>
       ) : null}

@@ -36,10 +36,10 @@ export function OverlayToggle(props: OverlayToggleProps) {
   return (
     <fieldset
       className={cn(
-        'pointer-events-auto absolute right-3 top-3 z-10 flex flex-col gap-1 rounded-lg border border-slate-700 bg-slate-900/90 p-2 text-xs shadow-lg backdrop-blur-sm',
+        'pointer-events-auto absolute right-3 top-3 z-10 flex flex-col gap-1 rounded-lg border border-border-strong bg-surface-1/90 p-2 text-xs shadow-lg backdrop-blur-sm',
       )}
     >
-      <legend className="px-1 text-[10px] uppercase tracking-wider text-slate-500">
+      <legend className="px-1 text-[10px] uppercase tracking-wider text-fg-faint">
         {props.groupLabel}
       </legend>
       <div className="flex flex-wrap gap-1">
@@ -51,8 +51,8 @@ export function OverlayToggle(props: OverlayToggleProps) {
               className={cn(
                 'cursor-pointer rounded-md border px-2 py-1 font-mono text-[11px] transition-colors',
                 checked
-                  ? 'border-indigo-400 bg-indigo-500/20 text-indigo-200'
-                  : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-600',
+                  ? 'border-accent bg-accent/20 text-accent'
+                  : 'border-border-strong bg-surface-1 text-fg-muted hover:border-border-strong',
               )}
             >
               <input

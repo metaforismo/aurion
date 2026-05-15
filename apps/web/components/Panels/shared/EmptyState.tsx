@@ -17,7 +17,7 @@ export function EmptyState({ children, className }: EmptyStateProps) {
   return (
     <p
       className={cn(
-        'rounded-md border border-dashed border-slate-800 px-3 py-3 text-center text-xs text-slate-500',
+        'rounded-md border border-dashed border-border px-3 py-3 text-center text-xs text-fg-faint',
         className,
       )}
     >

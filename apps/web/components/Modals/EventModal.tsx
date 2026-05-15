@@ -42,13 +42,13 @@ export function EventModal({ event, scenario }: EventModalProps) {
           <button
             type="button"
             onClick={() => resolveCurrentEvent(0)}
-            className="rounded-md bg-indigo-500 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-400"
+            className="rounded-md bg-accent px-4 py-2 text-xs font-semibold text-bg hover:bg-accent-strong"
           >
             {t('common.confirm')}
           </button>
         }
       >
-        <p className="text-slate-400">
+        <p className="text-fg-muted">
           {t('modals.event.unknownDefinition', { id: event.definitionId })}
         </p>
       </Modal>
@@ -64,7 +64,7 @@ export function EventModal({ event, scenario }: EventModalProps) {
     >
       <p
         id={`event-${event.definitionId}-desc`}
-        className="leading-relaxed text-slate-300"
+        className="leading-relaxed text-fg-muted"
       >
         {t(definition.descriptionKey)}
       </p>
@@ -95,7 +95,7 @@ function ChoiceButton({
       <button
         type="button"
         onClick={onPick}
-        className="w-full rounded-lg border border-slate-700 bg-slate-950/40 px-4 py-3 text-left text-sm text-slate-100 transition hover:border-indigo-400 hover:bg-indigo-500/10 focus-visible:border-indigo-400 focus-visible:bg-indigo-500/10"
+        className="w-full rounded-lg border border-border-strong bg-bg/40 px-4 py-3 text-left text-sm text-fg transition hover:border-accent hover:bg-accent/10 focus-visible:border-accent focus-visible:bg-accent/10"
       >
         {t(choice.labelKey)}
       </button>

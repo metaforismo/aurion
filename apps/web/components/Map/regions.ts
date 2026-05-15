@@ -36,12 +36,16 @@ export type RegionDef = {
 // emphasis is on legibility at small sizes, not realism.
 // ---------------------------------------------------------------------------
 
+// Region fills/strokes pull from the design-token palette declared in
+// `app/globals.css` (`--color-region-*`). Using `var(--token)` directly here
+// (rather than a hex literal) means the regions automatically follow any
+// future palette tweak without a JS change.
 export const REGIONS: Record<string, RegionDef> = {
   borealis: {
     id: 'borealis',
     nameKey: 'borealis',
-    fill: '#1f2a44',
-    stroke: '#3b4a6b',
+    fill: 'var(--color-region-borealis)',
+    stroke: 'var(--color-border-strong)',
     pathD:
       'M 40 60 L 1560 60 L 1560 200 L 1480 250 L 1380 230 L 1260 270 L 1120 240 L 980 280 L 840 250 L 700 280 L 560 250 L 420 290 L 280 260 L 160 290 L 40 260 Z',
     bounds: { x: 40, y: 60, w: 1520, h: 230 },
@@ -49,8 +53,8 @@ export const REGIONS: Record<string, RegionDef> = {
   auriana: {
     id: 'auriana',
     nameKey: 'auriana',
-    fill: '#2f4a3a',
-    stroke: '#4f7256',
+    fill: 'var(--color-region-auriana)',
+    stroke: 'var(--color-border-strong)',
     pathD:
       'M 120 320 L 640 320 L 700 380 L 700 520 L 620 600 L 520 640 L 380 640 L 260 600 L 180 540 L 140 460 L 120 380 Z',
     bounds: { x: 120, y: 320, w: 580, h: 320 },
@@ -58,8 +62,8 @@ export const REGIONS: Record<string, RegionDef> = {
   oriana: {
     id: 'oriana',
     nameKey: 'oriana',
-    fill: '#1f4a55',
-    stroke: '#2f6c7a',
+    fill: 'var(--color-region-oriana)',
+    stroke: 'var(--color-border-strong)',
     // Composed of several "islands" via sub-paths — each starts with M.
     pathD: [
       'M 1240 320 L 1360 320 L 1400 360 L 1380 420 L 1300 440 L 1240 400 Z', // tenshido isle (NW)
@@ -74,8 +78,8 @@ export const REGIONS: Record<string, RegionDef> = {
   meridia: {
     id: 'meridia',
     nameKey: 'meridia',
-    fill: '#2a4a2f',
-    stroke: '#4f7a4b',
+    fill: 'var(--color-region-meridia)',
+    stroke: 'var(--color-border-strong)',
     pathD:
       'M 760 540 L 1080 540 L 1120 620 L 1100 720 L 1040 800 L 940 840 L 840 820 L 760 760 L 720 680 L 740 600 Z',
     bounds: { x: 720, y: 540, w: 400, h: 300 },
@@ -83,8 +87,8 @@ export const REGIONS: Record<string, RegionDef> = {
   'sahel-karoun': {
     id: 'sahel-karoun',
     nameKey: 'sahel-karoun',
-    fill: '#5a4a2a',
-    stroke: '#7a6438',
+    fill: 'var(--color-region-sahel)',
+    stroke: 'var(--color-border-strong)',
     pathD:
       'M 100 660 L 700 660 L 740 720 L 720 800 L 660 850 L 540 870 L 400 860 L 280 840 L 160 800 L 100 740 Z',
     bounds: { x: 100, y: 660, w: 640, h: 210 },

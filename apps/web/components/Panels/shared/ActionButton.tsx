@@ -21,18 +21,18 @@ export type ActionButtonTone = 'primary' | 'neutral' | 'danger';
 const TONE_STYLES: Record<ActionButtonTone, { enabled: string; pressed: string }> = {
   primary: {
     enabled:
-      'border-indigo-500 bg-indigo-500/10 text-indigo-100 hover:border-indigo-400 hover:bg-indigo-500/20',
-    pressed: 'bg-indigo-500/30',
+      'border-accent bg-accent/10 text-accent hover:border-accent-strong hover:bg-accent/20',
+    pressed: 'bg-accent/30',
   },
   neutral: {
     enabled:
-      'border-slate-700 bg-slate-900 text-slate-100 hover:border-slate-600 hover:bg-slate-800',
-    pressed: 'bg-slate-800',
+      'border-border-strong bg-surface-1 text-fg hover:border-border-strong hover:bg-surface-2',
+    pressed: 'bg-surface-2',
   },
   danger: {
     enabled:
-      'border-rose-700 bg-rose-950/40 text-rose-100 hover:border-rose-500 hover:bg-rose-900/40',
-    pressed: 'bg-rose-900/60',
+      'border-danger bg-danger/15 text-danger hover:border-danger hover:bg-danger/25',
+    pressed: 'bg-danger/30',
   },
 };
 
@@ -101,7 +101,7 @@ export function ActionButton({
       className={cn(
         'flex w-full flex-col items-stretch gap-0.5 rounded-md border px-3 py-2 text-left text-xs transition',
         isDisabled
-          ? 'cursor-not-allowed border-slate-800 bg-slate-900/40 text-slate-500'
+          ? 'cursor-not-allowed border-border bg-surface/40 text-fg-faint'
           : TONE_STYLES[tone].enabled,
         busy ? TONE_STYLES[tone].pressed : null,
         className,
@@ -115,7 +115,7 @@ export function ActionButton({
         <span className="text-[11px] leading-tight opacity-70">{hint}</span>
       ) : null}
       {disabledReason ? (
-        <span className="text-[11px] italic leading-tight text-slate-500">
+        <span className="text-[11px] italic leading-tight text-fg-faint">
           {disabledReason}
         </span>
       ) : null}

@@ -18,11 +18,11 @@ export function DateBadge() {
   const week = (tick % WEEKS_PER_YEAR) + 1;
 
   return (
-    <div className="flex items-baseline gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-3 py-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+    <div className="flex items-baseline gap-2 rounded-md border border-border bg-bg/40 px-3 py-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-faint">
         {t('dateLabel')}
       </span>
-      <span className="font-mono text-sm tabular-nums text-slate-100">
+      <span className="numeric-tabular font-mono text-sm text-fg">
         {t('dateValue', { week, year })}
       </span>
     </div>

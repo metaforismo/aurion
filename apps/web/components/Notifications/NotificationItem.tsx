@@ -49,8 +49,8 @@ export function NotificationItem({
       className={cn(
         'group flex w-full flex-col gap-1 rounded-lg border p-3 text-left text-xs transition',
         resolved
-          ? 'border-slate-800 bg-slate-950/30 opacity-70'
-          : 'border-amber-500/40 bg-amber-500/5 hover:border-amber-400 hover:bg-amber-500/10',
+          ? 'border-border bg-bg/30 opacity-70'
+          : 'border-warning/40 bg-warning/5 hover:border-warning hover:bg-warning/10',
       )}
       aria-label={titleText}
     >
@@ -59,26 +59,26 @@ export function NotificationItem({
         <span
           className={cn(
             'flex-1 truncate font-semibold',
-            resolved ? 'text-slate-300' : 'text-amber-100',
+            resolved ? 'text-fg-muted' : 'text-warning',
           )}
         >
           {titleText}
         </span>
-        <span className="font-mono text-[10px] uppercase tracking-wider text-slate-500">
+        <span className="numeric-tabular font-mono text-[10px] uppercase tracking-wider text-fg-faint">
           {ago === 0 ? t('justNow') : t('ticksAgo', { n: ago })}
         </span>
       </div>
       {descriptionText ? (
-        <p className="line-clamp-1 text-[11px] leading-snug text-slate-400">
+        <p className="line-clamp-1 text-[11px] leading-snug text-fg-muted">
           {descriptionText}
         </p>
       ) : null}
       {chosenLabel ? (
-        <p className="text-[10px] uppercase tracking-wider text-emerald-300/80">
+        <p className="text-[10px] uppercase tracking-wider text-success/80">
           {t('chose', { label: chosenLabel })}
         </p>
       ) : !resolved ? (
-        <p className="text-[10px] uppercase tracking-wider text-amber-300">
+        <p className="text-[10px] uppercase tracking-wider text-warning">
           {t('actionRequired')}
         </p>
       ) : null}
@@ -93,8 +93,8 @@ function NotificationIcon({ resolved }: { resolved: boolean }) {
       className={cn(
         'flex h-5 w-5 items-center justify-center rounded-full text-[11px]',
         resolved
-          ? 'bg-slate-800 text-slate-500'
-          : 'bg-amber-500/20 text-amber-200',
+          ? 'bg-surface-2 text-fg-faint'
+          : 'bg-warning/20 text-warning',
       )}
     >
       {resolved ? '✓' : '!'}

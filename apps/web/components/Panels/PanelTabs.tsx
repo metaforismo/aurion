@@ -94,7 +94,7 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
   return (
     <aside
       className={cn(
-        'flex h-full w-full flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40',
+        'flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-surface/40',
         className,
       )}
       aria-label={tRail('label')}
@@ -103,7 +103,7 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
         role="tablist"
         aria-orientation="vertical"
         aria-label={tRail('tablistLabel')}
-        className="flex shrink-0 flex-row gap-0.5 border-b border-slate-800 bg-slate-950/60 p-1 lg:flex-col lg:border-b-0 lg:border-r"
+        className="flex shrink-0 flex-row gap-0.5 border-b border-border bg-bg/60 p-1 lg:flex-col lg:border-b-0 lg:border-r"
       >
         {PANEL_IDS.map((id) => {
           const Icon = PANEL_ICONS[id];
@@ -120,15 +120,15 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
               className={cn(
                 'group flex flex-1 items-center justify-start gap-2 rounded-md px-2 py-2 text-left text-xs transition lg:flex-none',
                 active
-                  ? 'bg-indigo-500/15 text-indigo-100'
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200',
+                  ? 'bg-accent/15 text-accent'
+                  : 'text-fg-muted hover:bg-surface-2/60 hover:text-fg',
               )}
             >
               <Icon
                 aria-hidden
                 className={cn(
                   'h-4 w-4 shrink-0',
-                  active ? 'text-indigo-300' : 'text-slate-500 group-hover:text-slate-300',
+                  active ? 'text-accent' : 'text-fg-faint group-hover:text-fg',
                 )}
               />
               <span className="truncate font-medium">{t(id)}</span>
@@ -146,7 +146,7 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
         {inlineErrors.length > 0 ? (
           <ul
             role="alert"
-            className="m-2 flex flex-col gap-1 rounded-md border border-rose-700 bg-rose-950/40 p-2 text-[11px] text-rose-200"
+            className="m-2 flex flex-col gap-1 rounded-md border border-danger bg-danger/15 p-2 text-[11px] text-danger"
           >
             {inlineErrors.map((err, i) => (
               <li key={`${err}-${i}`}>{err}</li>

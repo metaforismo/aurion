@@ -26,6 +26,7 @@ import {
   type GameStoreState,
 } from '../../lib/store';
 import { ScenarioId } from '../../lib/scenarios';
+import { tone, type Tone } from '../../lib/theme';
 import { ActionButton } from './shared/ActionButton';
 import { EmptyState } from './shared/EmptyState';
 import { Section } from './shared/Section';
@@ -93,10 +94,10 @@ const INTEL_ICON: Record<IntelLevel, string> = {
 };
 
 const INTEL_TONE: Record<IntelLevel, string> = {
-  none: 'text-slate-500 border-slate-800',
-  rumors: 'text-amber-300 border-amber-800',
-  partial: 'text-indigo-300 border-indigo-700',
-  full: 'text-emerald-300 border-emerald-700',
+  none: 'text-fg-faint border-border',
+  rumors: 'text-warning border-warning',
+  partial: 'text-info border-info',
+  full: 'text-success border-success',
 };
 
 function clampProb(p: number): number {
@@ -171,14 +172,14 @@ export function SpiesPanel({
     <div className="flex flex-col gap-4 p-4">
       {/* Stats */}
       <div className="grid grid-cols-2 gap-2">
-        <Stat label={t('spyCount')} value={fmt.number(intel.spyCount)} tone="warning" />
+        <Stat label={t('spyCount')} value={fmt.number(intel.spyCount)} t="warning" />
         <Stat
           label={t('counterIntel')}
           value={fmt.number(intel.counterIntelLevel, {
             style: 'percent',
             maximumFractionDigits: 0,
           })}
-          tone="info"
+          t="info"
         />
       </div>
 
@@ -221,7 +222,7 @@ export function SpiesPanel({
           <button
             type="button"
             onClick={() => setComposerOpen(true)}
-            className="w-full rounded-md border border-indigo-500 bg-indigo-500/10 px-3 py-2 text-xs font-medium text-indigo-100 hover:border-indigo-400 hover:bg-indigo-500/20"
+            className="w-full rounded-md border border-accent bg-accent/10 px-3 py-2 text-xs font-medium text-accent hover:border-accent-strong hover:bg-accent/20"
           >
             {t('composer.open')}
           </button>
@@ -257,9 +258,9 @@ export function SpiesPanel({
             return (
               <li
                 key={c.id}
-                className="flex items-center justify-between gap-2 rounded border border-slate-800 px-2 py-1"
+                className="flex items-center justify-between gap-2 rounded border border-border px-2 py-1"
               >
-                <span className="text-slate-200">{tScenario(c.nameKey)}</span>
+                <span className="text-fg">{tScenario(c.nameKey)}</span>
                 <span
                   className={cn(
                     'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider',
@@ -399,14 +400,14 @@ function SpyComposer({
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-xs text-slate-300" htmlFor="spy-type">
+      <label className="text-xs text-fg" htmlFor="spy-type">
         {t('composer.type')}
       </label>
       <select
         id="spy-type"
         value={type}
         onChange={(e) => setType(e.target.value as SpyOperationType)}
-        className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+        className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
       >
         {SPY_TYPES.map((sType) => (
           <option key={sType} value={sType}>
@@ -415,14 +416,14 @@ function SpyComposer({
         ))}
       </select>
 
-      <label className="text-xs text-slate-300" htmlFor="spy-target">
+      <label className="text-xs text-fg" htmlFor="spy-target">
         {t('composer.target')}
       </label>
       <select
         id="spy-target"
         value={target}
         onChange={(e) => setTarget(e.target.value)}
-        className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+        className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
       >
         <option value="">{t('composer.targetPlaceholder')}</option>
         {eligibleTargets.map((c) => (
@@ -432,20 +433,20 @@ function SpyComposer({
         ))}
       </select>
       {eligibleTargets.length === 0 ? (
-        <p className="text-[11px] text-amber-400">{t('composer.noEligibleTargets')}</p>
+        <p className="text-[11px] text-warning">{t('composer.noEligibleTargets')}</p>
       ) : null}
 
       {/* Payload sub-form */}
       {type === 'steal_tech' && target ? (
         <>
-          <label className="text-xs text-slate-300" htmlFor="spy-tech">
+          <label className="text-xs text-fg" htmlFor="spy-tech">
             {t('composer.stealTech')}
           </label>
           <select
             id="spy-tech"
             value={stealTechId}
             onChange={(e) => setStealTechId(e.target.value)}
-            className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+            className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
           >
             <option value="">{t('composer.stealTechPlaceholder')}</option>
             {stealableTechs.map((id) => (
@@ -455,14 +456,14 @@ function SpyComposer({
             ))}
           </select>
           {stealableTechs.length === 0 ? (
-            <p className="text-[11px] text-slate-500">{t('composer.noStealable')}</p>
+            <p className="text-[11px] text-fg-faint">{t('composer.noStealable')}</p>
           ) : null}
         </>
       ) : null}
 
       {type === 'sabotage' ? (
         <>
-          <label className="text-xs text-slate-300" htmlFor="spy-sabotage">
+          <label className="text-xs text-fg" htmlFor="spy-sabotage">
             {t('composer.sabotageTarget')}
           </label>
           <select
@@ -471,7 +472,7 @@ function SpyComposer({
             onChange={(e) =>
               setSabotageTarget(e.target.value as keyof EconomySectors | 'military' | 'science')
             }
-            className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+            className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
           >
             {SABOTAGE_TARGETS.map((s) => (
               <option key={s} value={s}>
@@ -484,7 +485,7 @@ function SpyComposer({
 
       {type === 'propaganda' ? (
         <>
-          <label className="text-xs text-slate-300" htmlFor="spy-faction">
+          <label className="text-xs text-fg" htmlFor="spy-faction">
             {t('composer.propagandaFaction')}
           </label>
           <select
@@ -493,7 +494,7 @@ function SpyComposer({
             onChange={(e) =>
               setPropagandaFaction((e.target.value || '') as FactionId | '')
             }
-            className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+            className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
           >
             <option value="">{t('composer.propagandaAny')}</option>
             {FACTION_IDS.map((f) => (
@@ -507,7 +508,7 @@ function SpyComposer({
 
       {type === 'assassinate' ? (
         <>
-          <label className="text-xs text-slate-300" htmlFor="spy-role">
+          <label className="text-xs text-fg" htmlFor="spy-role">
             {t('composer.assassinateRole')}
           </label>
           <input
@@ -515,27 +516,27 @@ function SpyComposer({
             type="text"
             value={assassinateRoleKey}
             onChange={(e) => setAssassinateRoleKey(e.target.value)}
-            className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono text-xs text-slate-100"
+            className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 font-mono text-xs text-fg"
           />
         </>
       ) : null}
 
       {/* Live prediction */}
       {target ? (
-        <div className="grid grid-cols-2 gap-2 rounded-md border border-slate-800 bg-slate-900/40 p-2">
+        <div className="grid grid-cols-2 gap-2 rounded-md border border-border bg-surface/40 p-2">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-slate-500">
+            <div className="text-[10px] uppercase tracking-wider text-fg-faint">
               {t('composer.successPreview')}
             </div>
-            <div className="font-mono text-sm text-emerald-300 tabular-nums">
+            <div className="font-mono text-sm text-success numeric-tabular">
               {fmt.number(probs.success, { style: 'percent', maximumFractionDigits: 0 })}
             </div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-slate-500">
+            <div className="text-[10px] uppercase tracking-wider text-fg-faint">
               {t('composer.detectionPreview')}
             </div>
-            <div className="font-mono text-sm text-rose-300 tabular-nums">
+            <div className="font-mono text-sm text-danger numeric-tabular">
               {fmt.number(probs.detection, { style: 'percent', maximumFractionDigits: 0 })}
             </div>
           </div>
@@ -555,7 +556,7 @@ function SpyComposer({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-300 hover:border-slate-600"
+          className="rounded-md border border-border-strong bg-surface-1 px-3 py-2 text-xs text-fg hover:border-border-strong"
         >
           {tShared('cancel')}
         </button>
@@ -577,12 +578,12 @@ function SpyOpCard({
   const remaining = Math.max(0, op.durationTicks - op.progressTicks);
 
   return (
-    <div className="rounded-md border border-slate-800 bg-slate-900/40 p-2">
+    <div className="rounded-md border border-border bg-surface/40 p-2">
       <div className="flex items-baseline justify-between">
-        <span className="text-xs font-medium text-slate-200">
+        <span className="text-xs font-medium text-fg">
           {t(`type.${op.type}`)} → {targetName || op.targetCountryId}
         </span>
-        <span className="font-mono text-[11px] text-slate-500">
+        <span className="font-mono numeric-tabular text-[11px] text-fg-faint">
           {t('active.eta', { ticks: remaining })}
         </span>
       </div>
@@ -594,10 +595,10 @@ function SpyOpCard({
         tone="info"
         className="mt-1"
       />
-      <div className="mt-1 flex justify-between text-[11px] text-slate-500">
+      <div className="mt-1 flex justify-between text-[11px] text-fg-faint">
         <span>
           {t('active.success')}:{' '}
-          <span className="text-emerald-300">
+          <span className="text-success numeric-tabular">
             {fmt.number(op.successProbability, {
               style: 'percent',
               maximumFractionDigits: 0,
@@ -606,7 +607,7 @@ function SpyOpCard({
         </span>
         <span>
           {t('active.detection')}:{' '}
-          <span className="text-rose-300">
+          <span className="text-danger numeric-tabular">
             {fmt.number(op.detectionRisk, {
               style: 'percent',
               maximumFractionDigits: 0,
@@ -623,25 +624,18 @@ function SpyOpCard({
 function Stat({
   label,
   value,
-  tone,
+  t,
 }: {
   label: string;
   value: string;
-  tone: 'positive' | 'danger' | 'info' | 'neutral' | 'warning';
+  t: Tone;
 }) {
-  const toneText: Record<typeof tone, string> = {
-    positive: 'text-emerald-300',
-    danger: 'text-rose-300',
-    info: 'text-indigo-200',
-    neutral: 'text-slate-200',
-    warning: 'text-amber-300',
-  };
   return (
-    <div className="rounded-md border border-slate-800 bg-slate-900/40 p-2">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500">
+    <div className="rounded-md border border-border bg-surface/40 p-2">
+      <div className="text-[10px] uppercase tracking-wider text-fg-faint">
         {label}
       </div>
-      <div className={cn('font-mono text-sm tabular-nums', toneText[tone])}>
+      <div className={cn('font-mono text-sm numeric-tabular', tone(t))}>
         {value}
       </div>
     </div>

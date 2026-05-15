@@ -44,19 +44,19 @@ export function NotificationStream() {
 
   return (
     <aside
-      className="flex h-full min-h-0 flex-col gap-2 rounded-xl border border-slate-800 bg-slate-900/30 p-3"
+      className="flex h-full min-h-0 flex-col gap-2 rounded-xl border border-border bg-surface/30 p-3"
       aria-label={t('title')}
     >
       <header className="flex items-baseline justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
           {t('title')}
         </h2>
-        <span className="font-mono text-[10px] text-slate-600">
+        <span className="numeric-tabular font-mono text-[10px] text-fg-faint">
           {visible.length}/{events.length}
         </span>
       </header>
       {visible.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-slate-800 p-4 text-center text-xs text-slate-500">
+        <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border p-4 text-center text-xs text-fg-faint">
           {t('empty')}
         </div>
       ) : (

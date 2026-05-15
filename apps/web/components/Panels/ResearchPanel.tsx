@@ -21,6 +21,7 @@ import {
   type GameStoreState,
 } from '../../lib/store';
 import { ScenarioId } from '../../lib/scenarios';
+import { toneChip } from '../../lib/theme';
 import { ActionButton } from './shared/ActionButton';
 import { EmptyState } from './shared/EmptyState';
 import { Section } from './shared/Section';
@@ -130,8 +131,8 @@ export function ResearchPanel({
             className={cn(
               'rounded-full border px-2.5 py-1 text-[11px] font-medium transition',
               filter === f
-                ? 'border-indigo-500 bg-indigo-500/15 text-indigo-100'
-                : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-600',
+                ? 'border-accent bg-accent/15 text-accent'
+                : 'border-border-strong bg-surface-1 text-fg-muted hover:border-border-strong',
             )}
           >
             {t(`filter.${f}`)}
@@ -201,8 +202,8 @@ function ActiveResearchView({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-sm font-semibold text-slate-100">{techName}</span>
-        <span className="text-[11px] text-slate-500">
+        <span className="text-sm font-semibold text-fg">{techName}</span>
+        <span className="text-[11px] text-fg-faint">
           {Number.isFinite(eta)
             ? t('active.eta', { ticks: eta })
             : t('active.etaUnknown')}
@@ -215,7 +216,7 @@ function ActiveResearchView({
         valueLabel={`${Math.round(accumulated)} / ${tech.cost}`}
         tone="info"
       />
-      <p className="text-[11px] text-slate-500">
+      <p className="text-[11px] text-fg-faint">
         {t('active.progressPct', { pct: Math.round(ratio * 100) })}
       </p>
     </div>
@@ -255,10 +256,10 @@ function TechCard({
   else status = 'available';
 
   const statusTone: Record<typeof status, string> = {
-    completed: 'border-emerald-700 bg-emerald-500/10 text-emerald-200',
-    inProgress: 'border-indigo-700 bg-indigo-500/10 text-indigo-200',
-    available: 'border-slate-700 bg-slate-900/40 text-slate-100',
-    locked: 'border-slate-800 bg-slate-950/40 text-slate-500',
+    completed: 'border-success bg-success/15 text-success',
+    inProgress: 'border-accent bg-accent/15 text-accent',
+    available: 'border-border-strong bg-surface/40 text-fg',
+    locked: 'border-border bg-bg/40 text-fg-faint',
   };
 
   const disabledReason = completed
@@ -281,7 +282,7 @@ function TechCard({
       <header className="flex items-start justify-between gap-2">
         <div className="flex flex-col">
           <h4 className="text-sm font-semibold leading-tight">{techName}</h4>
-          <p className="text-[11px] leading-snug text-slate-400">
+          <p className="text-[11px] leading-snug text-fg-muted">
             {techDescription}
           </p>
         </div>
@@ -291,7 +292,7 @@ function TechCard({
       </header>
 
       <div className="flex flex-wrap items-center gap-2 text-[11px]">
-        <span className="rounded bg-slate-800/60 px-2 py-0.5 font-mono">
+        <span className="rounded bg-surface-2/60 px-2 py-0.5 font-mono numeric-tabular">
           {t('cost', { n: tech.cost })}
         </span>
         {tech.prereqs.length > 0 ? (
@@ -300,10 +301,10 @@ function TechCard({
               <li
                 key={p}
                 className={cn(
-                  'rounded-full border px-2 py-0.5 font-mono text-[10px]',
+                  'rounded-full px-2 py-0.5 font-mono text-[10px]',
                   completedSet.has(p)
-                    ? 'border-emerald-700 bg-emerald-500/15 text-emerald-200'
-                    : 'border-slate-700 bg-slate-900 text-slate-500',
+                    ? toneChip('success')
+                    : 'border border-border-strong bg-surface-1 text-fg-faint',
                 )}
                 title={p}
               >
@@ -312,14 +313,14 @@ function TechCard({
             ))}
           </ul>
         ) : (
-          <span className="text-[11px] italic text-slate-500">
+          <span className="text-[11px] italic text-fg-faint">
             {t('noPrereqs')}
           </span>
         )}
       </div>
 
       {tech.effects.length > 0 ? (
-        <ul className="flex flex-col gap-0.5 text-[11px] text-slate-300">
+        <ul className="flex flex-col gap-0.5 text-[11px] text-fg">
           {tech.effects.map((eff, i) => (
             <li key={i} className="font-mono">
               {summariseEffect(eff)}

@@ -45,7 +45,7 @@ export function Hud({ onNotify }: HudProps) {
   const notify = onNotify ?? setInternalToast;
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-800 bg-slate-900/80 px-4 backdrop-blur-md">
+    <header className="glass-surface sticky top-0 z-20 flex h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4">
       <DateBadge />
       <TreasuryBadge />
       <PopularityBadge />
@@ -60,7 +60,7 @@ export function Hud({ onNotify }: HudProps) {
         <div
           role="status"
           aria-live="polite"
-          className="pointer-events-none fixed bottom-4 right-4 z-50 rounded-md border border-slate-700 bg-slate-900/90 px-3 py-2 text-xs text-slate-100 shadow-lg"
+          className="pointer-events-none fixed bottom-4 right-4 z-50 rounded-md border border-border-strong bg-surface-1/90 px-3 py-2 text-xs text-fg shadow-lg"
         >
           {internalToast}
         </div>

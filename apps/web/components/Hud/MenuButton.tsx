@@ -164,8 +164,8 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
         aria-expanded={open}
         aria-label={t('menu')}
         className={cn(
-          'flex h-9 w-9 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition',
-          open ? 'border-indigo-400 text-indigo-200' : 'hover:border-slate-600 hover:text-slate-100',
+          'flex h-9 w-9 items-center justify-center rounded-md border border-border-strong bg-surface-1 text-fg-muted transition',
+          open ? 'border-accent text-accent' : 'hover:border-border-strong hover:text-fg',
         )}
       >
         <GearIcon />
@@ -175,7 +175,7 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
         <div
           role="menu"
           aria-label={t('menu')}
-          className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-lg border border-slate-700 bg-slate-900/95 text-sm shadow-2xl backdrop-blur"
+          className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-lg border border-border-strong bg-surface-1/95 text-sm shadow-2xl backdrop-blur"
         >
           <MenuItem
             label={t('save')}
@@ -190,15 +190,15 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
           />
           {showSaves ? (
             <ul
-              className="max-h-56 overflow-y-auto border-t border-slate-800 bg-slate-950/40 px-1 py-1"
+              className="max-h-56 overflow-y-auto border-t border-border bg-bg/40 px-1 py-1"
               aria-label={t('savesList')}
             >
               {saves === null ? (
-                <li className="px-3 py-2 text-xs text-slate-500">
+                <li className="px-3 py-2 text-xs text-fg-faint">
                   {tCommon('loading')}
                 </li>
               ) : saves.length === 0 ? (
-                <li className="px-3 py-2 text-xs text-slate-500">
+                <li className="px-3 py-2 text-xs text-fg-faint">
                   {t('noSaves')}
                 </li>
               ) : (
@@ -208,14 +208,14 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
                       type="button"
                       onClick={() => handleLoad(s.id)}
                       className={cn(
-                        'flex w-full flex-col gap-0.5 rounded-md px-3 py-2 text-left transition hover:bg-slate-800/70',
-                        s.id === saveId && 'bg-indigo-500/10',
+                        'flex w-full flex-col gap-0.5 rounded-md px-3 py-2 text-left transition hover:bg-surface-2/70',
+                        s.id === saveId && 'bg-accent/10',
                       )}
                     >
-                      <span className="truncate text-xs font-semibold text-slate-100">
+                      <span className="truncate text-xs font-semibold text-fg">
                         {s.name}
                       </span>
-                      <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                      <span className="text-[10px] uppercase tracking-wider text-fg-faint">
                         {new Date(s.savedAt).toLocaleString()}
                       </span>
                     </button>
@@ -234,7 +234,7 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
             onSelect={handleImportPick}
             disabled={!persistenceOk}
           />
-          <div className="border-t border-slate-800" />
+          <div className="border-t border-border" />
           <MenuItem label={t('exit')} onSelect={handleExit} tone="danger" />
         </div>
       ) : null}
@@ -273,14 +273,14 @@ function MenuItem({
       className={cn(
         'flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-semibold transition',
         tone === 'danger'
-          ? 'text-rose-300 hover:bg-rose-500/10'
-          : 'text-slate-200 hover:bg-slate-800/70',
-        disabled && 'cursor-not-allowed text-slate-500 hover:bg-transparent',
+          ? 'text-danger hover:bg-danger/10'
+          : 'text-fg-muted hover:bg-surface-2/70',
+        disabled && 'cursor-not-allowed text-fg-faint hover:bg-transparent',
       )}
     >
       <span>{label}</span>
       {typeof expanded === 'boolean' ? (
-        <span aria-hidden="true" className="text-slate-500">
+        <span aria-hidden="true" className="text-fg-faint">
           {expanded ? '▾' : '▸'}
         </span>
       ) : null}

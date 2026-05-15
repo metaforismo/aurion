@@ -25,6 +25,7 @@ import {
   type GameStoreState,
 } from '../../lib/store';
 import { ScenarioId } from '../../lib/scenarios';
+import { toneChip } from '../../lib/theme';
 import { ActionButton } from './shared/ActionButton';
 import { EmptyState } from './shared/EmptyState';
 import { useScenarioMessages } from './shared/useScenarioMessages';
@@ -36,10 +37,10 @@ function relationKey(a: CountryId, b: CountryId): RelationKey {
 }
 
 const TREATY_TONE: Record<TreatyKind, string> = {
-  alliance: 'border-emerald-700 bg-emerald-500/15 text-emerald-200',
-  tradeDeal: 'border-indigo-700 bg-indigo-500/15 text-indigo-200',
-  nonAggression: 'border-slate-700 bg-slate-800 text-slate-300',
-  sanctions: 'border-rose-700 bg-rose-500/15 text-rose-200',
+  alliance: toneChip('success'),
+  tradeDeal: toneChip('info'),
+  nonAggression: toneChip('neutral'),
+  sanctions: toneChip('danger'),
 };
 
 export function DiplomacyPanel({
@@ -107,7 +108,7 @@ export function DiplomacyPanel({
     <div className="flex flex-col gap-3 p-4">
       {/* Sort toolbar */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs uppercase tracking-wider text-slate-500">
+        <span className="text-xs uppercase tracking-wider text-fg-faint">
           {t('countries.title')} ({rows.length})
         </span>
         <div className="flex gap-1" role="group" aria-label={t('sort.label')}>
@@ -120,8 +121,8 @@ export function DiplomacyPanel({
               className={cn(
                 'rounded border px-2 py-0.5 text-[11px] transition',
                 sortMode === m
-                  ? 'border-indigo-500 bg-indigo-500/15 text-indigo-100'
-                  : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-600',
+                  ? 'border-accent bg-accent/15 text-accent'
+                  : 'border-border-strong bg-surface-1 text-fg-muted hover:border-border-strong',
               )}
             >
               {t(`sort.${m}`)}
@@ -215,10 +216,10 @@ function CountryRow({
   const attitude = relation?.attitude ?? 0;
   const attitudeTone =
     attitude >= 30
-      ? 'text-emerald-300'
+      ? 'text-success'
       : attitude <= -30
-        ? 'text-rose-300'
-        : 'text-slate-300';
+        ? 'text-danger'
+        : 'text-fg';
   const treaties = relation?.treaties ?? [];
   const atWar = !!relation?.atWar;
   const allied = treaties.includes('alliance');
@@ -232,8 +233,8 @@ function CountryRow({
   return (
     <article
       className={cn(
-        'rounded-md border bg-slate-900/40 transition',
-        expanded ? 'border-indigo-700' : 'border-slate-800 hover:border-slate-700',
+        'rounded-md border bg-surface/40 transition',
+        expanded ? 'border-accent' : 'border-border hover:border-border-strong',
       )}
     >
       <button
@@ -244,27 +245,27 @@ function CountryRow({
       >
         <span
           aria-hidden
-          className="inline-block h-3 w-3 shrink-0 rounded-full border border-slate-800"
+          className="inline-block h-3 w-3 shrink-0 rounded-full border border-border"
           style={{ backgroundColor: country.color }}
         />
-        <span className="flex-1 truncate text-xs font-medium text-slate-100">
+        <span className="flex-1 truncate text-xs font-medium text-fg">
           {otherName}
         </span>
-        <span className={cn('font-mono text-[11px] tabular-nums', attitudeTone)}>
+        <span className={cn('font-mono text-[11px] numeric-tabular', attitudeTone)}>
           {attitude > 0 ? `+${attitude}` : attitude}
         </span>
         {atWar ? (
-          <span className="rounded-full border border-rose-700 bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-mono uppercase text-rose-200">
+          <span className="rounded-full border border-danger bg-danger/15 px-1.5 py-0.5 text-[10px] font-mono uppercase text-danger">
             {t('atWar')}
           </span>
         ) : null}
         {treaties.length > 0 ? (
-          <span className="text-[10px] text-slate-500">{treaties.length}</span>
+          <span className="text-[10px] text-fg-faint">{treaties.length}</span>
         ) : null}
       </button>
 
       {expanded ? (
-        <div className="flex flex-col gap-2 border-t border-slate-800 p-2">
+        <div className="flex flex-col gap-2 border-t border-border p-2">
           {/* Treaties */}
           {treaties.length > 0 ? (
             <ul className="flex flex-wrap gap-1">
@@ -281,7 +282,7 @@ function CountryRow({
               ))}
             </ul>
           ) : (
-            <p className="text-[11px] italic text-slate-500">{t('noTreaties')}</p>
+            <p className="text-[11px] italic text-fg-faint">{t('noTreaties')}</p>
           )}
 
           {/* Actions */}
@@ -374,7 +375,7 @@ function CountryRow({
             )}
           </div>
 
-          <p className="text-[10px] text-slate-600">
+          <p className="text-[10px] text-fg-faint">
             {t('hint.relation', { player: playerName, other: otherName })}
           </p>
         </div>

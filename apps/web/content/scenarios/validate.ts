@@ -10,7 +10,30 @@
 import scenarioJson from './ascesa-aurion.json' with { type: 'json' };
 import itStrings from './ascesa-aurion.it.json' with { type: 'json' };
 import enStrings from './ascesa-aurion.en.json' with { type: 'json' };
-import type { Scenario, CountryInit, TechDefinition, EventDefinition } from '@aurion/engine';
+import type {
+  Scenario,
+  CountryInit,
+  TechDefinition,
+  EventDefinition,
+  EventTag,
+} from '@aurion/engine';
+
+// Mirror the EventTag union as a runtime allow-list so the validator can warn
+// on tags outside the closed taxonomy. Keep this in sync with `EventTag` in
+// packages/engine/src/types.ts.
+const KNOWN_EVENT_TAGS: ReadonlySet<EventTag> = new Set<EventTag>([
+  'politics',
+  'faction',
+  'economy',
+  'military',
+  'diplomacy',
+  'intelligence',
+  'space',
+  'social',
+  'crisis',
+  'opportunity',
+  'narrative',
+]);
 
 // ---------------------------------------------------------------------------
 // Step 1: Type-check the scenario JSON against the engine's `Scenario` type.
@@ -118,7 +141,33 @@ for (const c of scenario.countries) {
 // ---------------------------------------------------------------------------
 
 const eventErrors: string[] = [];
+const eventTagWarnings: string[] = [];
+const tagCounts: Record<string, number> = {};
+
 for (const e of scenario.eventPool) {
+  // ---- 6a: tags taxonomy --------------------------------------------------
+  // Every event must declare at least one tag. Tags must be lowercase strings
+  // and should belong to the EventTag union; unknown tags surface as warnings
+  // (not errors) so the validator stays useful while the taxonomy evolves.
+  const tags = e.tags;
+  if (!tags || tags.length === 0) {
+    eventErrors.push(`Event "${e.id}" has no tags (every event must have at least one)`);
+  } else {
+    for (const tag of tags) {
+      if (typeof tag !== 'string' || tag !== tag.toLowerCase() || /\s/.test(tag)) {
+        eventErrors.push(
+          `Event "${e.id}" has invalid tag "${String(tag)}" (must be lowercase, no whitespace)`,
+        );
+        continue;
+      }
+      tagCounts[tag] = (tagCounts[tag] ?? 0) + 1;
+      if (!KNOWN_EVENT_TAGS.has(tag as EventTag)) {
+        eventTagWarnings.push(`Event "${e.id}" uses unknown tag "${tag}"`);
+      }
+    }
+  }
+
+  // ---- 6b: choice effect references --------------------------------------
   for (const choice of e.choices) {
     for (const eff of choice.effects) {
       switch (eff.type) {
@@ -238,6 +287,7 @@ console.log('  playable:            ', scenario.playableCountries.length);
 console.log('  relations:           ', scenario.relations.length);
 console.log('  techTree:            ', scenario.techTree.length, '(by branch)', techByBranch);
 console.log('  eventPool:           ', scenario.eventPool.length, '(by trigger)', eventByTrigger);
+console.log('  event tags:          ', tagCounts);
 console.log('  victoryConditions:   ', scenario.victoryConditions.length);
 console.log('  difficulties:        ', scenario.difficulties.length);
 console.log('  AI archetypes:       ', archetypeCounts);
@@ -252,6 +302,10 @@ if (orphanIt.length > 0) {
 if (orphanEn.length > 0) {
   console.warn('  EN orphan keys (not referenced in scenario):');
   for (const k of orphanEn) console.warn('    -', k);
+}
+if (eventTagWarnings.length > 0) {
+  console.warn('  Event tag warnings (unknown tag values, non-fatal):');
+  for (const w of eventTagWarnings) console.warn('    -', w);
 }
 
 if (allErrors.length > 0) {

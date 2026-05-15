@@ -15,21 +15,21 @@ export function PopularityBadge() {
   const popularity = Math.round(player?.politics.popularity ?? 0);
   const tone =
     popularity < 30
-      ? 'bg-rose-400'
+      ? 'bg-danger'
       : popularity <= 60
-        ? 'bg-amber-400'
-        : 'bg-emerald-400';
+        ? 'bg-warning'
+        : 'bg-success';
 
   return (
-    <div className="flex items-center gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-3 py-1.5">
+    <div className="flex items-center gap-2 rounded-md border border-border bg-bg/40 px-3 py-1.5">
       <span
         className={cn('inline-block h-2.5 w-2.5 rounded-full', tone)}
         aria-hidden="true"
       />
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-faint">
         {t('popularity')}
       </span>
-      <span className="font-mono text-sm tabular-nums text-slate-100">
+      <span className="numeric-tabular font-mono text-sm text-fg">
         {popularity}%
       </span>
     </div>

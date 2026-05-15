@@ -74,7 +74,7 @@ export default function MapNation(props: MapNationProps) {
         pointerEvents="all"
       />
 
-      {/* Player halo — soft golden glow. */}
+      {/* Player halo — soft accent glow. */}
       {props.isPlayer ? (
         <>
           <circle
@@ -82,7 +82,7 @@ export default function MapNation(props: MapNationProps) {
             cy={props.cy}
             r={haloRadius + 3}
             fill="none"
-            stroke="#fbbf24"
+            stroke="var(--color-accent)"
             strokeOpacity={0.25}
             strokeWidth={6}
             pointerEvents="none"
@@ -92,7 +92,7 @@ export default function MapNation(props: MapNationProps) {
             cy={props.cy}
             r={haloRadius}
             fill="none"
-            stroke="#fbbf24"
+            stroke="var(--color-accent)"
             strokeOpacity={0.85}
             strokeWidth={2.5}
             pointerEvents="none"
@@ -100,14 +100,14 @@ export default function MapNation(props: MapNationProps) {
         </>
       ) : null}
 
-      {/* Selected ring — crisp white. */}
+      {/* Selected ring — crisp foreground. */}
       {props.isSelected ? (
         <circle
           cx={props.cx}
           cy={props.cy}
           r={ringRadius}
           fill="none"
-          stroke="#f8fafc"
+          stroke="var(--color-fg)"
           strokeWidth={2}
           strokeDasharray="4 3"
           pointerEvents="none"
@@ -121,7 +121,7 @@ export default function MapNation(props: MapNationProps) {
           cy={props.cy}
           r={ringRadius}
           fill="none"
-          stroke="#cbd5e1"
+          stroke="var(--color-fg-muted)"
           strokeOpacity={0.7}
           strokeWidth={1.5}
           pointerEvents="none"
@@ -134,7 +134,7 @@ export default function MapNation(props: MapNationProps) {
         cy={props.cy}
         r={props.radius}
         fill={fill}
-        stroke="#0f172a"
+        stroke="var(--color-bg)"
         strokeWidth={1.5}
         pointerEvents="none"
       />
