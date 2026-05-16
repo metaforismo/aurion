@@ -149,6 +149,12 @@ export default function WorldMap() {
   }, [scenario, locale]);
 
   // -- Geometry sanity check (dev only) -------------------------------------
+  // Surfaced as console.error so the bench's CI / dev console treats them
+  // as loud signals (the warn channel is too noisy with autoplay rejections
+  // to be useful for layout drift). Stale-entry detection is intentionally
+  // not exercised here — see `validateGeometry`'s `allKnownCountryIds`
+  // contract — because positions are shared across scenarios and a per-
+  // scenario stale loop would flag every non-active scenario's entries.
   useEffect(() => {
     if (!scenario) return;
     if (process.env.NODE_ENV === 'production') return;
@@ -156,7 +162,7 @@ export default function WorldMap() {
       scenario.countries.map((c) => ({ id: c.id, regionId: c.regionId })),
     );
     for (const w of warnings) {
-      console.warn(w);
+      console.error(w);
     }
   }, [scenario]);
 

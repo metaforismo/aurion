@@ -25,7 +25,7 @@ import type {
   UNVote,
 } from '../types.js';
 import type { Rng } from '../rng.js';
-import { clamp } from '../actions/helpers.js';
+import { clamp, ensureRelation, withRelation } from '../actions/helpers.js';
 import {
   evaluateActionTrigger,
   evaluatePeriodicTriggers,
@@ -411,8 +411,45 @@ function pickProposer(
 }
 
 // ---------------------------------------------------------------------------
-// Effects — minimal applier
+// Effects — applier
 // ---------------------------------------------------------------------------
+
+/**
+ * Module-level set tracking `(resolutionTitleKey, effect.type)` pairs we've
+ * already warned about. Prevents log spam when the same unsupported effect
+ * fires every tick (e.g. a scenario template authored before the engine
+ * knows how to handle a given effect type). The warning text includes the
+ * resolution's titleKey so devs can locate the offending template quickly.
+ */
+const warnedUnsupportedEffects = new Set<string>();
+
+function warnOnceUnsupported(resolution: UNResolution, effectType: string): void {
+  const key = `${resolution.titleKey}::${effectType}`;
+  if (warnedUnsupportedEffects.has(key)) return;
+  warnedUnsupportedEffects.add(key);
+  console.warn(
+    `[un] dropped unsupported effect '${effectType}' from resolution '${resolution.titleKey}' (${resolution.kind}); ` +
+      'fix the template or extend applyEventEffects to handle it.',
+  );
+}
+
+function warnOnceUnsupportedStat(resolution: UNResolution, stat: string): void {
+  const key = `${resolution.titleKey}::modifyStat::${stat}`;
+  if (warnedUnsupportedEffects.has(key)) return;
+  warnedUnsupportedEffects.add(key);
+  console.warn(
+    `[un] dropped unsupported stat '${stat}' (modifyStat) from resolution '${resolution.titleKey}' (${resolution.kind}); ` +
+      'fix the template or extend applyStatPatch to handle it.',
+  );
+}
+
+/**
+ * Test-only helper: clears the warn-once dedup set so unit tests can assert
+ * the warning fires on the first drop. Engine code never calls this.
+ */
+export function _resetUnsupportedEffectWarnings(): void {
+  warnedUnsupportedEffects.clear();
+}
 
 function applyEventEffects(
   state: GameState,
@@ -421,32 +458,92 @@ function applyEventEffects(
 ): GameState {
   let next = state;
   for (const e of effects) {
-    if (e.type !== 'modifyStat') continue;
-    // Resolve target: 'player' → playerCountryId; specific id → that country.
-    let targetId: CountryId | null = null;
-    if (e.target === 'player') targetId = state.playerCountryId;
-    else if (typeof e.target === 'string') {
-      // If the literal id 'target' is used, route to the resolution target.
-      if (e.target === 'target' && resolution.targetCountryId) {
-        targetId = resolution.targetCountryId;
-      } else {
-        targetId = e.target;
+    switch (e.type) {
+      case 'modifyStat': {
+        // Resolve target: 'player' → playerCountryId; specific id → that country.
+        let targetId: CountryId | null = null;
+        if (e.target === 'player') targetId = state.playerCountryId;
+        else if (typeof e.target === 'string') {
+          // If the literal id 'target' is used, route to the resolution target.
+          if (e.target === 'target' && resolution.targetCountryId) {
+            targetId = resolution.targetCountryId;
+          } else {
+            targetId = e.target;
+          }
+        }
+        if (!targetId) continue;
+        // worldTension is global — apply directly without needing the country.
+        if (e.stat === 'worldTension') {
+          next = applyStatPatch(next, null, e.stat, e.delta, resolution);
+          continue;
+        }
+        const country = next.countries[targetId];
+        if (!country) continue;
+        next = applyStatPatch(next, country, e.stat, e.delta, resolution);
+        break;
+      }
+      case 'shiftAttitude': {
+        // Shift relation attitude between the resolution's proposer and the
+        // declared `with` country. Symmetric, signed, clamped to [-100,+100].
+        const a = resolution.proposerCountryId;
+        const b = e.with;
+        if (a === b) continue;
+        if (!next.countries[a] || !next.countries[b]) continue;
+        const ensured = ensureRelation(next, a, b);
+        const newAttitude = clamp(ensured.relation.attitude + e.delta, -100, 100);
+        next = withRelation(ensured.state, {
+          ...ensured.relation,
+          attitude: newAttitude,
+        });
+        break;
+      }
+      case 'startResearch': {
+        // Set science.activeResearch on the target country. No-op if the
+        // country is already researching something — we don't want to
+        // interrupt an in-progress effort.
+        const country = next.countries[e.target];
+        if (!country) continue;
+        if (country.science.activeResearch !== null) continue;
+        const updated: Country = {
+          ...country,
+          science: { ...country.science, activeResearch: e.techId },
+        };
+        next = {
+          ...next,
+          countries: { ...next.countries, [country.id]: updated },
+        };
+        break;
+      }
+      case 'spawnSpy': {
+        // Skipped intentionally — needs design decisions (op duration, success
+        // probability, payload defaults). Warn so authors notice.
+        warnOnceUnsupported(resolution, e.type);
+        break;
+      }
+      default: {
+        // Forward-compat: unknown effect types are warned but never crash.
+        const unknown = e as { type: string };
+        warnOnceUnsupported(resolution, unknown.type);
+        break;
       }
     }
-    if (!targetId) continue;
-    const country = next.countries[targetId];
-    if (!country) continue;
-    next = applyStatPatch(next, country, e.stat, e.delta);
   }
   return next;
 }
 
 function applyStatPatch(
   state: GameState,
-  country: Country,
+  country: Country | null,
   stat: string,
   delta: number,
+  resolution: UNResolution,
 ): GameState {
+  // worldTension is the only global stat; routed in by applyEventEffects with
+  // country === null. All other stats require a country.
+  if (stat === 'worldTension') {
+    return { ...state, worldTension: clamp(state.worldTension + delta, 0, 100) };
+  }
+  if (!country) return state;
   let updated: Country = country;
   switch (stat) {
     case 'popularity':
@@ -470,10 +567,44 @@ function applyStatPatch(
         economy: { ...country.economy, gdp: Math.max(0, country.economy.gdp + delta) },
       };
       break;
-    case 'worldTension':
-      // Stat is global rather than per-country; ignore the country and set on state.
-      return { ...state, worldTension: clamp(state.worldTension + delta, 0, 100) };
+    case 'armySize':
+      updated = {
+        ...country,
+        military: {
+          ...country.military,
+          armySize: Math.max(0, country.military.armySize + delta),
+        },
+      };
+      break;
+    case 'doctrineLevel':
+      updated = {
+        ...country,
+        military: {
+          ...country.military,
+          doctrineLevel: clamp(country.military.doctrineLevel + delta, 0, 1),
+        },
+      };
+      break;
+    case 'taxRate':
+      updated = {
+        ...country,
+        economy: {
+          ...country.economy,
+          taxRate: clamp(country.economy.taxRate + delta, 0, 100),
+        },
+      };
+      break;
+    case 'spyCount':
+      updated = {
+        ...country,
+        intelligence: {
+          ...country.intelligence,
+          spyCount: Math.max(0, country.intelligence.spyCount + delta),
+        },
+      };
+      break;
     default:
+      warnOnceUnsupportedStat(resolution, stat);
       return state;
   }
   return { ...state, countries: { ...state.countries, [country.id]: updated } };

@@ -297,6 +297,39 @@ test.describe('Phase 3 — UN panel', () => {
     ).toBeVisible();
   });
 
+  test('Mondo Contemporaneo grants the player UN council status when picking Italy', async ({
+    page,
+  }) => {
+    // Regression: previously the MC scenario's `unCouncilMembers` list did
+    // not intersect `playableCountries`, so the player could never propose
+    // or veto resolutions through the normal UI path. Adding mc-italy to
+    // the council closes that gap. We verify the panel reports council
+    // membership rather than the "only council members may vote" warning.
+    await startNewGame(page, {
+      locale: 'it',
+      scenarioId: 'mondo-contemporaneo',
+      countryId: 'mc-italy',
+      victoryId: 'economic',
+      difficultyId: 'normal',
+      gameMode: 'classic',
+    });
+    await waitForPlayReady(page, 'it');
+    await dismissAllEventModals(page);
+
+    const unTab = page.getByRole('tab', { name: /ONU|UN/i });
+    await expect(unTab).toBeVisible();
+    await unTab.click();
+
+    // i18n key panelUN.councilMember (IT: "Membro del consiglio").
+    await expect(
+      page.getByText(/Membro del consiglio|Council member/i).first(),
+    ).toBeVisible();
+    // And the negative chip must NOT be visible.
+    await expect(
+      page.getByText(/Solo i membri del consiglio possono votare/i),
+    ).toHaveCount(0);
+  });
+
   test('bloc-less scenario hides ReputationBadges', async ({ page }) => {
     // Quick Start is the only scenario shipped without a `blocs` definition.
     // Ascesa di Aurion / Mondo Contemporaneo / Guerra Fredda all carry a bloc

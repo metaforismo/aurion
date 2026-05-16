@@ -6,6 +6,7 @@ import { applyProposeUNResolution } from '../src/actions/proposeUNResolution.js'
 import { tick } from '../src/tick.js';
 import { createRng } from '../src/rng.js';
 import {
+  _resetUnsupportedEffectWarnings,
   initUN,
   maybeTriggerFromAction,
   openResolutionFromTemplate,
@@ -341,5 +342,228 @@ describe('AI proposes / votes', () => {
     expect(next.unResolutions?.length).toBe(1);
     expect(next.unResolutions?.[0]?.proposerCountryId).toBe('meridia');
     expect(next.unResolutions?.[0]?.targetCountryId).toBe('aurion');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// applyEventEffects coverage: stats and non-modifyStat effect types that were
+// previously silently dropped.
+// ---------------------------------------------------------------------------
+describe('applyEventEffects: expanded stat + effect coverage', () => {
+  /**
+   * Helper: open a resolution from a custom template, advance to closure, and
+   * drive tickUN once so the onPass effects fire.
+   */
+  function runPassingResolution(
+    state: ReturnType<typeof freshState>,
+    template: import('../src/index.js').UNResolutionTemplate,
+    proposer: string = 'aurion',
+    target?: string,
+  ) {
+    let s = openResolutionFromTemplate(state, template, proposer, target);
+    const id = s.unResolutions![s.unResolutions!.length - 1]!.id;
+    // Force every other AI vote to yes so the resolution passes.
+    for (const cid of Object.keys(s.countries)) {
+      if (cid === proposer) continue;
+      s = applyVoteUN(s, { type: 'voteUN', resolutionId: id, vote: 'yes' }, cid, scenario).state;
+    }
+    s = { ...s, tick: s.tick + template.votingDurationTicks + 1 };
+    return tickUN(s, scenario, createRng('apply-fx'));
+  }
+
+  it('modifies armySize via modifyStat (clamped to >=0)', () => {
+    const before = freshState('army-stat').countries.aurion!.military.armySize;
+    const tmpl: import('../src/index.js').UNResolutionTemplate = {
+      kind: 'peacekeeping',
+      titleKey: 'un.test.army',
+      descriptionKey: 'un.test.army.desc',
+      votingDurationTicks: 2,
+      effects: {
+        onPass: [{ type: 'modifyStat', target: 'player', stat: 'armySize', delta: 250 }],
+        onFail: [],
+      },
+    };
+    const s = runPassingResolution(freshState('army-stat'), tmpl);
+    expect(s.countries.aurion!.military.armySize).toBe(before + 250);
+  });
+
+  it('modifies doctrineLevel via modifyStat (clamped to [0,1])', () => {
+    const tmpl: import('../src/index.js').UNResolutionTemplate = {
+      kind: 'peacekeeping',
+      titleKey: 'un.test.doctrine',
+      descriptionKey: 'un.test.doctrine.desc',
+      votingDurationTicks: 2,
+      effects: {
+        onPass: [{ type: 'modifyStat', target: 'player', stat: 'doctrineLevel', delta: 100 }],
+        onFail: [],
+      },
+    };
+    const s = runPassingResolution(freshState('doctrine-stat'), tmpl);
+    // Clamped at 1, not 100 + 0.3 baseline.
+    expect(s.countries.aurion!.military.doctrineLevel).toBe(1);
+  });
+
+  it('modifies taxRate via modifyStat (clamped to [0,100])', () => {
+    const tmpl: import('../src/index.js').UNResolutionTemplate = {
+      kind: 'climate',
+      titleKey: 'un.test.tax',
+      descriptionKey: 'un.test.tax.desc',
+      votingDurationTicks: 2,
+      effects: {
+        onPass: [{ type: 'modifyStat', target: 'player', stat: 'taxRate', delta: 5 }],
+        onFail: [],
+      },
+    };
+    const before = freshState('tax-stat').countries.aurion!.economy.taxRate;
+    const s = runPassingResolution(freshState('tax-stat'), tmpl);
+    expect(s.countries.aurion!.economy.taxRate).toBe(before + 5);
+  });
+
+  it('modifies spyCount via modifyStat (clamped to >=0)', () => {
+    const tmpl: import('../src/index.js').UNResolutionTemplate = {
+      kind: 'nonProliferation',
+      titleKey: 'un.test.spy',
+      descriptionKey: 'un.test.spy.desc',
+      votingDurationTicks: 2,
+      effects: {
+        onPass: [{ type: 'modifyStat', target: 'player', stat: 'spyCount', delta: -1000 }],
+        onFail: [],
+      },
+    };
+    const s = runPassingResolution(freshState('spy-stat'), tmpl);
+    expect(s.countries.aurion!.intelligence.spyCount).toBe(0);
+  });
+
+  it('applies shiftAttitude between proposer and target country', () => {
+    const tmpl: import('../src/index.js').UNResolutionTemplate = {
+      kind: 'recognition',
+      titleKey: 'un.test.shift',
+      descriptionKey: 'un.test.shift.desc',
+      votingDurationTicks: 2,
+      effects: {
+        onPass: [{ type: 'shiftAttitude', with: 'borealis', delta: 15 }],
+        onFail: [],
+      },
+    };
+    // Proposer aurion ↔ borealis attitude starts at 50 (per phase3 fixture).
+    const before = 50;
+    const s = runPassingResolution(freshState('shift-attitude'), tmpl, 'aurion');
+    const key = 'aurion::borealis' as const;
+    expect(s.relations[key]?.attitude).toBe(before + 15);
+  });
+
+  it('clamps shiftAttitude into [-100, 100]', () => {
+    const tmpl: import('../src/index.js').UNResolutionTemplate = {
+      kind: 'recognition',
+      titleKey: 'un.test.shift.clamp',
+      descriptionKey: 'un.test.shift.clamp.desc',
+      votingDurationTicks: 2,
+      effects: {
+        onPass: [{ type: 'shiftAttitude', with: 'borealis', delta: 10_000 }],
+        onFail: [],
+      },
+    };
+    const s = runPassingResolution(freshState('shift-clamp'), tmpl, 'aurion');
+    const key = 'aurion::borealis' as const;
+    expect(s.relations[key]?.attitude).toBe(100);
+  });
+
+  it('applies startResearch effect (sets activeResearch when idle)', () => {
+    const tmpl: import('../src/index.js').UNResolutionTemplate = {
+      kind: 'climate',
+      titleKey: 'un.test.research',
+      descriptionKey: 'un.test.research.desc',
+      votingDurationTicks: 2,
+      effects: {
+        onPass: [{ type: 'startResearch', target: 'aurion', techId: 'tech_industry_basics' }],
+        onFail: [],
+      },
+    };
+    const s = runPassingResolution(freshState('start-research'), tmpl);
+    expect(s.countries.aurion!.science.activeResearch).toBe('tech_industry_basics');
+  });
+
+  it('startResearch is a no-op when target is already researching', () => {
+    const tmpl: import('../src/index.js').UNResolutionTemplate = {
+      kind: 'climate',
+      titleKey: 'un.test.research.busy',
+      descriptionKey: 'un.test.research.busy.desc',
+      votingDurationTicks: 2,
+      effects: {
+        onPass: [{ type: 'startResearch', target: 'aurion', techId: 'tech_doctrine_basic' }],
+        onFail: [],
+      },
+    };
+    let base = freshState('research-busy');
+    // Pre-set a different active research to verify it isn't overwritten.
+    base = {
+      ...base,
+      countries: {
+        ...base.countries,
+        aurion: {
+          ...base.countries.aurion!,
+          science: {
+            ...base.countries.aurion!.science,
+            activeResearch: 'tech_industry_basics',
+          },
+        },
+      },
+    };
+    const s = runPassingResolution(base, tmpl);
+    expect(s.countries.aurion!.science.activeResearch).toBe('tech_industry_basics');
+  });
+
+  it('spawnSpy is skipped and warns once per (resolution, type) pair', () => {
+    _resetUnsupportedEffectWarnings();
+    const warnings: string[] = [];
+    const orig = console.warn;
+    console.warn = (...args: unknown[]) => warnings.push(args.join(' '));
+    try {
+      const tmpl: import('../src/index.js').UNResolutionTemplate = {
+        kind: 'sanctions',
+        titleKey: 'un.test.spawnspy',
+        descriptionKey: 'un.test.spawnspy.desc',
+        votingDurationTicks: 2,
+        effects: {
+          onPass: [
+            { type: 'spawnSpy', against: 'borealis', opType: 'steal_tech' },
+            { type: 'spawnSpy', against: 'borealis', opType: 'sabotage' },
+          ],
+          onFail: [],
+        },
+      };
+      // Run two passing resolutions of the SAME template — only one warning.
+      runPassingResolution(freshState('spawnspy-1'), tmpl);
+      runPassingResolution(freshState('spawnspy-2'), tmpl);
+      const spawnSpyWarnings = warnings.filter((w) => w.includes('spawnSpy'));
+      expect(spawnSpyWarnings.length).toBe(1);
+    } finally {
+      console.warn = orig;
+    }
+  });
+
+  it('warns once for an unknown stat passed via modifyStat', () => {
+    _resetUnsupportedEffectWarnings();
+    const warnings: string[] = [];
+    const orig = console.warn;
+    console.warn = (...args: unknown[]) => warnings.push(args.join(' '));
+    try {
+      const tmpl: import('../src/index.js').UNResolutionTemplate = {
+        kind: 'humanitarian',
+        titleKey: 'un.test.bogusstat',
+        descriptionKey: 'un.test.bogusstat.desc',
+        votingDurationTicks: 2,
+        effects: {
+          onPass: [{ type: 'modifyStat', target: 'player', stat: 'someBogusStat', delta: 1 }],
+          onFail: [],
+        },
+      };
+      runPassingResolution(freshState('bogus-stat-1'), tmpl);
+      runPassingResolution(freshState('bogus-stat-2'), tmpl);
+      const bogus = warnings.filter((w) => w.includes('someBogusStat'));
+      expect(bogus.length).toBe(1);
+    } finally {
+      console.warn = orig;
+    }
   });
 });

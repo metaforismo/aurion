@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../src/createGame.js';
-import { applyAction } from '../src/actions/index.js';
+import { applyAction, ACTION_LOG_CAP } from '../src/actions/index.js';
 import { applyDismantleNuclear } from '../src/actions/dismantleNuclear.js';
 import { applyJoinBloc } from '../src/actions/joinBloc.js';
 import { applyLeaveBloc } from '../src/actions/leaveBloc.js';
@@ -307,5 +307,140 @@ describe('audit: leaveBloc → joinBloc roster consistency', () => {
     expect(s.blocs?.eastern?.memberCountryIds).toContain('aurion');
     expect(s.blocs?.western?.memberCountryIds).not.toContain('aurion');
     expect(s.countries.aurion!.blocId).toBe('eastern');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bug 3 (FIXED): state.actionLog was initialized to [] in non-classic modes
+// but applyAction never pushed entries into it. Replay tooling has nothing
+// to consume. The fix appends an ActionLogEntry after every SUCCESSFUL
+// applyAction call when actionLog is defined, ring-capped at 1000.
+// ---------------------------------------------------------------------------
+describe('audit: applyAction appends to actionLog when defined', () => {
+  it('successful actions are recorded in the log (eternal mode)', () => {
+    const s = createGame(phase3Scenario, {
+      seed: 'audit-actionlog',
+      victory: 'economic',
+      playerCountryId: 'aurion',
+      gameMode: 'eternal',
+    });
+    expect(s.actionLog).toEqual([]);
+    const r = applyAction(
+      s,
+      { type: 'setTaxRate', rate: 25 },
+      'aurion',
+      [],
+      undefined,
+      phase3Scenario,
+    );
+    expect(r.errors).toEqual([]);
+    expect(r.state.actionLog?.length).toBe(1);
+    const entry = r.state.actionLog![0]!;
+    expect(entry.countryId).toBe('aurion');
+    expect(entry.tick).toBe(s.tick);
+    expect(entry.action).toEqual({ type: 'setTaxRate', rate: 25 });
+  });
+
+  it('failed actions are NOT recorded in the log', () => {
+    const s = createGame(phase3Scenario, {
+      seed: 'audit-actionlog-fail',
+      victory: 'economic',
+      playerCountryId: 'aurion',
+      gameMode: 'eternal',
+    });
+    const r = applyAction(
+      s,
+      // Invalid: setTaxRate with out-of-range rate (>100) is rejected.
+      { type: 'setTaxRate', rate: 999 },
+      'aurion',
+      [],
+      undefined,
+      phase3Scenario,
+    );
+    expect(r.errors.length).toBeGreaterThan(0);
+    expect(r.state.actionLog?.length).toBe(0);
+  });
+
+  it('classic mode does not log (actionLog field absent)', () => {
+    const s = createGame(makeScenario(), {
+      seed: 'audit-actionlog-classic',
+      victory: 'economic',
+      playerCountryId: 'aurion',
+      // No gameMode → defaults to classic → actionLog stays undefined.
+    });
+    expect(s.actionLog).toBeUndefined();
+    const r = applyAction(
+      s,
+      { type: 'setTaxRate', rate: 25 },
+      'aurion',
+    );
+    expect(r.errors).toEqual([]);
+    expect(r.state.actionLog).toBeUndefined();
+  });
+
+  it('ring-buffer caps the log at ACTION_LOG_CAP entries', () => {
+    let s = createGame(phase3Scenario, {
+      seed: 'audit-actionlog-cap',
+      victory: 'economic',
+      playerCountryId: 'aurion',
+      gameMode: 'eternal',
+    });
+    // Synthesise a log already at the cap, then push two more entries and
+    // verify the oldest two were dropped (FIFO).
+    const synthEntries = Array.from({ length: ACTION_LOG_CAP }, (_, i) => ({
+      tick: i,
+      countryId: 'aurion',
+      action: { type: 'setTaxRate' as const, rate: 20 },
+    }));
+    s = { ...s, actionLog: synthEntries };
+    // First real append.
+    s = applyAction(
+      s,
+      { type: 'setTaxRate', rate: 31 },
+      'aurion',
+      [],
+      undefined,
+      phase3Scenario,
+    ).state;
+    expect(s.actionLog!.length).toBe(ACTION_LOG_CAP);
+    // Second real append.
+    s = applyAction(
+      s,
+      { type: 'setTaxRate', rate: 32 },
+      'aurion',
+      [],
+      undefined,
+      phase3Scenario,
+    ).state;
+    expect(s.actionLog!.length).toBe(ACTION_LOG_CAP);
+    // The two newest entries are at the END; oldest two were dropped.
+    const last = s.actionLog![ACTION_LOG_CAP - 1]!;
+    expect(last.action).toEqual({ type: 'setTaxRate', rate: 32 });
+    // Verify the first entry is no longer synthetic-tick-0 (it was dropped).
+    expect(s.actionLog![0]!.tick).not.toBe(0);
+  });
+
+  it('AI actions go through applyAction and are logged too', () => {
+    // Tick the phase3 scenario in eternal mode for a few rounds; the AI step
+    // funnels through applyAction so eventually the log grows beyond the
+    // single player setTaxRate we'll seed.
+    let s = createGame(phase3Scenario, {
+      seed: 'audit-actionlog-ai',
+      victory: 'economic',
+      playerCountryId: 'aurion',
+      gameMode: 'eternal',
+    });
+    const before = s.actionLog?.length ?? 0;
+    for (let i = 0; i < 25; i++) {
+      s = tick(s, {
+        scenario: phase3Scenario,
+        techCatalog: phase3Scenario.techTree,
+        eventPool: phase3Scenario.eventPool,
+      });
+    }
+    expect((s.actionLog?.length ?? 0)).toBeGreaterThan(before);
+    // At least one log entry should be from a non-player country (AI move).
+    const aiEntries = s.actionLog!.filter((e) => e.countryId !== 'aurion');
+    expect(aiEntries.length).toBeGreaterThan(0);
   });
 });

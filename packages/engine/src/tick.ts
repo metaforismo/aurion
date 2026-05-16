@@ -113,6 +113,14 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
   //      transition fires. No-op when state.eraState is undefined.
   if (ctx.scenario) next = tickEra(next, ctx.scenario);
 
+  // 9.6. UN tick step (advance voting windows, AI proposals, periodic triggers).
+  //      MUST run BEFORE checkWinLoss so a resolution whose effects close the
+  //      same tick (e.g. drops player popularity below the loss threshold)
+  //      is visible to the win/loss check in the same tick. Otherwise we lag
+  //      by one tick — the player sees the resolution close but the loss
+  //      fires only on the NEXT tick.
+  if (ctx.scenario) next = tickUN(next, ctx.scenario, rng);
+
   // 10. Win/loss. Loss-streak thresholds scaled by `lossToleranceWeeks`.
   //     Era-paced wins on reaching the LAST era's endTick.
   next = checkWinLoss(
@@ -126,9 +134,6 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
   // ----- Phase 3 extensions (steps 11–15) -----
   // 11. Apply queued reputation deltas + decay toward 0.
   next = tickReputation(next);
-
-  // 12. Run UN tick step (advance voting windows, AI proposals, periodic triggers).
-  if (ctx.scenario) next = tickUN(next, ctx.scenario, rng);
 
   // 13. Run bloc tick step (periodic leader recompute, AI defections).
   next = tickBlocs(next);

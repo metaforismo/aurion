@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionLogEntry,
   ApplyActionResult,
   CountryId,
   DifficultyTuning,
@@ -139,8 +140,32 @@ export function applyAction(
       result = { state: triggered, errors: result.errors };
     }
   }
+
+  // Phase 3 / Wave 11 scaffold: append a structured ActionLogEntry for any
+  // successful action when the game opted into the log (createGame stamps an
+  // empty array for non-classic modes). Failed actions never log — preserves
+  // replay fidelity by recording only state-mutating events. Cap at 1000
+  // entries (ring buffer; oldest dropped); the cap is generous because
+  // replay needs full fidelity.
+  if (result.errors.length === 0 && result.state.actionLog !== undefined) {
+    const entry: ActionLogEntry = {
+      tick: result.state.tick,
+      countryId: actor,
+      action,
+    };
+    const log = result.state.actionLog;
+    const appended = [...log, entry];
+    const trimmed =
+      appended.length > ACTION_LOG_CAP
+        ? appended.slice(appended.length - ACTION_LOG_CAP)
+        : appended;
+    result = { state: { ...result.state, actionLog: trimmed }, errors: result.errors };
+  }
   return result;
 }
+
+/** Ring-buffer cap for `state.actionLog`. Sized for full replay fidelity. */
+export const ACTION_LOG_CAP = 1000;
 
 const INVEST_TARGETS: readonly InvestTarget[] = [
   'economy',

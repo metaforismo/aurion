@@ -291,6 +291,10 @@ export class AudioManager {
   private warnOnce(key: string, message: string): void {
     if (this.warned.has(key)) return;
     this.warned.add(key);
+    // Devs want to see each unique audio issue exactly once. In production
+    // the warning is pure noise — the runtime already no-ops the failed
+    // clip via `cached.failed`, so swallowing it keeps consoles clean.
+    if (process.env.NODE_ENV === 'production') return;
     console.warn(message);
   }
 }
