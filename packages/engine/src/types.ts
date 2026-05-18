@@ -540,6 +540,27 @@ export type AchievementCondition =
   | { kind: 'spyOpsCompleted'; n: number }
   | { kind: 'completeWar'; wins: number }
   | { kind: 'survivedTicks'; n: number }
+  /**
+   * Phase 3 Wave 10 — at least one tactical OR strategic nuclear strike event
+   * is present in the (ring-buffered) `state.events` history. Used by the
+   * `scorched_earth` hidden achievement. Note: ring buffer caps at 50; the
+   * achievement is intended to be evaluated soon after the strike fires.
+   */
+  | { kind: 'launchedNuclear' }
+  /**
+   * Phase 3 Wave 10 — a strategic-MAD strike event is present in
+   * `state.events`, the player's country still exists with a nuclear arsenal
+   * present, and the player has not lost. Used by `mutually_assured`.
+   */
+  | { kind: 'survivedMad' }
+  /**
+   * Phase 3 Wave 10 — the player country has a `nuclear` field present (was
+   * nuclear at some point), currently has `warheadCount === 0`, and a UN
+   * non-proliferation resolution with status 'passed' is in force. Used by
+   * `disarmer` as a proxy for "dismantled ≥10 warheads under treaty" — the
+   * engine has no per-action dismantle counter yet (OPEN, Wave 11+).
+   */
+  | { kind: 'dismantledUnderTreaty' }
   | { kind: 'and'; conditions: AchievementCondition[] }
   | { kind: 'or'; conditions: AchievementCondition[] };
 

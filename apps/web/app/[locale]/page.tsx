@@ -7,6 +7,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 
+import { AchievementCounter } from '../../components/Hud/AchievementCounter';
 import { Link, usePathname, useRouter } from '../../i18n/navigation';
 import { routing, type AppLocale } from '../../i18n/routing';
 import { cn } from '../../lib/cn';
@@ -24,6 +25,7 @@ export default function HomePage() {
   const tApp = useTranslations('app');
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('errors');
+  const tTrofei = useTranslations('trofei');
 
   const [saves, setSaves] = useState<SaveSummary[] | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -92,7 +94,10 @@ export default function HomePage() {
             </p>
             <p className="text-sm text-fg-faint">{tApp('tagline')}</p>
           </div>
-          <LanguageSwitcher />
+          <div className="flex flex-col items-end gap-2">
+            <LanguageSwitcher />
+            <AchievementCounter />
+          </div>
         </header>
 
         <section className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -108,6 +113,16 @@ export default function HomePage() {
           </Link>
 
           <ImportButton onPick={handleImport} label={t('import')} />
+          <Link
+            href="/trofei"
+            className={cn(
+              'inline-flex w-full items-center justify-center rounded-xl border border-border bg-surface/40 px-6 py-3',
+              'text-base font-medium text-fg transition-colors',
+              'hover:border-border-strong hover:bg-surface sm:w-auto',
+            )}
+          >
+            {tTrofei('linkLabel')}
+          </Link>
           {importError ? (
             <p
               className="text-sm text-danger sm:basis-full"

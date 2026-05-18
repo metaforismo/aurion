@@ -54,6 +54,10 @@ export function MilitaryPanel({
   const state = useGameStore((s: GameStoreState) => s.state);
   const scenario = useGameStore((s: GameStoreState) => s.scenario);
   const applyAction = useGameStore((s: GameStoreState) => s.applyAction);
+  const pushActionToast = useGameStore(
+    (s: GameStoreState) => s.pushActionToast,
+  );
+  const tNotifications = useTranslations('notifications');
 
   const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
   const { t: tScenario } = useScenarioMessages(scenarioId);
@@ -242,10 +246,24 @@ export function MilitaryPanel({
 
   const confirmLaunch = async () => {
     if (!pendingLaunchAction) return;
+    const launchKind = pendingLaunchAction.type;
     const errors = await applyAction(pendingLaunchAction);
     setPendingLaunch(null);
     setPendingLaunchAction(null);
-    if (errors.length > 0 && onErrors) onErrors(errors);
+    if (errors.length > 0 && onErrors) {
+      onErrors(errors);
+      return;
+    }
+    // Success: surface a confirmation toast keyed on the kind of strike so
+    // the player has feedback that the engine accepted the launch order.
+    pushActionToast({
+      message: tNotifications(
+        launchKind === 'launchTactical'
+          ? 'nuclear.tacticalLaunched'
+          : 'nuclear.strategicLaunched',
+      ),
+      tone: 'warning',
+    });
   };
 
   // Total reputation boost the player would receive on confirm. With an
@@ -609,6 +627,7 @@ function NuclearArsenalSection({
         </select>
         <ActionButton
           tone="danger"
+          data-testid="nuclear-launch-tactical-button"
           disabledReason={
             noWarheads
               ? t('arsenal.noWarheads')
@@ -645,6 +664,7 @@ function NuclearArsenalSection({
         </select>
         <ActionButton
           tone="danger"
+          data-testid="nuclear-launch-strategic-button"
           disabledReason={
             noWarheads
               ? t('arsenal.noWarheads')

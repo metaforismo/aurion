@@ -79,6 +79,7 @@ export function AchievementToast() {
       role="status"
       aria-live="polite"
       aria-atomic="true"
+      data-testid="achievement-toast"
       className={cn(
         'fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)]',
         'rounded-xl border-2 bg-surface-1 shadow-2xl',

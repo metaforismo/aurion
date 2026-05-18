@@ -14,6 +14,7 @@ import type {
   GameState,
   RelationKey,
 } from '../types.js';
+import { STRIKE_EVENT_PREFIX } from '../nuclear/index.js';
 
 export { BUILTIN_ACHIEVEMENTS } from './builtin.js';
 
@@ -65,6 +66,12 @@ export function evaluateCondition(
       return playerWarsConsideredWon(state) >= condition.wins;
     case 'survivedTicks':
       return state.tick >= condition.n && state.winLoss !== 'lost';
+    case 'launchedNuclear':
+      return playerLaunchedNuclear(state);
+    case 'survivedMad':
+      return playerSurvivedMad(state);
+    case 'dismantledUnderTreaty':
+      return playerDismantledUnderTreaty(state);
     case 'and':
       return condition.conditions.every((c) => evaluateCondition(state, c));
     case 'or':
@@ -146,4 +153,66 @@ function playerWarsConsideredWon(state: GameState): number {
     if (rel && !rel.atWar) won++;
   }
   return won;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3 Wave 10 — nuclear achievement helpers.
+//
+// All three read from the `state.events` ring buffer (capped at 50 entries)
+// because the engine has no dedicated per-game nuclear counter yet
+// (OPEN, Wave 11+). The achievement evaluator is intended to be called soon
+// after the qualifying action, so the event is still present in the buffer.
+// ---------------------------------------------------------------------------
+
+/** True if any nuclear strike event (tactical or strategic) is in the ring. */
+function playerLaunchedNuclear(state: GameState): boolean {
+  for (const ev of state.events) {
+    if (ev.definitionId.startsWith(STRIKE_EVENT_PREFIX)) return true;
+  }
+  return false;
+}
+
+/**
+ * MAD survivor: a strategic strike with the `_mad` suffix has fired AND the
+ * player still has their nuclear field present AND has not been marked lost.
+ * The engine writes `event_nuclear_strike_strategic_<target>_mad` whenever a
+ * strategic strike hits an armed country.
+ */
+function playerSurvivedMad(state: GameState): boolean {
+  const player = state.countries[state.playerCountryId];
+  if (!player) return false;
+  if (state.winLoss === 'lost') return false;
+  if (!player.nuclear) return false;
+  for (const ev of state.events) {
+    if (
+      ev.definitionId.startsWith(STRIKE_EVENT_PREFIX) &&
+      ev.definitionId.includes('strategic') &&
+      ev.definitionId.endsWith('_mad')
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Proxy for "dismantled ≥10 warheads under non-proliferation treaty":
+ * player has a `nuclear` field (had an arsenal at some point), currently
+ * holds 0 warheads, and a passed UN non-proliferation resolution is in force.
+ * Exact dismantle-count tracking is OPEN until the engine adds a counter.
+ */
+function playerDismantledUnderTreaty(state: GameState): boolean {
+  const player = state.countries[state.playerCountryId];
+  if (!player) return false;
+  if (!player.nuclear) return false;
+  if (player.nuclear.warheadCount !== 0) return false;
+  if (!state.unResolutions || state.unResolutions.length === 0) return false;
+  let treatyPassed = false;
+  for (const r of state.unResolutions) {
+    if (r.kind === 'nonProliferation' && r.status === 'passed') {
+      treatyPassed = true;
+      break;
+    }
+  }
+  return treatyPassed;
 }

@@ -200,7 +200,7 @@ function Step1({
         </>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-4" data-testid="nuclear-confirm-stage-1">
         <p className={cn('font-semibold leading-relaxed', tone('danger'))}>
           {t('step1.body')}
         </p>
@@ -303,7 +303,7 @@ function Step2({
         </>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-4" data-testid="nuclear-confirm-stage-2">
         <p className={cn('font-semibold leading-relaxed', tone('danger'))}>
           {t('step2.body')}
         </p>
@@ -326,6 +326,7 @@ function Step2({
           </label>
           <input
             id="nuclear-confirm-input"
+            data-testid="nuclear-confirm-input"
             type="text"
             autoFocus
             autoComplete="off"

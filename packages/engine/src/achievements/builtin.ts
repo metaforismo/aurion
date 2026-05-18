@@ -179,4 +179,35 @@ export const BUILTIN_ACHIEVEMENTS: readonly AchievementDef[] = [
       ],
     },
   },
+
+  // ---- Phase 3 Wave 10 — nuclear MAD-tier hidden achievements -----------
+  {
+    id: 'scorched_earth',
+    nameKey: 'achievements.scorched_earth.name',
+    descKey: 'achievements.scorched_earth.description',
+    tier: 'gold',
+    hidden: true,
+    // Any tactical or strategic nuclear strike launched this game.
+    condition: { kind: 'launchedNuclear' },
+  },
+  {
+    id: 'mutually_assured',
+    nameKey: 'achievements.mutually_assured.name',
+    descKey: 'achievements.mutually_assured.description',
+    tier: 'gold',
+    hidden: true,
+    // Survived a MAD event: strategic strike fired against an armed target,
+    // and the player still has their arsenal and has not lost.
+    condition: { kind: 'survivedMad' },
+  },
+  {
+    id: 'disarmer',
+    nameKey: 'achievements.disarmer.name',
+    descKey: 'achievements.disarmer.description',
+    tier: 'gold',
+    hidden: true,
+    // Player previously had an arsenal, is now at 0 warheads, and a passed
+    // non-proliferation UN resolution is in force.
+    condition: { kind: 'dismantledUnderTreaty' },
+  },
 ];

@@ -30,6 +30,11 @@
     "import": "Import save",
     "emptyHint": "Start a new game to see it here."
   },
+  "trofei": {
+    "pageTitle": "Trophies",
+    "linkLabel": "Trophies",
+    "counterLabel": "{unlocked} of {total} trophies unlocked"
+  },
   "setup": {
     "title": "New game",
     "stepOf": "Step {current} of {total}",
@@ -124,6 +129,9 @@
         "description": "Become #1 and hold the throne: drop out of the top 3 for 5 years and you lose. For players who want tension even after winning.",
         "isolationUnavailable": "This scenario doesn't support the isolation trigger; you'll only win or lose by GDP rank."
       }
+    },
+    "disclaimer": {
+      "nuclearWarfare": "This scenario includes nuclear warfare mechanics, including civilian consequences and MAD exchanges."
     }
   },
   "hud": {
@@ -177,6 +185,7 @@
     "reputation": {
       "title": "Bloc reputation",
       "tooltip": "Your standing with the {bloc} bloc",
+      "details": "Details",
       "bloc": {
         "western": "Western",
         "eastern": "Eastern",
@@ -198,11 +207,29 @@
     "ticksAgo": "{n, plural, one {1 week ago} other {# weeks ago}}",
     "victoryToast": {
       "unlocked": "Victory unlocked"
+    },
+    "un": {
+      "proposeSuccess": "Resolution proposed to the Council."
+    },
+    "nuclear": {
+      "tacticalLaunched": "Tactical strike launched.",
+      "strategicLaunched": "Strategic strike launched."
+    },
+    "bloc": {
+      "joined": "You joined {bloc}.",
+      "left": "You left {bloc}."
     }
   },
   "modals": {
     "event": {
       "unknownDefinition": "Unknown event: {id}"
+    },
+    "reputation": {
+      "title": "Bloc reputation — details",
+      "currentLabel": "Current reputation",
+      "historyLabel": "Recent changes",
+      "historyEmpty": "History unavailable.",
+      "unavailable": "The active scenario doesn't track bloc reputation."
     },
     "confirm": {
       "exitGame": {
@@ -1029,6 +1056,91 @@
     "mars_conqueror": {
       "name": "Mars conqueror",
       "description": "Establish a colony on Mars."
+    },
+    "scorched_earth": {
+      "name": "Scorched Earth",
+      "desc": "You launched your first nuclear weapon. History will judge you."
+    },
+    "mutually_assured": {
+      "name": "Mutually Assured",
+      "desc": "You survived a MAD exchange. The world will never be the same."
+    },
+    "disarmer": {
+      "name": "Disarmer",
+      "desc": "You dismantled your entire nuclear arsenal under UN treaty."
+    }
+  },
+  "rep": {
+    "reason": {
+      "warOnWestern": "Declared war on Western nation",
+      "warOnEastern": "Declared war on Eastern nation",
+      "warOnNonAligned": "Declared war on Non-Aligned nation",
+      "allianceWestern": "Allied with Western nation",
+      "allianceEastern": "Allied with Eastern nation",
+      "allianceNonAligned": "Allied with Non-Aligned nation",
+      "breakAllianceWestern": "Broke alliance with Western nation",
+      "sanctionsWestern": "Sanctions on Western nation",
+      "sanctionsEastern": "Sanctions on Eastern nation",
+      "tradeNonAligned": "Trade treaty with Non-Aligned nation",
+      "spyDetectedWestern": "Spy detected in Western nation",
+      "spyDetectedEastern": "Spy detected in Eastern nation",
+      "sabotageDetected": "Sabotage detected",
+      "assassinationDetected": "Assassination detected",
+      "unVotePeacekeepingYes": "UN: voted yes on peacekeeping",
+      "unVoteSanctionsWesternYes": "UN: voted yes on sanctions vs Western",
+      "unVoteSanctionsEasternYes": "UN: voted yes on sanctions vs Eastern",
+      "unVoteHumanitarianYes": "UN: voted yes on humanitarian aid",
+      "unVoteHumanitarianNo": "UN: voted no on humanitarian aid",
+      "unVoteClimateYes": "UN: voted yes on climate accord",
+      "unVeto": "UN veto cast",
+      "nuclearStrikeTactical": "Tactical nuclear strike",
+      "nuclearStrikeStrategic": "Strategic nuclear strike",
+      "firstWarheadBuilt": "First nuclear warhead built",
+      "humanitarianAid": "Aid sent to disaster victims",
+      "refuseExtradition": "Refused to extradite captured spy",
+      "grantExtradition": "Extradited captured spy",
+      "hostBlocSummit": "Hosted bloc summit",
+      "spaceMilestoneFirst": "Space milestone — first achiever",
+      "spaceMilestoneFollow": "Space milestone — follower",
+      "buildMoonBase": "Built lunar base",
+      "marsMission": "Mars mission completed",
+      "annexRegion": "Annexed conquered region",
+      "grantIndependence": "Granted independence to occupied region",
+      "breakClimateTreaty": "Broke climate treaty"
+    },
+    "cause": {
+      "tacticalStrike": "Tactical nuclear strike",
+      "strategicStrike": "Strategic nuclear strike",
+      "dismantleNuclear": "Dismantled nuclear arsenal"
+    }
+  },
+  "bloc": {
+    "mc": {
+      "western": { "name": "Western Alliance" },
+      "eastern": { "name": "Eastern Alliance" },
+      "non-aligned": { "name": "Non-Aligned Movement" }
+    },
+    "gf": {
+      "western": { "name": "Western Bloc" },
+      "eastern": { "name": "Eastern Bloc" },
+      "non-aligned": { "name": "Non-Aligned Movement" }
+    },
+    "ascesa": {
+      "western": { "name": "Western Coalition" },
+      "eastern": { "name": "Eastern Coalition" },
+      "non-aligned": { "name": "Non-Aligned Movement" }
+    }
+  },
+  "era": {
+    "mc": {
+      "info-age": { "name": "Information Age" },
+      "space-age": { "name": "Space Age" },
+      "post-scarcity": { "name": "Post-Scarcity Era" }
+    },
+    "gf": {
+      "early-cold-war": { "name": "Early Cold War" },
+      "detente": { "name": "Détente" },
+      "end-of-history": { "name": "End of History" }
     }
   }
 }

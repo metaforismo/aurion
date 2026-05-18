@@ -51,6 +51,10 @@ export function UNPanel({
   const player = useGameStore(selectPlayerCountry);
   const applyAction = useGameStore((s: GameStoreState) => s.applyAction);
   const confirm = useGameStore((s: GameStoreState) => s.confirm);
+  const pushActionToast = useGameStore(
+    (s: GameStoreState) => s.pushActionToast,
+  );
+  const tNotifications = useTranslations('notifications');
 
   const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
   const { t: tScenario } = useScenarioMessages(scenarioId);
@@ -155,7 +159,11 @@ export function UNPanel({
     targetCountryId?: CountryId;
     targetRegionId?: RegionId;
   }): Promise<string[]> => {
-    return applyAction({ type: 'proposeUNResolution', ...args });
+    const errors = await applyAction({ type: 'proposeUNResolution', ...args });
+    if (errors.length === 0) {
+      pushActionToast({ message: tNotifications('un.proposeSuccess') });
+    }
+    return errors;
   };
 
   return (

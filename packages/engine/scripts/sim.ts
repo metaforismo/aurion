@@ -23,13 +23,17 @@
 // rivals. Easy gives them income room to do it, Hard makes the same
 // growth slow enough that timeouts dominate.
 
-import { existsSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { applyAction } from '../src/actions/index.js';
 import { decideAiAction } from '../src/ai/index.js';
 import { createGame } from '../src/createGame.js';
 import { createRng } from '../src/rng.js';
 import { tick } from '../src/tick.js';
+import {
+  BUILTIN_ACHIEVEMENTS,
+  evaluateAchievements,
+} from '../src/achievements/index.js';
 import type {
   Action,
   AiArchetype,
@@ -83,6 +87,15 @@ const PLAYER_COUNTRY_OVERRIDE = (process.env['SIM_PLAYER_COUNTRY'] ?? '').trim()
  * the count, inverting the difficulty signal.
  */
 const VICTORY_ID: VictoryConditionId = parseVictory(process.env['SIM_VICTORY']);
+
+/**
+ * Optional JSONL trace path. When set, every tick of every run emits one JSON
+ * line summarising the player state plus any "interesting" events that fired
+ * since the previous tick (UN outcome, bloc transition, nuclear strike, era
+ * transition, achievement unlock). Used by audit tooling and as a smoke-test
+ * artefact for the engine — set to /tmp/sim.jsonl to inspect a single run.
+ */
+const SIM_JSONL_PATH = (process.env['SIM_JSONL'] ?? '').trim() || undefined;
 
 function parseDifficulty(raw: string | undefined): DifficultyId {
   const v = (raw ?? 'normal').toLowerCase();
@@ -346,6 +359,139 @@ function resolveRunSetup(
   return { victoryId, playerCountryId };
 }
 
+// ---------------------------------------------------------------------------
+// JSONL trace — one record per tick (when SIM_JSONL is set).
+//
+// Records:
+//   - tick snapshots: { kind: 'tick', tick, scenario, seed, gdpRank, reputation,
+//                       activeUNResolutions, warheadCount, gameMode }
+//   - events emitted between ticks:
+//       { kind: 'un.outcome', tick, scenario, seed, resolutionId, kind, status }
+//       { kind: 'bloc.transition', tick, country, fromBloc, toBloc }
+//       { kind: 'nuclear.strike', tick, definitionId }
+//       { kind: 'era.transition', tick, fromEraId, toEraId }
+//       { kind: 'achievement.unlock', tick, id }
+//
+// We diff the previous state against the current state to detect transitions
+// that the engine doesn't surface as a single dedicated counter. This keeps
+// the engine free of trace hooks at the cost of a little bookkeeping here.
+// ---------------------------------------------------------------------------
+
+type JsonlBaseFields = {
+  tick: number;
+  scenario: string;
+  seed: string;
+};
+
+function gdpRankOfPlayer(state: GameState): number {
+  const ids = Object.values(state.countries)
+    .map((c) => ({ id: c.id, gdp: c.economy.gdp }))
+    .sort((a, b) => b.gdp - a.gdp);
+  const idx = ids.findIndex((s) => s.id === state.playerCountryId);
+  return idx < 0 ? -1 : idx + 1;
+}
+
+function totalWarheads(state: GameState): number {
+  let n = 0;
+  for (const c of Object.values(state.countries)) {
+    if (c.nuclear) n += c.nuclear.warheadCount;
+  }
+  return n;
+}
+
+function tickSnapshot(state: GameState, base: JsonlBaseFields): Record<string, unknown> {
+  const active = state.unResolutions?.filter((r) => r.status === 'voting').length ?? 0;
+  return {
+    kind: 'tick',
+    ...base,
+    gdpRank: gdpRankOfPlayer(state),
+    reputation: state.reputation
+      ? {
+          western: state.reputation['western'] ?? 0,
+          eastern: state.reputation['eastern'] ?? 0,
+          nonAligned: state.reputation['non-aligned'] ?? 0,
+        }
+      : null,
+    activeUNResolutions: active,
+    warheadCount: totalWarheads(state),
+    gameMode: state.gameMode ?? 'classic',
+  };
+}
+
+function writeJsonlLine(path: string, record: Record<string, unknown>): void {
+  appendFileSync(path, `${JSON.stringify(record)}\n`);
+}
+
+function diffAndEmitEvents(
+  prev: GameState,
+  next: GameState,
+  base: JsonlBaseFields,
+  prevUnlocked: ReadonlySet<string>,
+  path: string,
+): Set<string> {
+  // UN: status transitions from 'voting' → terminal.
+  if (prev.unResolutions && next.unResolutions) {
+    for (const r of next.unResolutions) {
+      const before = prev.unResolutions.find((p) => p.id === r.id);
+      if (before && before.status === 'voting' && r.status !== 'voting') {
+        writeJsonlLine(path, {
+          kind: 'un.outcome',
+          ...base,
+          resolutionId: r.id,
+          resolutionKind: r.kind,
+          status: r.status,
+        });
+      }
+    }
+  }
+  // Bloc transitions: country.blocId changed.
+  for (const c of Object.values(next.countries)) {
+    const before = prev.countries[c.id];
+    if (!before) continue;
+    if (before.blocId !== c.blocId) {
+      writeJsonlLine(path, {
+        kind: 'bloc.transition',
+        ...base,
+        country: c.id,
+        fromBloc: before.blocId ?? null,
+        toBloc: c.blocId ?? null,
+      });
+    }
+  }
+  // Nuclear strikes: any new event with the STRIKE prefix.
+  const newEvents = next.events.slice(prev.events.length);
+  for (const e of newEvents) {
+    if (e.definitionId.startsWith('event_nuclear_strike_')) {
+      writeJsonlLine(path, {
+        kind: 'nuclear.strike',
+        ...base,
+        definitionId: e.definitionId,
+      });
+    }
+  }
+  // Era transitions: eraState.pendingTransition newly populated.
+  if (
+    next.eraState?.pendingTransition &&
+    prev.eraState?.pendingTransition?.fromEraId !==
+      next.eraState.pendingTransition.fromEraId
+  ) {
+    writeJsonlLine(path, {
+      kind: 'era.transition',
+      ...base,
+      fromEraId: next.eraState.pendingTransition.fromEraId,
+      toEraId: next.eraState.pendingTransition.toEraId,
+    });
+  }
+  // Achievement unlocks: new ids since the previous tick.
+  const currentlyUnlocked = new Set(evaluateAchievements(next, BUILTIN_ACHIEVEMENTS));
+  for (const id of currentlyUnlocked) {
+    if (!prevUnlocked.has(id)) {
+      writeJsonlLine(path, { kind: 'achievement.unlock', ...base, id });
+    }
+  }
+  return currentlyUnlocked;
+}
+
 export function runOne(
   scenario: Scenario,
   difficulty: DifficultyTuning,
@@ -385,6 +531,15 @@ export function runOne(
     },
   };
 
+  const jsonlPath = SIM_JSONL_PATH;
+  const base: JsonlBaseFields = { tick: s.tick, scenario: scenario.id, seed };
+  let prevUnlocked: ReadonlySet<string> = new Set(
+    jsonlPath ? evaluateAchievements(s, BUILTIN_ACHIEVEMENTS) : [],
+  );
+  if (jsonlPath) {
+    writeJsonlLine(jsonlPath, tickSnapshot(s, { ...base, tick: s.tick }));
+  }
+
   for (let i = 0; i < MAX_TICKS; i++) {
     if (s.winLoss !== 'playing') break;
     // Player slot: also let AI act. Note we deliberately do NOT pass the
@@ -398,7 +553,13 @@ export function runOne(
       const r = applyAction(s, action, playerId, techCatalog);
       if (r.errors.length === 0) s = r.state;
     }
+    const prev = s;
     s = tick(s, { techCatalog, eventPool, victoryRule, difficulty, scenario });
+    if (jsonlPath) {
+      const tickBase = { tick: s.tick, scenario: scenario.id, seed };
+      writeJsonlLine(jsonlPath, tickSnapshot(s, tickBase));
+      prevUnlocked = diffAndEmitEvents(prev, s, tickBase, prevUnlocked, jsonlPath);
+    }
   }
 
   if (s.winLoss === 'won') return { outcome: 'won', ticks: s.tick };
@@ -503,6 +664,13 @@ function main(): void {
     playerArchetype: PLAYER_ARCHETYPE,
     ...(PLAYER_COUNTRY_OVERRIDE ? { playerCountryId: PLAYER_COUNTRY_OVERRIDE } : {}),
   };
+  // Truncate any pre-existing JSONL trace once at the start so multi-run
+  // batches produce a single fresh file regardless of `appendFileSync`'s
+  // open-or-create semantics.
+  if (SIM_JSONL_PATH) {
+    writeFileSync(SIM_JSONL_PATH, '');
+    console.log(`Sim JSONL trace → ${SIM_JSONL_PATH}`);
+  }
   printConfig(scenario, options);
 
   if (COMPARE) {

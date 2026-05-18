@@ -24,6 +24,7 @@ export {
   REASON_KEY_FIRST as SPACE_MILESTONE_REASON_FIRST,
   REASON_KEY_FOLLOW as SPACE_MILESTONE_REASON_FOLLOW,
 } from './space/index.js';
+export { migrate, SAVE_VERSION, SaveMigrationError } from './migrate.js';
 // Re-export achievement types directly (not just via `export *`) so consumers
 // can grab them from the package root with a single import line.
 export type {

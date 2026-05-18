@@ -240,5 +240,356 @@ describe('BUILTIN_ACHIEVEMENTS catalogue', () => {
     expect(unlocked).not.toContain('master_spy');
     expect(unlocked).not.toContain('survivor');
     expect(unlocked).not.toContain('long_haul');
+    // Phase 3 Wave 10 — fresh game has no nuclear strikes, no MAD, no
+    // dismantled arsenals; none of the hidden nuclear achievements fire.
+    expect(unlocked).not.toContain('scorched_earth');
+    expect(unlocked).not.toContain('mutually_assured');
+    expect(unlocked).not.toContain('disarmer');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 3 Wave 10 — nuclear / MAD-tier hidden achievements.
+//
+// These conditions cannot be expressed with the legacy condition kinds, so
+// the engine grew `launchedNuclear`, `survivedMad`, and `dismantledUnderTreaty`
+// in this wave. The tests below construct minimal synthetic GameStates that
+// either satisfy or don't satisfy each predicate and assert
+// `evaluateAchievements` returns the expected ids.
+// ---------------------------------------------------------------------------
+
+describe('Phase 3 Wave 10 — nuclear MAD-tier hidden achievements', () => {
+  function withPlayerNuclear(
+    s: GameState,
+    arsenal: { warheadCount: number; deliverySystemLevel: 0 | 1 | 2; mad: boolean },
+  ): GameState {
+    const player = s.countries.aurion!;
+    return {
+      ...s,
+      countries: {
+        ...s.countries,
+        aurion: { ...player, nuclear: { ...arsenal } },
+      },
+    };
+  }
+
+  function withEvents(s: GameState, definitionIds: readonly string[]): GameState {
+    return {
+      ...s,
+      events: definitionIds.map((id) => ({
+        definitionId: id,
+        firedAtTick: s.tick,
+        resolvedChoiceIndex: null,
+      })),
+    };
+  }
+
+  // -------- scorched_earth -------------------------------------------------
+
+  it('scorched_earth fires when a tactical strike event is in state.events', () => {
+    const s = withEvents(freshState(), ['event_nuclear_strike_tactical_r-1']);
+    const unlocked = evaluateAchievements(s, BUILTIN_ACHIEVEMENTS);
+    expect(unlocked).toContain('scorched_earth');
+  });
+
+  it('scorched_earth also fires for strategic (unilateral) strike events', () => {
+    const s = withEvents(freshState(), ['event_nuclear_strike_strategic_borealis']);
+    expect(
+      evaluateAchievementCondition(s, { kind: 'launchedNuclear' }),
+    ).toBe(true);
+  });
+
+  it('scorched_earth is NOT met when state.events has no strike entries', () => {
+    const s = withEvents(freshState(), [
+      'event_economic_boom',
+      'event_political_crisis',
+    ]);
+    const unlocked = evaluateAchievements(s, BUILTIN_ACHIEVEMENTS);
+    expect(unlocked).not.toContain('scorched_earth');
+  });
+
+  // -------- mutually_assured ----------------------------------------------
+
+  it('mutually_assured fires after a MAD strategic strike if the player kept an arsenal and is alive', () => {
+    const base = freshState();
+    const armed = withPlayerNuclear(base, {
+      warheadCount: 1,
+      deliverySystemLevel: 1,
+      mad: true,
+    });
+    const s = withEvents(armed, [
+      'event_nuclear_strike_strategic_borealis_mad',
+    ]);
+    const unlocked = evaluateAchievements(s, BUILTIN_ACHIEVEMENTS);
+    expect(unlocked).toContain('mutually_assured');
+  });
+
+  it('mutually_assured does NOT fire on a unilateral strategic strike (no _mad suffix)', () => {
+    const base = freshState();
+    const armed = withPlayerNuclear(base, {
+      warheadCount: 1,
+      deliverySystemLevel: 1,
+      mad: true,
+    });
+    const s = withEvents(armed, ['event_nuclear_strike_strategic_borealis']);
+    const unlocked = evaluateAchievements(s, BUILTIN_ACHIEVEMENTS);
+    expect(unlocked).not.toContain('mutually_assured');
+  });
+
+  it('mutually_assured does NOT fire when the player has lost', () => {
+    const base = freshState();
+    const armed = withPlayerNuclear(base, {
+      warheadCount: 1,
+      deliverySystemLevel: 1,
+      mad: true,
+    });
+    const eventful = withEvents(armed, [
+      'event_nuclear_strike_strategic_borealis_mad',
+    ]);
+    const lost: GameState = { ...eventful, winLoss: 'lost' };
+    expect(
+      evaluateAchievementCondition(lost, { kind: 'survivedMad' }),
+    ).toBe(false);
+  });
+
+  // -------- disarmer ------------------------------------------------------
+
+  it('disarmer fires when player had an arsenal, now 0 warheads, and non-prolif passed', () => {
+    const base = freshState();
+    const disarmed = withPlayerNuclear(base, {
+      warheadCount: 0,
+      deliverySystemLevel: 0,
+      mad: false,
+    });
+    const s: GameState = {
+      ...disarmed,
+      unResolutions: [
+        {
+          id: 'res-1',
+          kind: 'nonProliferation',
+          proposerCountryId: 'aurion',
+          proposedAtTick: 0,
+          votingClosesAtTick: 10,
+          effects: { onPass: [], onFail: [] },
+          votes: {},
+          status: 'passed',
+          titleKey: 'un.npt.title',
+          descriptionKey: 'un.npt.desc',
+        },
+      ],
+    };
+    const unlocked = evaluateAchievements(s, BUILTIN_ACHIEVEMENTS);
+    expect(unlocked).toContain('disarmer');
+  });
+
+  it('disarmer does NOT fire when the player still holds warheads', () => {
+    const base = freshState();
+    const stillArmed = withPlayerNuclear(base, {
+      warheadCount: 1,
+      deliverySystemLevel: 0,
+      mad: true,
+    });
+    const s: GameState = {
+      ...stillArmed,
+      unResolutions: [
+        {
+          id: 'res-1',
+          kind: 'nonProliferation',
+          proposerCountryId: 'aurion',
+          proposedAtTick: 0,
+          votingClosesAtTick: 10,
+          effects: { onPass: [], onFail: [] },
+          votes: {},
+          status: 'passed',
+          titleKey: 'un.npt.title',
+          descriptionKey: 'un.npt.desc',
+        },
+      ],
+    };
+    expect(
+      evaluateAchievementCondition(s, { kind: 'dismantledUnderTreaty' }),
+    ).toBe(false);
+  });
+
+  it('disarmer does NOT fire without a passed non-proliferation resolution', () => {
+    const base = freshState();
+    const disarmed = withPlayerNuclear(base, {
+      warheadCount: 0,
+      deliverySystemLevel: 0,
+      mad: false,
+    });
+    // No unResolutions at all.
+    const unlocked = evaluateAchievements(disarmed, BUILTIN_ACHIEVEMENTS);
+    expect(unlocked).not.toContain('disarmer');
+    // Or a pending (not yet passed) resolution.
+    const pending: GameState = {
+      ...disarmed,
+      unResolutions: [
+        {
+          id: 'res-1',
+          kind: 'nonProliferation',
+          proposerCountryId: 'aurion',
+          proposedAtTick: 0,
+          votingClosesAtTick: 10,
+          effects: { onPass: [], onFail: [] },
+          votes: {},
+          status: 'voting',
+          titleKey: 'un.npt.title',
+          descriptionKey: 'un.npt.desc',
+        },
+      ],
+    };
+    expect(
+      evaluateAchievementCondition(pending, { kind: 'dismantledUnderTreaty' }),
+    ).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Branch coverage backfill (audit): playerWarsConsideredWon heuristic.
+// The branch that adds hostCountryIds (~line 143) and the relation lookup
+// loop (~line 149-154) were only stub-tested. Each test asserts the
+// observable `completeWar` evaluation, not just code-path entry.
+// ---------------------------------------------------------------------------
+describe('completeWar heuristic — playerWarsConsideredWon coverage', () => {
+  it('counts a deployment on a former-enemy territory when no longer at war', () => {
+    const base = freshState();
+    const player = base.countries.aurion!;
+    const s: GameState = {
+      ...base,
+      countries: {
+        ...base.countries,
+        aurion: {
+          ...player,
+          military: {
+            ...player.military,
+            deployedUnits: [
+              {
+                id: 'd-1',
+                regionId: 'region_khanate',
+                units: 200,
+                hostCountryId: 'khanate',
+                issuedAtTick: 0,
+              },
+            ],
+          },
+        },
+      },
+      relations: {
+        ...base.relations,
+        // Fixture starts attitude at -40 with atWar=false; explicit for clarity.
+        'aurion::khanate': {
+          ...base.relations['aurion::khanate']!,
+          atWar: false,
+        },
+      },
+    };
+    // 1 deployment on khanate territory + relation is NOT at war → count = 1.
+    expect(
+      evaluateAchievementCondition(s, { kind: 'completeWar', wins: 1 }),
+    ).toBe(true);
+    expect(
+      evaluateAchievementCondition(s, { kind: 'completeWar', wins: 2 }),
+    ).toBe(false);
+  });
+
+  it('does NOT count deployments on territories the player is still at war with', () => {
+    const base = freshState();
+    const player = base.countries.aurion!;
+    const s: GameState = {
+      ...base,
+      countries: {
+        ...base.countries,
+        aurion: {
+          ...player,
+          military: {
+            ...player.military,
+            deployedUnits: [
+              {
+                id: 'd-1',
+                regionId: 'region_khanate',
+                units: 200,
+                hostCountryId: 'khanate',
+                issuedAtTick: 0,
+              },
+            ],
+          },
+        },
+      },
+      relations: {
+        ...base.relations,
+        'aurion::khanate': {
+          ...base.relations['aurion::khanate']!,
+          atWar: true, // still at war → does NOT count as won
+        },
+      },
+    };
+    expect(
+      evaluateAchievementCondition(s, { kind: 'completeWar', wins: 1 }),
+    ).toBe(false);
+  });
+
+  it('skips deployments without a hostCountryId or pointing back at the player', () => {
+    const base = freshState();
+    const player = base.countries.aurion!;
+    const s: GameState = {
+      ...base,
+      countries: {
+        ...base.countries,
+        aurion: {
+          ...player,
+          military: {
+            ...player.military,
+            deployedUnits: [
+              // Deployment with no host (own region) — must be ignored.
+              { id: 'd-self', regionId: 'region_aurion', units: 50, hostCountryId: null, issuedAtTick: 0 },
+              // Deployment with host == player — also ignored.
+              { id: 'd-own', regionId: 'region_aurion', units: 50, hostCountryId: 'aurion', issuedAtTick: 0 },
+            ],
+          },
+        },
+      },
+    };
+    expect(
+      evaluateAchievementCondition(s, { kind: 'completeWar', wins: 1 }),
+    ).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Idempotent unlock cases (audit gap: only 1 case previously). Each test
+// confirms evaluateAchievements is referentially-pure for unchanged input,
+// so repeated invocations return identical id lists.
+// ---------------------------------------------------------------------------
+describe('evaluateAchievements idempotency', () => {
+  it('returns identical id sets on repeated evaluation of an unchanged state', () => {
+    const s = freshState();
+    const a = evaluateAchievements(s, BUILTIN_ACHIEVEMENTS);
+    const b = evaluateAchievements(s, BUILTIN_ACHIEVEMENTS);
+    const c = evaluateAchievements(s, BUILTIN_ACHIEVEMENTS);
+    expect(a).toEqual(b);
+    expect(b).toEqual(c);
+  });
+
+  it('idempotently re-fires met conditions when re-evaluated', () => {
+    const base = freshState();
+    const player = base.countries.aurion!;
+    const s: GameState = {
+      ...base,
+      countries: {
+        ...base.countries,
+        aurion: {
+          ...player,
+          politics: { ...player.politics, popularity: 95 },
+        },
+      },
+    };
+    // Both bronze (80) and silver (90) popularity triggers should appear,
+    // and remain present across repeated evaluations.
+    const first = evaluateAchievements(s, BUILTIN_ACHIEVEMENTS);
+    const second = evaluateAchievements(s, BUILTIN_ACHIEVEMENTS);
+    expect(first).toContain('popular_leader');
+    expect(first).toContain('beloved_government');
+    expect(first).toEqual(second);
   });
 });

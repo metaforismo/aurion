@@ -22,6 +22,7 @@ import Hud from '../../../../components/Hud';
 import WorldMap from '../../../../components/Map';
 import ModalRoot from '../../../../components/Modals';
 import NotificationStream, {
+  ActionToastStack,
   VictoryToast,
 } from '../../../../components/Notifications';
 import PanelTabs from '../../../../components/Panels';
@@ -84,6 +85,10 @@ export default function PlayPage({
             celebratory first-victory modal lives in ModalRoot above; this
             toast covers every subsequent milestone in an Eternal run. */}
         <VictoryToast />
+        {/* Action-confirmation toasts — UN propose, nuclear launch, bloc
+            join/leave. Self-managed: reads `actionToasts` from the store
+            and auto-dismisses each entry. */}
+        <ActionToastStack />
         {/* First-time tutorial — self-bootstraps from the persisted dismissed
             flag. Renders nothing once the player has seen / skipped it. */}
         <TutorialOverlay />

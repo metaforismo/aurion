@@ -103,6 +103,21 @@ const DETHRONE_BLOC_SCENARIOS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Scenario ids that ship a nuclear arsenal in their initial state OR have
+ * `dethroneIsolationOnByDefault === true`. The scenario picker surfaces an
+ * extra disclaimer when one of these is selected so the player knows nuclear
+ * warfare mechanics are part of the run before committing.
+ *
+ * Hard-coded mirror of the Phase 3 scenarios — kept here (instead of read
+ * from the JSON) so the picker doesn't have to load every scenario eagerly
+ * just to render its disclaimer chip.
+ */
+const NUCLEAR_SCENARIOS: ReadonlySet<string> = new Set([
+  'mondo-contemporaneo',
+  'guerra-fredda',
+]);
+
+/**
  * Modifier display order. Anything not in this list is shown afterwards in
  * insertion order. Centralised so the chip layout stays consistent across
  * presets even if a scenario reorders the keys in JSON.
@@ -409,7 +424,18 @@ function ScenarioStep({
   const t = useTranslations('setup');
   const tCommon = useTranslations('common');
   const tStatus = useTranslations('setup.scenario.status');
+  const tDisclaimer = useTranslations('setup.disclaimer');
   const scenarios = useMemo(() => listScenarios(), []);
+
+  // Players can hide the disclaimer once they've read it. We don't persist
+  // this — the dismissal is per-mount, matching how the dethrone-isolation
+  // note (the closest comparable banner on step 5) behaves.
+  const [nuclearDisclaimerDismissed, setNuclearDisclaimerDismissed] =
+    useState(false);
+  const showNuclearDisclaimer =
+    !!selected &&
+    NUCLEAR_SCENARIOS.has(selected) &&
+    !nuclearDisclaimerDismissed;
 
   return (
     <section className="flex flex-col gap-4">
@@ -433,12 +459,38 @@ function ScenarioStep({
                 statusLabel={tStatus(status)}
                 selected={selected === meta.id}
                 disabled={disabled}
-                onSelect={() => !disabled && onSelect(meta.id)}
+                onSelect={() => {
+                  if (disabled) return;
+                  onSelect(meta.id);
+                  // Re-arm the disclaimer when the player picks a different
+                  // scenario — they should see it once per nuclear pick.
+                  setNuclearDisclaimerDismissed(false);
+                }}
               />
             </li>
           );
         })}
       </ul>
+      {showNuclearDisclaimer ? (
+        <div
+          role="note"
+          className={cn(
+            'flex items-start gap-2 rounded-md px-3 py-2 text-xs',
+            toneChip('warning'),
+          )}
+        >
+          <span aria-hidden className="select-none">⚠</span>
+          <span className="flex-1">{tDisclaimer('nuclearWarfare')}</span>
+          <button
+            type="button"
+            onClick={() => setNuclearDisclaimerDismissed(true)}
+            aria-label={tCommon('close')}
+            className="rounded-sm px-1 text-fg-muted transition hover:text-fg"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
       <div className="flex justify-end">
         <button
           type="button"
@@ -990,7 +1042,10 @@ function GameModeStep({
     : false;
 
   return (
-    <section className="flex flex-col gap-4">
+    <section
+      className="flex flex-col gap-4"
+      data-testid="game-mode-picker"
+    >
       <div>
         <h2 className="text-xl font-semibold text-fg">{tMode('title')}</h2>
         <p className="mt-1 text-sm text-fg-muted">{tMode('description')}</p>
@@ -1111,6 +1166,7 @@ function GameModeCard({
       aria-pressed={selected}
       disabled={disabled}
       title={disabled ? disabledReason : undefined}
+      data-testid={`game-mode-option-${mode}`}
       className={cn(
         'flex h-full w-full flex-col gap-2 rounded-xl border px-4 py-4 text-left transition-colors',
         selected

@@ -923,3 +923,177 @@ describe('Phase 3 (no nuclear) regression', () => {
     expect(next).toBe(state);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Branch coverage backfill (audit): the MAD-chain code paths and the
+// deployment-based isEnemyRegion check were under-covered. Each test below
+// asserts an observable outcome of the branch in question, not just that the
+// code path executed.
+// ---------------------------------------------------------------------------
+
+describe('isEnemyRegion: deployment-based detection', () => {
+  it('returns true when an enemy has deployed units in the target region', () => {
+    let state = makeFixtureState();
+    const remoteRegion = 'region_void';
+    // Khanate (enemy) has a deployment in `region_void` — its home region is
+    // somewhere else but we expect the function to also accept this path.
+    state = {
+      ...state,
+      countries: {
+        ...state.countries,
+        khanate: {
+          ...state.countries['khanate']!,
+          military: {
+            ...state.countries['khanate']!.military,
+            deployedUnits: [
+              { id: 'd-remote', regionId: remoteRegion, units: 100, hostCountryId: null, issuedAtTick: 0 },
+            ],
+          },
+        },
+      },
+    };
+    // Aurion is at war with khanate by fixture default.
+    expect(isEnemyRegion(state, 'aurion', remoteRegion)).toBe(true);
+  });
+
+  it('returns false when a NON-enemy has deployments in the region', () => {
+    let state = makeFixtureState();
+    const region = 'region_void';
+    // Borealis is not at war with aurion. Borealis has a deployment in the
+    // region; isEnemyRegion must not count it as enemy territory.
+    state = {
+      ...state,
+      countries: {
+        ...state.countries,
+        borealis: {
+          ...state.countries['borealis']!,
+          military: {
+            ...state.countries['borealis']!.military,
+            deployedUnits: [
+              { id: 'd-friendly', regionId: region, units: 100, hostCountryId: null, issuedAtTick: 0 },
+            ],
+          },
+        },
+      },
+    };
+    expect(isEnemyRegion(state, 'aurion', region)).toBe(false);
+  });
+});
+
+describe('MAD chain — findHostCountry fallback + injection sequence', () => {
+  it('tactical strike on a region with no host country still produces a strike event', () => {
+    const state = makeFixtureState();
+    // Patch in a war with a hypothetical enemy whose home region we attack.
+    // Use an unoccupied region id; findHostCountry returns null so the
+    // host-popularity branch is skipped (covers line 450-451 of nuclear).
+    const targetRegion = 'region_no_host';
+    const next = applyTacticalStrike(
+      // Force the war flag on aurion::khanate so the strike is "legal" if
+      // ever validated; the apply function itself doesn't validate this,
+      // it just applies effects.
+      {
+        ...state,
+        countries: {
+          ...state.countries,
+          aurion: {
+            ...state.countries['aurion']!,
+            nuclear: { warheadCount: 3, deliverySystemLevel: 0, mad: true },
+          },
+        },
+      },
+      'aurion',
+      targetRegion,
+      RNG,
+    );
+    expect(
+      next.events.some((e) => e.definitionId === `${STRIKE_EVENT_PREFIX}tactical_${targetRegion}`),
+    ).toBe(true);
+    // Warhead still consumed even when no host country.
+    expect(next.countries['aurion']?.nuclear?.warheadCount).toBe(2);
+  });
+
+  it('MAD strike injects ≥3 nuclear-winter chain events in order', () => {
+    const state = makeFixtureState();
+    const before = state.events.length;
+    const next = applyStrategicStrike(state, 'aurion', 'khanate', RNG);
+    const winterEvents = next.events
+      .slice(before)
+      .filter((e) => e.definitionId.startsWith(NUCLEAR_WINTER_EVENT_PREFIX));
+    // The MAD chain emits 3 phases: climate_collapse, refugee_crisis, famine.
+    expect(winterEvents.length).toBe(3);
+    expect(winterEvents[0]!.definitionId.endsWith('climate_collapse')).toBe(true);
+  });
+
+  it('MAD strike also reduces the attacker\'s GDP (both sides take the multiplier)', () => {
+    const state = makeFixtureState();
+    const beforeAurionGdp = state.countries['aurion']!.economy.gdp;
+    const next = applyStrategicStrike(state, 'aurion', 'khanate', RNG);
+    expect(next.countries['aurion']?.economy.gdp).toBeLessThan(beforeAurionGdp);
+  });
+
+  it('hasDeterrent returns false for an unknown country id', () => {
+    const state = makeFixtureState();
+    expect(hasDeterrent(state, 'unknown-country-id')).toBe(false);
+    expect(hasDeterrent(state, 'unknown-country-id', 'aurion')).toBe(false);
+  });
+
+  it('hasDeterrent returns false when observer does not exist', () => {
+    const state = makeFixtureState();
+    // aurion has arsenal but observer "ghost" is unknown.
+    expect(hasDeterrent(state, 'aurion', 'ghost')).toBe(false);
+  });
+
+  it('applyDismantle is a no-op on zero/negative count and on countries without arsenal', () => {
+    const state = makeFixtureState();
+    const zero = applyDismantle(state, 'aurion', 0, true);
+    expect(zero).toBe(state);
+    const neg = applyDismantle(state, 'aurion', -3, true);
+    expect(neg).toBe(state);
+    // Country without arsenal — borealis.
+    const noArsenal = applyDismantle(state, 'borealis', 1, true);
+    expect(noArsenal).toBe(state);
+  });
+
+  it('applyStrategicStrike no-ops when attacker has no nuclear field', () => {
+    const state = stripArsenal(makeFixtureState(), 'aurion');
+    const next = applyStrategicStrike(state, 'aurion', 'khanate', RNG);
+    // No arsenal → apply* short-circuits at the early guard; state unchanged.
+    expect(next).toBe(state);
+  });
+
+  it('applyStrategicStrike no-ops when target country does not exist', () => {
+    const state = makeFixtureState();
+    const next = applyStrategicStrike(state, 'aurion', 'no-such-country', RNG);
+    expect(next).toBe(state);
+  });
+
+  it('queueAllBlocs short-circuits when state has no reputation (no blocs scenario)', () => {
+    // makePhase3Scenario is the only fixture with reputation; use a scenario
+    // without blocs so state.reputation is undefined. The tactical strike
+    // should still complete (no throw) but no reputation deltas are queued.
+    const base = createGame(
+      // Use the plain test scenario (no blocs) and patch a war + arsenal in.
+      makeNuclearFixtureScenario(),
+      {
+        seed: 'no-reputation',
+        victory: 'economic',
+        playerCountryId: 'aurion',
+      },
+    );
+    // Strip reputation/blocs to simulate the "no Phase 3 reputation" path.
+    const stripped: GameState = {
+      ...base,
+      reputation: undefined,
+      pendingReputationDeltas: undefined,
+    };
+    const next = applyTacticalStrike(
+      stripped,
+      'aurion',
+      stripped.countries['khanate']!.regionId,
+      RNG,
+    );
+    // No reputation present → queueAllBlocs is a no-op; nothing crashes.
+    expect(next.pendingReputationDeltas).toBeUndefined();
+    expect(next.worldTension).toBeGreaterThan(stripped.worldTension);
+  });
+});

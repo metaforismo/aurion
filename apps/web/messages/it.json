@@ -30,6 +30,11 @@
     "import": "Importa partita",
     "emptyHint": "Inizia una nuova partita per vederla qui."
   },
+  "trofei": {
+    "pageTitle": "Trofei",
+    "linkLabel": "Trofei",
+    "counterLabel": "{unlocked} di {total} trofei sbloccati"
+  },
   "setup": {
     "title": "Nuova partita",
     "stepOf": "Passo {current} di {total}",
@@ -124,6 +129,9 @@
         "description": "Diventa #1 e mantieni lo status: se cadi dal podio per 5 anni, perdi. Per chi vuole tensione anche dopo aver vinto.",
         "isolationUnavailable": "Lo scenario non supporta il trigger isolamento; vincerai/perderai solo per posizione GDP."
       }
+    },
+    "disclaimer": {
+      "nuclearWarfare": "Questo scenario include meccaniche di guerra nucleare, comprese conseguenze sui civili e scambi MAD."
     }
   },
   "hud": {
@@ -177,6 +185,7 @@
     "reputation": {
       "title": "Reputazione fra i blocchi",
       "tooltip": "I tuoi rapporti col blocco {bloc}",
+      "details": "Dettagli",
       "bloc": {
         "western": "Occidentale",
         "eastern": "Orientale",
@@ -198,11 +207,29 @@
     "ticksAgo": "{n, plural, one {1 settimana fa} other {# settimane fa}}",
     "victoryToast": {
       "unlocked": "Vittoria sbloccata"
+    },
+    "un": {
+      "proposeSuccess": "Risoluzione proposta al Consiglio."
+    },
+    "nuclear": {
+      "tacticalLaunched": "Strike tattico lanciato.",
+      "strategicLaunched": "Strike strategico lanciato."
+    },
+    "bloc": {
+      "joined": "Sei entrato in {bloc}.",
+      "left": "Hai lasciato {bloc}."
     }
   },
   "modals": {
     "event": {
       "unknownDefinition": "Evento sconosciuto: {id}"
+    },
+    "reputation": {
+      "title": "Reputazione fra i blocchi — dettagli",
+      "currentLabel": "Reputazione attuale",
+      "historyLabel": "Cambiamenti recenti",
+      "historyEmpty": "Cronologia non disponibile.",
+      "unavailable": "Lo scenario attivo non traccia la reputazione fra i blocchi."
     },
     "confirm": {
       "exitGame": {
@@ -1029,6 +1056,91 @@
     "mars_conqueror": {
       "name": "Conquistatore di Marte",
       "description": "Stabilisci una colonia su Marte."
+    },
+    "scorched_earth": {
+      "name": "Terra Bruciata",
+      "desc": "Hai lanciato la tua prima arma nucleare. La storia ti giudicherà."
+    },
+    "mutually_assured": {
+      "name": "Distruzione Reciproca",
+      "desc": "Sei sopravvissuto a uno scambio MAD. Il mondo non sarà più lo stesso."
+    },
+    "disarmer": {
+      "name": "Disarmatore",
+      "desc": "Hai smantellato l'intero arsenale nucleare sotto trattato ONU."
+    }
+  },
+  "rep": {
+    "reason": {
+      "warOnWestern": "Dichiarazione di guerra a nazione occidentale",
+      "warOnEastern": "Dichiarazione di guerra a nazione orientale",
+      "warOnNonAligned": "Dichiarazione di guerra a nazione non allineata",
+      "allianceWestern": "Alleanza con nazione occidentale",
+      "allianceEastern": "Alleanza con nazione orientale",
+      "allianceNonAligned": "Alleanza con nazione non allineata",
+      "breakAllianceWestern": "Alleanza rotta con nazione occidentale",
+      "sanctionsWestern": "Sanzioni a nazione occidentale",
+      "sanctionsEastern": "Sanzioni a nazione orientale",
+      "tradeNonAligned": "Trattato commerciale con non allineati",
+      "spyDetectedWestern": "Spia rilevata in nazione occidentale",
+      "spyDetectedEastern": "Spia rilevata in nazione orientale",
+      "sabotageDetected": "Sabotaggio rilevato",
+      "assassinationDetected": "Assassinio rilevato",
+      "unVotePeacekeepingYes": "ONU: voto sì peacekeeping",
+      "unVoteSanctionsWesternYes": "ONU: voto sì sanzioni a occidentali",
+      "unVoteSanctionsEasternYes": "ONU: voto sì sanzioni a orientali",
+      "unVoteHumanitarianYes": "ONU: voto sì aiuto umanitario",
+      "unVoteHumanitarianNo": "ONU: voto no aiuto umanitario",
+      "unVoteClimateYes": "ONU: voto sì accordo climatico",
+      "unVeto": "Veto ONU espresso",
+      "nuclearStrikeTactical": "Strike nucleare tattico",
+      "nuclearStrikeStrategic": "Strike nucleare strategico",
+      "firstWarheadBuilt": "Prima testata nucleare costruita",
+      "humanitarianAid": "Aiuto alle vittime di una calamità",
+      "refuseExtradition": "Rifiuto di estradare spia catturata",
+      "grantExtradition": "Estradata spia catturata",
+      "hostBlocSummit": "Ospite di un summit di blocco",
+      "spaceMilestoneFirst": "Milestone spaziale — primato",
+      "spaceMilestoneFollow": "Milestone spaziale — follower",
+      "buildMoonBase": "Base lunare costruita",
+      "marsMission": "Missione su Marte completata",
+      "annexRegion": "Annessione di regione conquistata",
+      "grantIndependence": "Indipendenza concessa a regione occupata",
+      "breakClimateTreaty": "Trattato climatico violato"
+    },
+    "cause": {
+      "tacticalStrike": "Strike nucleare tattico",
+      "strategicStrike": "Strike nucleare strategico",
+      "dismantleNuclear": "Arsenale nucleare smantellato"
+    }
+  },
+  "bloc": {
+    "mc": {
+      "western": { "name": "Alleanza Occidentale" },
+      "eastern": { "name": "Alleanza Orientale" },
+      "non-aligned": { "name": "Movimento dei Non Allineati" }
+    },
+    "gf": {
+      "western": { "name": "Blocco Occidentale" },
+      "eastern": { "name": "Blocco Orientale" },
+      "non-aligned": { "name": "Movimento dei Non Allineati" }
+    },
+    "ascesa": {
+      "western": { "name": "Coalizione Occidentale" },
+      "eastern": { "name": "Coalizione Orientale" },
+      "non-aligned": { "name": "Movimento dei Non Allineati" }
+    }
+  },
+  "era": {
+    "mc": {
+      "info-age": { "name": "Era dell'Informazione" },
+      "space-age": { "name": "Era Spaziale" },
+      "post-scarcity": { "name": "Era Post-Scarsità" }
+    },
+    "gf": {
+      "early-cold-war": { "name": "Inizio Guerra Fredda" },
+      "detente": { "name": "Distensione" },
+      "end-of-history": { "name": "Fine della Storia" }
     }
   }
 }

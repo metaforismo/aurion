@@ -55,6 +55,8 @@ export type ActionButtonProps = {
   disabled?: boolean;
   /** Additional className. */
   className?: string;
+  /** Forwarded to the rendered <button> so E2E specs can target the action. */
+  'data-testid'?: string;
 };
 
 export function ActionButton({
@@ -67,6 +69,7 @@ export function ActionButton({
   onErrors,
   disabled,
   className,
+  'data-testid': dataTestId,
 }: ActionButtonProps) {
   const [busy, setBusy] = useState(false);
   const isDisabled = disabled || !!disabledReason || busy;
@@ -98,6 +101,7 @@ export function ActionButton({
       disabled={isDisabled}
       aria-disabled={isDisabled}
       title={disabledReason ?? undefined}
+      data-testid={dataTestId}
       className={cn(
         'flex w-full flex-col items-stretch gap-0.5 rounded-md border px-3 py-2 text-left text-xs transition',
         isDisabled

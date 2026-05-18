@@ -133,6 +133,24 @@ export type PendingNuclearStrikeIncoming = {
   firedAtTick: number;
 };
 
+/**
+ * A small transient toast shown bottom-centre on the play screen after a
+ * successful player action (UN propose, nuclear launch, bloc join/leave).
+ * Engine errors continue to flow through `lastErrors` / panel `onErrors`
+ * — this slice is exclusively for SUCCESS notifications.
+ *
+ * Auto-dismissed by the `ActionToastStack` component; callers don't need
+ * to schedule a removal manually.
+ */
+export type ActionToast = {
+  /** Monotonic id used as a React key + dismissal handle. */
+  id: number;
+  /** Pre-translated message body. Already localised by the dispatcher. */
+  message: string;
+  /** Visual hint. Defaults to 'success' on the renderer side. */
+  tone?: 'success' | 'info' | 'warning';
+};
+
 export type StartNewGameParams = {
   scenarioId: ScenarioId;
   playerCountryId: CountryId;
@@ -217,6 +235,13 @@ export type GameStoreState = {
    * wins). The player can review the full chain in the event log.
    */
   pendingNuclearStrikeIncoming: PendingNuclearStrikeIncoming | null;
+  /**
+   * Queue of transient success toasts surfaced by player actions (UN propose,
+   * nuclear launch, bloc join/leave). Rendered by `ActionToastStack` at the
+   * play-screen root. Bounded informally to the last few entries — old toasts
+   * fall off as new ones are pushed.
+   */
+  actionToasts: readonly ActionToast[];
 
   // ---- Actions ------------------------------------------------------------
   loadGame: (saveId: SaveId) => Promise<void>;
@@ -262,6 +287,10 @@ export type GameStoreState = {
    * Idempotent — safe to call when no notification is active.
    */
   dismissNuclearStrikeIncoming: () => void;
+  /** Append a success/info toast to the player-action toast queue. */
+  pushActionToast: (toast: Omit<ActionToast, 'id'>) => void;
+  /** Remove a specific toast (used by the auto-dismiss timer). */
+  dismissActionToast: (id: number) => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -344,6 +373,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   pendingVictoryToast: null,
   eternalFirstVictoryShown: false,
   pendingNuclearStrikeIncoming: null,
+  actionToasts: [],
 
   reset: () => {
     set({
@@ -359,6 +389,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       pendingVictoryToast: null,
       eternalFirstVictoryShown: false,
       pendingNuclearStrikeIncoming: null,
+      actionToasts: [],
     });
   },
 
@@ -692,7 +723,44 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   dismissNuclearStrikeIncoming: () => {
     set({ pendingNuclearStrikeIncoming: null });
   },
+
+  pushActionToast: (toast) => {
+    const current = get().actionToasts;
+    const id = nextActionToastId();
+    // Hard cap at 5 visible toasts — older ones drop off the front so the
+    // stack never grows unbounded if the player spam-clicks an action.
+    const trimmed = current.length >= 5 ? current.slice(current.length - 4) : current;
+    set({ actionToasts: [...trimmed, { ...toast, id }] });
+  },
+
+  dismissActionToast: (id) => {
+    set({ actionToasts: get().actionToasts.filter((t) => t.id !== id) });
+  },
 }));
+
+/** Monotonic id generator for the action-toast queue. */
+let _actionToastSeq = 0;
+function nextActionToastId(): number {
+  _actionToastSeq += 1;
+  return _actionToastSeq;
+}
+
+// ---------------------------------------------------------------------------
+// Test hook — expose the store on `window.__aurion` so Playwright specs can
+// dispatch engine actions / mutate state without driving every flow through
+// the UI. Phase 3 spec §1416–1420 explicitly references a "cheat helper"
+// pattern for the bloc-join / un-vote / nuclear-launch / achievement-unlock
+// E2E suites; this is the minimal, deliberately-namespaced surface that
+// satisfies that requirement. The hook is set unconditionally — it is a
+// no-op in production (zustand `getState` is already exposed via React's
+// devtools tree, this just gives tests a stable handle).
+// ---------------------------------------------------------------------------
+if (typeof window !== 'undefined') {
+  // Cast through `unknown` so we don't widen the global type accidentally.
+  (window as unknown as { __aurion?: { store: typeof useGameStore } }).__aurion = {
+    store: useGameStore,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Achievement plumbing

@@ -82,6 +82,7 @@ export function VictoryCounter() {
     <div ref={containerRef} className="relative">
       <button
         type="button"
+        data-testid="victory-counter"
         onClick={() => {
           if (popoverDisabled) return;
           setOpen((v) => !v);

@@ -62,7 +62,12 @@
         "paranoia": 0.55,
         "pragmatism": 0.7
       },
-      "initialCompletedTechs": []
+      "initialCompletedTechs": [],
+      "nuclear": {
+        "warheadCount": 8,
+        "deliverySystemLevel": 2,
+        "mad": true
+      }
     },
     {
       "id": "mc-canada",
@@ -367,7 +372,12 @@
         "paranoia": 0.45,
         "pragmatism": 0.7
       },
-      "initialCompletedTechs": []
+      "initialCompletedTechs": [],
+      "nuclear": {
+        "warheadCount": 4,
+        "deliverySystemLevel": 1,
+        "mad": true
+      }
     },
     {
       "id": "mc-france",
@@ -419,7 +429,12 @@
         "paranoia": 0.45,
         "pragmatism": 0.7
       },
-      "initialCompletedTechs": []
+      "initialCompletedTechs": [],
+      "nuclear": {
+        "warheadCount": 4,
+        "deliverySystemLevel": 1,
+        "mad": true
+      }
     },
     {
       "id": "mc-germany",
@@ -724,7 +739,12 @@
         "paranoia": 0.6,
         "pragmatism": 0.75
       },
-      "initialCompletedTechs": []
+      "initialCompletedTechs": [],
+      "nuclear": {
+        "warheadCount": 5,
+        "deliverySystemLevel": 1,
+        "mad": true
+      }
     },
     {
       "id": "mc-japan",
@@ -873,7 +893,12 @@
         "paranoia": 0.55,
         "pragmatism": 0.7
       },
-      "initialCompletedTechs": []
+      "initialCompletedTechs": [],
+      "nuclear": {
+        "warheadCount": 3,
+        "deliverySystemLevel": 0,
+        "mad": true
+      }
     },
     {
       "id": "mc-indonesia",
@@ -1230,7 +1255,12 @@
         "paranoia": 0.7,
         "pragmatism": 0.7
       },
-      "initialCompletedTechs": []
+      "initialCompletedTechs": [],
+      "nuclear": {
+        "warheadCount": 2,
+        "deliverySystemLevel": 0,
+        "mad": true
+      }
     },
     {
       "id": "mc-nigeria",

@@ -19,4 +19,6 @@ export type {
 } from './NuclearLaunchConfirm';
 export { NuclearStrikeIncomingModal } from './NuclearStrikeIncomingModal';
 export type { NuclearStrikeIncomingModalProps } from './NuclearStrikeIncomingModal';
+export { ReputationDetailModal } from './ReputationDetailModal';
+export type { ReputationDetailModalProps } from './ReputationDetailModal';
 export { ModalRoot, default } from './ModalRoot';

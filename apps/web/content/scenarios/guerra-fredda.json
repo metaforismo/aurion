@@ -62,7 +62,12 @@
         "paranoia": 0.6,
         "pragmatism": 0.7
       },
-      "initialCompletedTechs": []
+      "initialCompletedTechs": [],
+      "nuclear": {
+        "warheadCount": 5,
+        "deliverySystemLevel": 0,
+        "mad": true
+      }
     },
     {
       "id": "gf-canada",
@@ -419,7 +424,12 @@
         "paranoia": 0.7,
         "pragmatism": 0.6
       },
-      "initialCompletedTechs": []
+      "initialCompletedTechs": [],
+      "nuclear": {
+        "warheadCount": 2,
+        "deliverySystemLevel": 0,
+        "mad": true
+      }
     },
     {
       "id": "gf-east-germany",
