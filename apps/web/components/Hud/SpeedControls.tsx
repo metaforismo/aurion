@@ -1,7 +1,8 @@
-// Speed control segmented button. Pause / 1x / 2x / 4x. Wires to the ticker
-// hook so that pressing a button actually drives the rAF loop. A small
-// "auto-pausa" pill appears when the engine has paused itself for an open
-// event / hidden tab / win-loss state.
+// Speed control row. Plain text buttons — `⏸  1×  2×  4×` — with the active
+// speed coloured in `text-accent`. No pill background, no segmented border:
+// in the FT-terminal aesthetic the buttons are typographic, not chromed.
+// A small "auto-pausa" caps tag appears when the engine has paused itself
+// for an open event / hidden tab / win-loss state.
 
 'use client';
 
@@ -19,9 +20,9 @@ export function SpeedControls() {
   const tHud = useTranslations('hud');
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-baseline gap-2">
       <div
-        className="flex items-center gap-0.5 rounded-md border border-border bg-bg/40 p-0.5"
+        className="flex items-baseline gap-2 font-mono text-sm"
         role="group"
         aria-label={t('label')}
       >
@@ -35,10 +36,10 @@ export function SpeedControls() {
               aria-pressed={active}
               aria-label={speedAriaLabel(s, t)}
               className={cn(
-                'rounded-sm px-2 py-1 text-xs font-mono transition',
+                'numeric-tabular transition-colors',
                 active
-                  ? 'bg-accent/20 text-accent shadow-inner'
-                  : 'text-fg-muted hover:bg-surface-2 hover:text-fg',
+                  ? 'text-accent'
+                  : 'text-fg-muted hover:text-fg',
               )}
             >
               <span aria-hidden="true">{speedGlyph(s)}</span>
@@ -47,7 +48,7 @@ export function SpeedControls() {
         })}
       </div>
       {ticker.isAutoPaused ? (
-        <span className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-warning">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-warning">
           {tHud('autoPaused')}
         </span>
       ) : null}
@@ -60,11 +61,11 @@ function speedGlyph(s: Speed): string {
     case 0:
       return '⏸';
     case 1:
-      return '▶';
+      return '1×';
     case 2:
-      return '▶▶';
+      return '2×';
     case 4:
-      return '▶▶▶';
+      return '4×';
   }
 }
 

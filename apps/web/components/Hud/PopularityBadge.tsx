@@ -1,5 +1,9 @@
-// Popularity display. 0..100 scale with a coloured indicator dot:
-//   < 30 → red (danger)   30..60 → amber (caution)   > 60 → green (healthy).
+// Popularity display. 0..100 scale with a coloured value:
+//   < 30 → red (danger)   30..60 → amber (warning)   > 60 → green (healthy).
+//
+// Visual: inline label + percentage. No background, no border, no dot — the
+// number itself carries the colour so the row reads like a Bloomberg
+// terminal ticker rather than a kit of chips.
 
 'use client';
 
@@ -15,21 +19,17 @@ export function PopularityBadge() {
   const popularity = Math.round(player?.politics.popularity ?? 0);
   const tone =
     popularity < 30
-      ? 'bg-danger'
+      ? 'text-danger'
       : popularity <= 60
-        ? 'bg-warning'
-        : 'bg-success';
+        ? 'text-warning'
+        : 'text-success';
 
   return (
-    <div className="flex items-center gap-2 rounded-md border border-border bg-bg/40 px-3 py-1.5">
-      <span
-        className={cn('inline-block h-2.5 w-2.5 rounded-full', tone)}
-        aria-hidden="true"
-      />
+    <div className="flex items-baseline gap-2">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-faint">
         {t('popularity')}
       </span>
-      <span className="numeric-tabular font-mono text-sm text-fg">
+      <span className={cn('numeric-tabular font-mono text-sm', tone)}>
         {popularity}%
       </span>
     </div>

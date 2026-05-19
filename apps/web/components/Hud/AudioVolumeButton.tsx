@@ -70,8 +70,8 @@ export function AudioVolumeButton() {
         aria-expanded={open}
         aria-label={t('volumeButton')}
         className={cn(
-          'flex h-9 w-9 items-center justify-center rounded-md border border-border-strong bg-surface-1 text-fg-muted transition',
-          open ? 'border-accent text-accent' : 'hover:border-border-strong hover:text-fg',
+          'flex h-8 w-8 items-center justify-center rounded-sm transition-colors',
+          open ? 'text-accent' : 'text-fg-muted hover:text-accent',
         )}
       >
         {fullyMuted ? (

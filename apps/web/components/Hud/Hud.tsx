@@ -1,10 +1,20 @@
-// Top HUD bar. Sticky, dark slate, ~56px tall. Composes the date / treasury /
-// popularity / speed / menu sub-components. Also installs the global
-// spacebar-to-toggle-pause shortcut.
+// Top HUD bar. Flat editorial row (FT terminal / Bloomberg header aesthetic):
+// brand wordmark left, then date · treasury · popularity · reputation · speed
+// counters · menu. No glass background — a single 1px hairline bottom border
+// on the base `bg-bg` separates the strip from the play area. Composes the
+// date / treasury / popularity / speed / menu sub-components and installs the
+// global spacebar-to-toggle-pause shortcut.
+//
+// Vertical rhythm: 52px tall, dense but readable. Horizontal rhythm: ~28px
+// gap between groups, 8px within a group. Sub-badges render as inline
+// label + value pairs — they own no border, no background, no radius. The
+// only chrome lives on interactive controls (speed buttons, icon buttons,
+// menu trigger) and reduces to a hover tint.
 
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { useTicker } from '../../lib/ticker';
 import { selectIronMan, useGameStore } from '../../lib/store';
@@ -27,6 +37,7 @@ export type HudProps = {
 export function Hud({ onNotify }: HudProps) {
   const ticker = useTicker();
   const ironMan = useGameStore(selectIronMan);
+  const tApp = useTranslations('app');
   const [internalToast, setInternalToast] = useState<string | null>(null);
 
   // Spacebar = toggle pause. Ignored when the user is typing in an input or
@@ -51,7 +62,17 @@ export function Hud({ onNotify }: HudProps) {
   const notify = onNotify ?? setInternalToast;
 
   return (
-    <header className="glass-surface sticky top-0 z-20 flex h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4">
+    <header className="sticky top-0 z-20 flex h-[52px] items-center gap-x-7 border-b border-border bg-bg px-5 text-sm">
+      {/* Brand wordmark — small caps, wide tracking, anchors the row left. */}
+      <span
+        aria-label={tApp('name')}
+        className="select-none text-xs font-semibold uppercase tracking-[0.18em] text-fg"
+      >
+        {tApp('name')}
+      </span>
+      <span aria-hidden="true" className="text-fg-faint">
+        ·
+      </span>
       <DateBadge />
       {ironMan ? <IronManBadge /> : null}
       <TreasuryBadge />
@@ -63,10 +84,8 @@ export function Hud({ onNotify }: HudProps) {
       {/* Phase 3 — Eternal-mode multi-victory counter. Hides itself unless
           state.gameMode === 'eternal'. */}
       <VictoryCounter />
-      <div className="ml-2">
-        <SpeedControls />
-      </div>
-      <div className="ml-auto flex items-center gap-2">
+      <SpeedControls />
+      <div className="ml-auto flex items-center gap-1">
         <AudioVolumeButton />
         <MenuButton onNotify={notify} />
       </div>

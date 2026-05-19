@@ -168,7 +168,7 @@ export function UNProposeForm({
 
   return (
     <form
-      className="flex flex-col gap-3 rounded-md border border-border bg-surface/40 p-3"
+      className="flex flex-col gap-3 pt-1"
       onSubmit={(e) => {
         e.preventDefault();
         void handleSubmit();
@@ -186,7 +186,7 @@ export function UNProposeForm({
             setTargetCountry('');
             setTargetRegion('');
           }}
-          className="rounded-md border border-border-strong bg-surface-1 px-2 py-1.5 text-xs text-fg"
+          className="rounded-sm border border-border bg-transparent px-2 py-1.5 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
         >
           {KIND_OPTIONS.map((k) => (
             <option key={k} value={k}>
@@ -208,7 +208,7 @@ export function UNProposeForm({
           <select
             value={targetCountry}
             onChange={(e) => setTargetCountry(e.target.value)}
-            className="rounded-md border border-border-strong bg-surface-1 px-2 py-1.5 text-xs text-fg"
+            className="rounded-sm border border-border bg-transparent px-2 py-1.5 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
           >
             <option value="">{t('propose.targetPlaceholder')}</option>
             {countries.map((c) => (
@@ -229,7 +229,7 @@ export function UNProposeForm({
           <select
             value={targetRegion}
             onChange={(e) => setTargetRegion(e.target.value)}
-            className="rounded-md border border-border-strong bg-surface-1 px-2 py-1.5 text-xs text-fg"
+            className="rounded-sm border border-border bg-transparent px-2 py-1.5 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
           >
             <option value="">{t('propose.targetPlaceholder')}</option>
             {regions.map((r) => (
@@ -243,12 +243,10 @@ export function UNProposeForm({
 
       {/* Preview */}
       <section
-        className={cn(
-          'rounded-md border border-border bg-bg/40 p-2 text-[11px] text-fg-muted',
-        )}
+        className={cn('border-t border-border pt-2 text-[11px] text-fg-muted')}
         aria-label={t('propose.previewLabel')}
       >
-        <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-fg-faint">
+        <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
           {t('propose.previewLabel')}
         </h4>
         <ul className="ml-3 list-disc space-y-0.5">
@@ -264,7 +262,7 @@ export function UNProposeForm({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md border border-border-strong bg-surface-1 px-3 py-1.5 text-xs text-fg-muted hover:text-fg"
+            className="rounded-sm border border-border bg-transparent px-3 py-1.5 text-xs text-fg-muted transition hover:border-border-strong hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
           >
             {tShared('cancel')}
           </button>

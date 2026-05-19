@@ -97,7 +97,7 @@ export function ResearchPanel({
     <div className="flex flex-col gap-4 p-4">
       {/* Sub-tabs: tech tree | space race */}
       <div
-        className="flex flex-wrap gap-1"
+        className="flex flex-wrap gap-4 border-b border-border"
         role="tablist"
         aria-label={t('tab.label')}
       >
@@ -111,10 +111,10 @@ export function ResearchPanel({
             aria-controls={`research-tabpanel-${tab}`}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              'rounded-md border px-3 py-1.5 text-xs font-medium transition',
+              '-mb-px border-b-2 px-0.5 pb-2 text-xs font-medium uppercase tracking-wider transition focus-visible:outline-none',
               activeTab === tab
-                ? 'border-accent bg-accent/15 text-accent'
-                : 'border-border-strong bg-surface-1 text-fg-muted hover:border-border-strong hover:text-fg',
+                ? 'border-accent text-fg'
+                : 'border-transparent text-fg-muted hover:text-fg',
             )}
           >
             {t(`tab.${tab}`)}
@@ -221,7 +221,7 @@ function TechTreeView({
       </Section>
 
       {/* Filter chips */}
-      <div className="flex flex-wrap gap-1" role="tablist" aria-label={t('filter.label')}>
+      <div className="flex flex-wrap gap-3" role="tablist" aria-label={t('filter.label')}>
         {(['all', ...BRANCH_ORDER] as const).map((f) => (
           <button
             key={f}
@@ -230,10 +230,10 @@ function TechTreeView({
             role="tab"
             aria-selected={filter === f}
             className={cn(
-              'rounded-full border px-2.5 py-1 text-[11px] font-medium transition',
+              'border-b-2 px-0.5 py-0.5 text-[11px] font-medium uppercase tracking-wider transition focus-visible:outline-none',
               filter === f
-                ? 'border-accent bg-accent/15 text-accent'
-                : 'border-border-strong bg-surface-1 text-fg-muted hover:border-border-strong',
+                ? 'border-accent text-fg'
+                : 'border-transparent text-fg-muted hover:text-fg',
             )}
           >
             {t(`filter.${f}`)}
@@ -258,7 +258,7 @@ function TechTreeView({
             title={t(`branch.${branch}`)}
             trailing={`${techs.length}`}
           >
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col divide-y divide-border">
               {techs.map((tech) => (
                 <li key={tech.id}>
                   <TechCard
@@ -356,11 +356,14 @@ function TechCard({
   else if (!prereqsMet) status = 'locked';
   else status = 'available';
 
+  // Editorial pass: cards lose their tinted fill — status is communicated by
+  // a thin left rule + the inline status chip in the header. Body type colour
+  // stays neutral (text-fg) so headlines don't compete.
   const statusTone: Record<typeof status, string> = {
-    completed: 'border-success bg-success/15 text-success',
-    inProgress: 'border-accent bg-accent/15 text-accent',
-    available: 'border-border-strong bg-surface/40 text-fg',
-    locked: 'border-border bg-bg/40 text-fg-faint',
+    completed: 'border-l-2 border-success',
+    inProgress: 'border-l-2 border-accent',
+    available: 'border-l-2 border-border',
+    locked: 'border-l-2 border-border opacity-60',
   };
 
   const disabledReason = completed
@@ -373,27 +376,38 @@ function TechCard({
           ? t('disabled.otherActive')
           : null;
 
+  const statusColor =
+    status === 'completed'
+      ? 'text-success'
+      : status === 'inProgress'
+        ? 'text-accent'
+        : status === 'locked'
+          ? 'text-fg-faint'
+          : 'text-fg-muted';
+
   return (
     <article
-      className={cn(
-        'flex flex-col gap-2 rounded-md border p-3 transition',
-        statusTone[status],
-      )}
+      className={cn('flex flex-col gap-2 py-3 pl-3 transition', statusTone[status])}
     >
       <header className="flex items-start justify-between gap-2">
         <div className="flex flex-col">
-          <h4 className="text-sm font-semibold leading-tight">{techName}</h4>
+          <h4 className="text-sm font-semibold leading-tight text-fg">{techName}</h4>
           <p className="text-[11px] leading-snug text-fg-muted">
             {techDescription}
           </p>
         </div>
-        <span className="rounded-full border border-current px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider opacity-80">
+        <span
+          className={cn(
+            'shrink-0 font-mono text-[10px] uppercase tracking-[0.14em]',
+            statusColor,
+          )}
+        >
           {t(`status.${status}`)}
         </span>
       </header>
 
-      <div className="flex flex-wrap items-center gap-2 text-[11px]">
-        <span className="rounded bg-surface-2/60 px-2 py-0.5 font-mono numeric-tabular">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+        <span className="font-mono numeric-tabular text-fg-muted">
           {t('cost', { n: tech.cost })}
         </span>
         {tech.prereqs.length > 0 ? (
@@ -402,10 +416,10 @@ function TechCard({
               <li
                 key={p}
                 className={cn(
-                  'rounded-full px-2 py-0.5 font-mono text-[10px]',
+                  'rounded-sm border px-2 py-0.5 font-mono text-[10px]',
                   completedSet.has(p)
                     ? toneChip('success')
-                    : 'border border-border-strong bg-surface-1 text-fg-faint',
+                    : 'border-border text-fg-faint',
                 )}
                 title={p}
               >

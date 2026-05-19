@@ -162,16 +162,11 @@ function Step1({
       // ESC + backdrop are inert — only the explicit Annulla button cancels.
       dismissable={false}
       size="md"
-      className="border-2 border-danger/70 shadow-[0_0_64px_-8px_rgba(220,38,38,0.45)]"
+      className="border-danger"
       title={
         <span className="flex items-center gap-2">
-          <AlertTriangle
-            aria-hidden
-            className={cn('h-6 w-6', tone('danger'))}
-          />
-          <span className={cn('font-bold uppercase tracking-wider', tone('danger'))}>
-            {t('step1.title')}
-          </span>
+          <AlertTriangle aria-hidden className={cn('h-4 w-4', tone('danger'))} />
+          <span className={cn(tone('danger'))}>{t('step1.title')}</span>
         </span>
       }
       footer={
@@ -179,7 +174,7 @@ function Step1({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md border border-border-strong bg-surface-1 px-4 py-2 text-xs font-semibold text-fg-muted transition hover:border-border-strong hover:text-fg"
+            className="rounded-sm border border-border bg-transparent px-4 py-2 text-xs font-semibold text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
           >
             {t('step1.cancel')}
           </button>
@@ -189,10 +184,10 @@ function Step1({
             disabled={continueDisabled}
             aria-disabled={continueDisabled}
             className={cn(
-              'rounded-md px-4 py-2 text-xs font-semibold transition',
+              'rounded-sm border bg-transparent px-4 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
               continueDisabled
-                ? 'cursor-not-allowed border border-border bg-surface/40 text-fg-faint'
-                : 'border border-danger bg-danger/20 text-danger hover:bg-danger/30',
+                ? 'cursor-not-allowed border-border text-fg-faint'
+                : 'border-border text-danger hover:border-danger',
             )}
           >
             {continueLabel}
@@ -209,12 +204,12 @@ function Step1({
           <li>{t(`step1.consequence.${kind}.warChain`)}</li>
           <li>{t(`step1.consequence.${kind}.aftermath`)}</li>
         </ul>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-md border border-border bg-surface/40 px-3 py-2 text-xs">
-          <dt className="uppercase tracking-wider text-fg-faint">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-y border-border py-2 text-xs">
+          <dt className="font-semibold uppercase tracking-[0.14em] text-fg-muted">
             {t('step1.targetLabel')}
           </dt>
           <dd className="font-mono text-fg">{targetLabel}</dd>
-          <dt className="uppercase tracking-wider text-fg-faint">
+          <dt className="font-semibold uppercase tracking-[0.14em] text-fg-muted">
             {t('step1.kindLabel')}
           </dt>
           <dd className="font-mono text-fg">{t(`step1.kind.${kind}`)}</dd>
@@ -223,7 +218,7 @@ function Step1({
           <div
             role="alert"
             className={cn(
-              'flex items-start gap-2 rounded-md border-2 border-danger bg-danger/10 px-3 py-2 text-xs font-semibold',
+              'flex items-start gap-2 border-l-2 border-danger px-3 py-2 text-xs font-semibold',
               tone('danger'),
             )}
           >
@@ -268,13 +263,11 @@ function Step2({
     <Modal
       dismissable={false}
       size="md"
-      className="border-2 border-danger shadow-[0_0_64px_-8px_rgba(220,38,38,0.55)]"
+      className="border-danger"
       title={
         <span className="flex items-center gap-2">
-          <Skull aria-hidden className={cn('h-6 w-6', tone('danger'))} />
-          <span className={cn('font-bold uppercase tracking-wider', tone('danger'))}>
-            {t('step2.title')}
-          </span>
+          <Skull aria-hidden className={cn('h-4 w-4', tone('danger'))} />
+          <span className={cn(tone('danger'))}>{t('step2.title')}</span>
         </span>
       }
       footer={
@@ -282,7 +275,7 @@ function Step2({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md border border-border-strong bg-surface-1 px-4 py-2 text-xs font-semibold text-fg-muted transition hover:border-border-strong hover:text-fg"
+            className="rounded-sm border border-border bg-transparent px-4 py-2 text-xs font-semibold text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
           >
             {t('step2.cancel')}
           </button>
@@ -292,10 +285,10 @@ function Step2({
             disabled={!match}
             aria-disabled={!match}
             className={cn(
-              'rounded-md px-4 py-2 text-xs font-semibold transition',
+              'rounded-sm border px-4 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
               match
-                ? 'bg-danger text-bg hover:bg-danger/80'
-                : 'cursor-not-allowed border border-border bg-surface/40 text-fg-faint',
+                ? 'border-danger bg-danger text-bg'
+                : 'cursor-not-allowed border-border bg-transparent text-fg-faint',
             )}
           >
             {t('step2.confirm')}
@@ -307,12 +300,12 @@ function Step2({
         <p className={cn('font-semibold leading-relaxed', tone('danger'))}>
           {t('step2.body')}
         </p>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-md border border-border bg-surface/40 px-3 py-2 text-xs">
-          <dt className="uppercase tracking-wider text-fg-faint">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-y border-border py-2 text-xs">
+          <dt className="font-semibold uppercase tracking-[0.14em] text-fg-muted">
             {t('step2.targetLabel')}
           </dt>
           <dd className="font-mono text-fg">{targetLabel}</dd>
-          <dt className="uppercase tracking-wider text-fg-faint">
+          <dt className="font-semibold uppercase tracking-[0.14em] text-fg-muted">
             {t('step2.kindLabel')}
           </dt>
           <dd className="font-mono text-fg">{t(`step1.kind.${kind}`)}</dd>
@@ -320,7 +313,7 @@ function Step2({
         <div className="flex flex-col gap-1.5">
           <label
             htmlFor="nuclear-confirm-input"
-            className="text-xs font-semibold uppercase tracking-wider text-fg"
+            className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted"
           >
             {t('step2.prompt', { word: CONFIRMATION_WORD })}
           </label>
@@ -335,12 +328,12 @@ function Step2({
             onChange={(e) => setTyped(e.target.value)}
             aria-invalid={mismatch || undefined}
             className={cn(
-              'rounded-md border bg-surface-1 px-3 py-2 font-mono text-sm text-fg outline-none transition',
+              'rounded-sm border bg-transparent px-3 py-2 font-mono text-sm text-fg outline-none transition focus:border-accent',
               match
-                ? 'border-danger ring-1 ring-danger/40'
+                ? 'border-danger'
                 : mismatch
-                  ? 'border-danger/70 bg-danger/10'
-                  : 'border-border-strong',
+                  ? 'border-danger'
+                  : 'border-border',
             )}
           />
           {mismatch ? (

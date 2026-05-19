@@ -15,13 +15,13 @@ import { useGameStore } from '../../lib/store';
 const AUTO_DISMISS_MS = 4_000;
 
 /**
- * Tier→token mapping for the toast border accent. Mirrors AchievementBadge so
- * a player can recognise tier at a glance without reading the label.
+ * Tier→token mapping for the toast left-rule accent. Mirrors AchievementBadge
+ * so a player can recognise tier at a glance without reading the label.
  */
 const TIER_BORDER: Record<AchievementDef['tier'], string> = {
-  bronze: 'border-warning',
-  silver: 'border-border-strong',
-  gold: 'border-accent',
+  bronze: 'border-l-warning',
+  silver: 'border-l-fg-muted',
+  gold: 'border-l-accent',
 };
 
 const TIER_ACCENT: Record<AchievementDef['tier'], string> = {
@@ -80,9 +80,10 @@ export function AchievementToast() {
       aria-live="polite"
       aria-atomic="true"
       data-testid="achievement-toast"
+      style={{ boxShadow: 'var(--shadow-lg)' }}
       className={cn(
         'fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)]',
-        'rounded-xl border-2 bg-surface-1 shadow-2xl',
+        'rounded-md border border-border border-l-2 bg-bg',
         'animate-in fade-in slide-in-from-bottom-2 duration-200',
         TIER_BORDER[def.tier],
       )}
@@ -91,7 +92,7 @@ export function AchievementToast() {
         <span
           aria-hidden="true"
           className={cn(
-            'mt-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-base',
+            'mt-0.5 inline-flex h-5 w-5 items-center justify-center text-base',
             TIER_ACCENT[def.tier],
           )}
         >
@@ -100,7 +101,7 @@ export function AchievementToast() {
         <div className="flex-1 min-w-0">
           <p
             className={cn(
-              'text-[10px] font-semibold uppercase tracking-wider',
+              'text-[10px] font-semibold uppercase tracking-[0.14em]',
               TIER_ACCENT[def.tier],
             )}
           >
@@ -113,7 +114,7 @@ export function AchievementToast() {
           type="button"
           onClick={dismiss}
           aria-label={tToast('dismiss')}
-          className="rounded-md border border-transparent p-1 text-fg-muted transition hover:border-border-strong hover:text-fg"
+          className="rounded-sm border border-transparent p-1 text-fg-muted transition hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

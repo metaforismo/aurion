@@ -22,22 +22,13 @@ export type AchievementsListProps = {
   className?: string;
 };
 
-const TIER_BORDER: Record<AchievementDef['tier'], string> = {
-  bronze: 'border-warning/40',
-  silver: 'border-border-strong',
-  gold: 'border-accent',
-};
-
+// Editorial pass: list rows lose their tinted background. Tier is rendered
+// via the colour of the small-caps tier label + the glyph ink; the row keeps
+// only a hairline divider via `divide-y` on the parent list.
 const TIER_TEXT: Record<AchievementDef['tier'], string> = {
   bronze: 'text-warning',
   silver: 'text-fg-muted',
   gold: 'text-accent',
-};
-
-const TIER_ICON_BG: Record<AchievementDef['tier'], string> = {
-  bronze: 'bg-warning/15',
-  silver: 'bg-surface-2',
-  gold: 'bg-accent/15',
 };
 
 export function AchievementsList({
@@ -90,20 +81,20 @@ export function AchievementsList({
   return (
     <section
       className={cn(
-        'flex flex-col gap-3 rounded-xl border border-border bg-surface-1/50 p-4',
+        'flex flex-col gap-3 border border-border bg-bg p-4',
         className,
       )}
       aria-label={tList('title')}
     >
-      <header className="flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-fg-muted">
+      <header className="flex items-baseline justify-between border-b border-border pb-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
           {tList('title')}
         </h2>
         <span className="numeric-tabular font-mono text-xs text-fg-faint">
           {totalUnlocked}/{items.length}
         </span>
       </header>
-      <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <ol className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0">
         {items.map((def) => {
           const isUnlocked = unlocked.has(def.id);
           const showSecret = def.hidden === true && !isUnlocked;
@@ -113,17 +104,15 @@ export function AchievementsList({
             <li
               key={def.id}
               className={cn(
-                'flex items-start gap-3 rounded-lg border p-3 transition',
-                isUnlocked
-                  ? cn('bg-surface-1', TIER_BORDER[def.tier])
-                  : 'border-border bg-bg/40 opacity-70',
+                'flex items-start gap-3 border-b border-border py-3 transition sm:border-b-0 sm:border-t',
+                isUnlocked ? null : 'opacity-60',
               )}
             >
               <span
                 aria-hidden="true"
                 className={cn(
-                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold',
-                  isUnlocked ? cn(TIER_ICON_BG[def.tier], TIER_TEXT[def.tier]) : 'bg-surface-2 text-fg-faint',
+                  'inline-flex h-5 w-5 shrink-0 items-center justify-center font-mono text-sm font-bold',
+                  isUnlocked ? TIER_TEXT[def.tier] : 'text-fg-faint',
                 )}
               >
                 {isUnlocked ? tierGlyph(def.tier) : '?'}
@@ -140,7 +129,7 @@ export function AchievementsList({
                   </p>
                   <span
                     className={cn(
-                      'shrink-0 text-[10px] uppercase tracking-wider',
+                      'shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em]',
                       isUnlocked ? TIER_TEXT[def.tier] : 'text-fg-faint',
                     )}
                   >

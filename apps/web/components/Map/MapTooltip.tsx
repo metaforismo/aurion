@@ -80,39 +80,47 @@ export default function MapTooltip(props: MapTooltipProps) {
       ref={ref}
       role="tooltip"
       className={cn(
-        'glass-surface pointer-events-none fixed z-50 min-w-[180px] max-w-[260px] rounded-lg px-3 py-2 text-xs text-fg shadow-xl',
+        'pointer-events-none fixed z-50 min-w-[180px] max-w-[260px] rounded-sm border border-border bg-bg/95 px-3 py-2 text-xs text-fg shadow-sm backdrop-blur-sm',
       )}
       style={{ left: pos.left, top: pos.top }}
     >
       <div className="flex items-center gap-2">
         <span
           aria-hidden
-          className="h-3 w-3 shrink-0 rounded-full ring-1 ring-border-strong"
+          className="h-2 w-2 shrink-0 rounded-full"
           style={{ backgroundColor: props.country.color }}
         />
-        <span className="truncate font-semibold text-fg">
+        <span className="truncate text-[13px] font-medium text-fg">
           {props.name}
         </span>
         {props.isPlayer ? (
-          <span className="ml-auto rounded-sm bg-accent/20 px-1 py-0.5 text-[10px] uppercase tracking-wider text-accent">
+          <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.14em] text-accent">
             {props.labels.player}
           </span>
         ) : props.isSelected ? (
-          <span className="ml-auto rounded-sm bg-surface-2/60 px-1 py-0.5 text-[10px] uppercase tracking-wider text-fg-muted">
+          <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.14em] text-fg-faint">
             {props.labels.selected}
           </span>
         ) : null}
       </div>
 
-      <dl className="mt-2 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-[11px]">
-        <dt className="text-fg-faint">{props.labels.region}</dt>
-        <dd className="font-mono text-fg-muted">{props.regionLabel}</dd>
+      <hr className="my-2 border-border" />
 
-        <dt className="text-fg-faint">{props.labels.capital}</dt>
-        <dd className="font-mono text-fg-muted">{props.capital}</dd>
+      <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-[11px]">
+        <dt className="font-mono uppercase tracking-[0.12em] text-fg-faint">
+          {props.labels.region}
+        </dt>
+        <dd className="text-fg-muted">{props.regionLabel}</dd>
 
-        <dt className="text-fg-faint">{props.labels.gdp}</dt>
-        <dd className="numeric-tabular font-mono text-success">
+        <dt className="font-mono uppercase tracking-[0.12em] text-fg-faint">
+          {props.labels.capital}
+        </dt>
+        <dd className="text-fg-muted">{props.capital}</dd>
+
+        <dt className="font-mono uppercase tracking-[0.12em] text-fg-faint">
+          {props.labels.gdp}
+        </dt>
+        <dd className="numeric-tabular font-mono text-fg">
           {intelKnown
             ? formatBig(props.country.economy.gdp)
             : intelRumors
@@ -120,8 +128,10 @@ export default function MapTooltip(props: MapTooltipProps) {
               : props.labels.intelHidden}
         </dd>
 
-        <dt className="text-fg-faint">{props.labels.army}</dt>
-        <dd className="numeric-tabular font-mono text-danger">
+        <dt className="font-mono uppercase tracking-[0.12em] text-fg-faint">
+          {props.labels.army}
+        </dt>
+        <dd className="numeric-tabular font-mono text-fg">
           {intelKnown
             ? formatBig(props.country.military.armySize)
             : intelRumors
@@ -131,7 +141,9 @@ export default function MapTooltip(props: MapTooltipProps) {
 
         {props.attitudeTowardPlayer !== null ? (
           <>
-            <dt className="text-fg-faint">{props.labels.attitude}</dt>
+            <dt className="font-mono uppercase tracking-[0.12em] text-fg-faint">
+              {props.labels.attitude}
+            </dt>
             <dd
               className={cn(
                 'numeric-tabular font-mono',
@@ -146,8 +158,10 @@ export default function MapTooltip(props: MapTooltipProps) {
           </>
         ) : null}
 
-        <dt className="text-fg-faint">{props.labels.intel}</dt>
-        <dd className="font-mono text-fg-muted">
+        <dt className="font-mono uppercase tracking-[0.12em] text-fg-faint">
+          {props.labels.intel}
+        </dt>
+        <dd className="text-fg-muted">
           {props.labels.intelByLevel[props.intelLevel]}
         </dd>
       </dl>

@@ -44,12 +44,7 @@ export function WinLossModal() {
   return (
     <Modal
       title={
-        <span
-          className={cn(
-            'text-2xl font-bold',
-            isWin ? 'text-success' : 'text-danger',
-          )}
-        >
+        <span className={cn(isWin ? 'text-success' : 'text-danger')}>
           {isWin ? t('wonTitle') : t('lostTitle')}
         </span>
       }
@@ -62,13 +57,13 @@ export function WinLossModal() {
         <>
           <Link
             href="/"
-            className="rounded-md border border-border-strong bg-surface-1 px-4 py-2 text-xs font-semibold text-fg-muted transition hover:border-border-strong hover:text-fg"
+            className="rounded-sm border border-border bg-transparent px-4 py-2 text-xs font-semibold text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
           >
             {t('backHome')}
           </Link>
           <Link
             href="/new"
-            className="rounded-md bg-accent px-4 py-2 text-xs font-semibold text-bg transition hover:bg-accent-strong"
+            className="rounded-sm border border-accent bg-accent px-4 py-2 text-xs font-semibold text-bg transition hover:border-accent-strong hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
           >
             {t('newGame')}
           </Link>
@@ -194,8 +189,8 @@ function Summary({
   ).length;
 
   return (
-    <section className="mt-4 space-y-3 rounded-xl border border-border bg-bg/40 p-4">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-fg-faint">
+    <section className="mt-4 space-y-3 border-t border-border pt-4">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
         {labels.summary}
       </h3>
       <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -222,7 +217,7 @@ function Summary({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-[11px] uppercase tracking-wider text-fg-faint">
+      <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
         {label}
       </dt>
       <dd className="numeric-tabular font-mono text-sm text-fg">{value}</dd>

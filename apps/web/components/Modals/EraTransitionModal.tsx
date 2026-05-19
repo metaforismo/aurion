@@ -17,6 +17,8 @@ import { useTranslations } from 'next-intl';
 import type { Era, GameState } from '@aurion/engine';
 
 import { useGameStore, type GameStoreState } from '../../lib/store';
+import type { ScenarioId } from '../../lib/scenarios';
+import { useScenarioMessages } from '../Panels/shared/useScenarioMessages';
 
 import { Modal } from './Modal';
 
@@ -26,9 +28,13 @@ export function EraTransitionModal() {
   const applyAction = useGameStore((s: GameStoreState) => s.applyAction);
 
   const t = useTranslations('modals.eraTransition');
-  // Scenario message bundle is loaded eagerly by the play screen, so era name
-  // keys can be resolved through the global UI namespace as a fallback.
-  const tGlobal = useTranslations();
+  // Era name keys (e.g. `era.mc.info-age.name`) live in the scenario side-car
+  // bundle, NOT in the global messages file. Resolve them via the scenario
+  // messages hook — same pattern as EventModal / WorldMap. Hooks must run
+  // before any early return, so we always call this even when the modal will
+  // bail out below.
+  const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
+  const { t: tScenario } = useScenarioMessages(scenarioId);
 
   // Defensive guards — ModalRoot already gates on these conditions, but the
   // modal is safe to mount standalone in tests / Storybook.
@@ -42,11 +48,10 @@ export function EraTransitionModal() {
   const fromEra = scenario.eras?.find((e: Era) => e.id === fromEraId) ?? null;
   const toEra = scenario.eras?.find((e: Era) => e.id === toEraId) ?? null;
 
-  // Resolve era display names. We prefer the scenario-provided i18n key
-  // (resolved via the global bundle), falling back to the raw era id when no
-  // translation exists yet.
-  const fromName = resolveEraName(tGlobal, fromEra, fromEraId);
-  const toName = resolveEraName(tGlobal, toEra, toEraId);
+  // Resolve era display names through the scenario message bundle, falling
+  // back to the raw era id when no translation exists yet.
+  const fromName = resolveEraName(tScenario, fromEra, fromEraId);
+  const toName = resolveEraName(tScenario, toEra, toEraId);
 
   const handleAcknowledge = async () => {
     await applyAction({ type: 'acknowledgeEraTransition' });
@@ -54,11 +59,7 @@ export function EraTransitionModal() {
 
   return (
     <Modal
-      title={
-        <span className="text-2xl font-bold text-accent">
-          {t('title', { fromEra: fromName })}
-        </span>
-      }
+      title={t('title', { fromEra: fromName })}
       // Narrative checkpoint — must be acknowledged to keep the run moving.
       dismissable={false}
       size="md"
@@ -66,14 +67,14 @@ export function EraTransitionModal() {
         <button
           type="button"
           onClick={handleAcknowledge}
-          className="rounded-md bg-accent px-4 py-2 text-xs font-semibold text-bg transition hover:bg-accent-strong"
+          className="rounded-sm border border-accent bg-accent px-4 py-2 text-xs font-semibold text-bg transition hover:border-accent-strong hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         >
           {t('continue')}
         </button>
       }
     >
       <div className="flex flex-col gap-4">
-        <p className="leading-relaxed text-fg-muted">
+        <p className="leading-relaxed text-fg">
           {t('subtitle', { toEra: toName })}
         </p>
 
@@ -120,7 +121,7 @@ function StatsSnapshotList({
 
   return (
     <ul
-      className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-surface-2/40 p-3 text-sm"
+      className="grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm"
       aria-label={t('ariaLabel')}
     >
       <StatItem label={t('ticksPlayed')} value={`${ticks}`} />
@@ -140,7 +141,7 @@ function StatsSnapshotList({
 function StatItem({ label, value }: { label: string; value: string }) {
   return (
     <li className="flex flex-col gap-0.5">
-      <span className="text-[10px] uppercase tracking-wider text-fg-faint">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
         {label}
       </span>
       <span className="font-mono text-base text-fg">{value}</span>
@@ -158,14 +159,13 @@ function countPlayerTechs(state: GameState): number {
 }
 
 /**
- * Resolve the era display name. Tries the scenario-provided i18n key against
- * the global UI bundle (where scenario message JSON gets merged at runtime);
- * falls back to the raw era id when no translation is available. Mirrors the
- * `safeT` pattern used by `EternalFirstVictoryModal`.
+ * Resolve the era display name through the scenario message bundle. Falls
+ * back to the raw era id when no translation is available (the scenario
+ * `t` getter returns the key on miss, which we treat as the "missing" signal
+ * — same convention as `EternalFirstVictoryModal`).
  */
 function resolveEraName(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  t: (key: any) => string,
+  t: (key: string | undefined | null) => string,
   era: Era | null,
   fallbackId: string,
 ): string {

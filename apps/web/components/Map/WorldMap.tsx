@@ -1,18 +1,18 @@
 'use client';
 
-// Aurion's stylised world map. This is the centrepiece of the play screen.
+// Aurion's editorial-style ("Atlas") world map. Centrepiece of the play screen.
 // It reads everything it needs from the Zustand store via selectors so the
 // component only re-renders when relevant slices change (state, scenario,
 // selectedCountryId).
 //
-// Visuals:
-//   - 5 hand-authored macro regions (regions.ts).
-//   - ~25 nations rendered as circles, sized by GDP, coloured by their
-//     scenario-defined hue.
-//   - Player country wears a golden halo; selected country wears a white
-//     dashed ring.
-//   - Toggleable overlays: tension (region heatmap), alliances (network
-//     graph between allied countries), intel (mask unknown countries).
+// Visuals (NYT / FT / Bloomberg-style):
+//   - 5 hand-authored macro regions painted as flat single-colour polygons
+//     with hairline borders. No gradients, no glow.
+//   - Nations rendered as small filled capital-dots with a small uppercase
+//     tracked label below. The player nation marker is the brand accent.
+//   - Toggleable overlays: tension (region heatmap), alliances (hairline
+//     network graph), intel (opacity / greyscale mask), blocs (region tint
+//     + nation ring).
 //
 // Interactions:
 //   - Click → selectCountry(id) (toggles off if same id).
@@ -37,20 +37,24 @@ import type {
   CountryId,
   GameState,
   IntelLevel,
-  Relation,
 } from '@aurion/engine';
 
 import { cn } from '../../lib/cn';
 import { loadScenarioMessages } from '../../lib/scenarios';
 import { useGameStore } from '../../lib/store';
 
+import MapLegend from './MapLegend';
 import MapNation from './MapNation';
 import MapTooltip from './MapTooltip';
 import {
   AllianceEdges,
-  BlocLegend,
   BLOC_COLOR,
-  OverlayToggle,
+  computeAllianceEdges,
+  computeBlocOverlay,
+  computeIntelMask,
+  computeRegionTension,
+  intelToVisuals,
+  tensionToColor,
   type AllianceEdge,
   type BlocColorKey,
   type OverlayMode,
@@ -79,18 +83,6 @@ type SupportedLocale = 'it' | 'en';
 function isSupportedLocale(s: string | undefined): s is SupportedLocale {
   return s === 'it' || s === 'en';
 }
-
-// Alliance edges use the five region accents in stable rotation, with the
-// brand accent as the sixth slot, so the union-find groups inherit the same
-// palette as the map regions themselves.
-const ALLIANCE_GROUP_COLORS = [
-  'var(--color-region-borealis)',
-  'var(--color-region-auriana)',
-  'var(--color-region-oriana)',
-  'var(--color-region-meridia)',
-  'var(--color-region-sahel)',
-  'var(--color-accent)',
-];
 
 // ---------------------------------------------------------------------------
 // Component
@@ -462,55 +454,10 @@ export default function WorldMap() {
       ? {}
       : { blocs: { tooltip: tOverlay('blocsUnavailable') } };
 
-  // Per-country bloc lookup. Falls back to the 'unaligned' sentinel for
-  // countries without a `blocId` (i.e. neutral / not yet joined a bloc).
-  // Only computed when the blocs overlay is active to keep render light.
-  const blocByCountry: Map<CountryId, BlocColorKey> = (() => {
-    const out = new Map<CountryId, BlocColorKey>();
-    if (overlay !== 'blocs') return out;
-    for (const c of countryEntries) {
-      out.set(c.id, c.blocId ?? 'unaligned');
-    }
-    return out;
-  })();
-
-  // Region tint per region id when the blocs overlay is active. We pick the
-  // dominant (most-represented) bloc among the region's countries; ties go
-  // to the bloc with the highest cumulative GDP. Regions with no member
-  // country, or where the dominant choice is 'unaligned', stay on their
-  // base biome fill.
-  const regionBlocTint: Map<string, BlocColorKey> = (() => {
-    const out = new Map<string, BlocColorKey>();
-    if (overlay !== 'blocs') return out;
-    type Counts = Map<BlocColorKey, { count: number; gdp: number }>;
-    const perRegion = new Map<string, Counts>();
-    for (const c of countryEntries) {
-      const key = c.blocId ?? 'unaligned';
-      let region = perRegion.get(c.regionId);
-      if (!region) {
-        region = new Map();
-        perRegion.set(c.regionId, region);
-      }
-      const slot = region.get(key) ?? { count: 0, gdp: 0 };
-      slot.count += 1;
-      slot.gdp += c.economy.gdp;
-      region.set(key, slot);
-    }
-    for (const [regionId, counts] of perRegion) {
-      let best: BlocColorKey | null = null;
-      let bestScore = -Infinity;
-      for (const [key, slot] of counts) {
-        // Sort by count first, then by GDP as a deterministic tiebreaker.
-        const score = slot.count * 1e15 + slot.gdp;
-        if (score > bestScore) {
-          best = key;
-          bestScore = score;
-        }
-      }
-      if (best && best !== 'unaligned') out.set(regionId, best);
-    }
-    return out;
-  })();
+  // Per-country bloc lookup + per-region dominant-bloc tint, both only
+  // populated when the 'blocs' overlay is active.
+  const { byCountry: blocByCountry, regionTint: regionBlocTint } =
+    computeBlocOverlay(overlay === 'blocs', countryEntries);
 
   const blocLegendLabels: Record<BlocColorKey, string> = {
     western: t('legend.bloc.western'),
@@ -529,7 +476,7 @@ export default function WorldMap() {
   return (
     <div
       className={cn(
-        'relative h-full min-h-[60vh] w-full overflow-hidden rounded-xl border border-border bg-bg',
+        'relative h-full min-h-[60vh] w-full overflow-hidden bg-bg',
       )}
       role="region"
       aria-label={t('label')}
@@ -558,7 +505,8 @@ export default function WorldMap() {
           setHoveredId(null);
         }}
       >
-        {/* Background — captures clicks to clear selection. */}
+        {/* Background — captures clicks to clear selection. Solid page bg,
+            no gradient or grid; the map reads ink-on-paper. */}
         <rect
           x={MAP_VIEWBOX.x - 200}
           y={MAP_VIEWBOX.y - 200}
@@ -568,43 +516,15 @@ export default function WorldMap() {
           onClick={handleBackgroundClick}
         />
 
-        {/* Decorative grid for orientation — extremely faint. */}
-        <Grid />
-
-        {/* Region silhouettes */}
-        <g aria-hidden>
-          {REGION_ORDER.map((id) => {
-            const r = REGIONS[id];
-            if (!r) return null;
-            const tension = overlay === 'tension' ? regionTension.get(id) ?? 0 : 0;
-            // Region fill resolution priority:
-            //   1. tension overlay → heatmap colour ramp
-            //   2. blocs overlay → tinted by dominant bloc (if any)
-            //   3. default → biome fill
-            const blocTintKey = overlay === 'blocs' ? regionBlocTint.get(id) : undefined;
-            const fill =
-              overlay === 'tension'
-                ? tensionToColor(tension)
-                : blocTintKey
-                  ? BLOC_COLOR[blocTintKey]
-                  : r.fill;
-            // Blocs overlay washes the region with a low-opacity tint so the
-            // base biome silhouette stays readable underneath.
-            const fillOpacity = overlay === 'blocs' && blocTintKey ? 0.18 : 0.85;
-            return (
-              <g key={id}>
-                <path
-                  d={r.pathD}
-                  fill={fill}
-                  stroke={r.stroke}
-                  strokeWidth={2}
-                  fillOpacity={fillOpacity}
-                />
-                <RegionLabel region={r} label={tRegions(r.nameKey)} />
-              </g>
-            );
-          })}
-        </g>
+        {/* Region silhouettes — flat single-colour fills, hairline borders.
+            Overlays mutate the fill (tension heat, bloc tint); they don't
+            add extra glow layers. */}
+        <Regions
+          overlay={overlay}
+          regionTension={regionTension}
+          regionBlocTint={regionBlocTint}
+          translate={tRegions}
+        />
 
         {/* Alliance edges (only when selected overlay) */}
         {overlay === 'alliances' ? (
@@ -631,6 +551,8 @@ export default function WorldMap() {
               gdp: formatBig(c.economy.gdp),
               army: formatBig(c.military.armySize),
             });
+            const intelKnown =
+              isPlayer || intel === 'partial' || intel === 'full';
             return (
               <MapNation
                 key={c.id}
@@ -639,6 +561,13 @@ export default function WorldMap() {
                 cy={pos.y}
                 radius={radius}
                 color={c.color}
+                label={
+                  // Intel-mask: hide labels for nations the player has no
+                  // intel on, so the map reads like a redacted briefing.
+                  overlay === 'intel' && !intelKnown
+                    ? undefined
+                    : localiseName(c, scenarioMessages)
+                }
                 ariaLabel={ariaLabel}
                 isPlayer={isPlayer}
                 isSelected={isSelected}
@@ -670,48 +599,23 @@ export default function WorldMap() {
           })}
         </g>
 
-        {/* Bloc rings — only when the 'blocs' overlay is active. We render a
-            thin coloured ring just outside each nation circle so the bloc
-            assignment stays legible on top of the existing player halo /
-            selection ring without coupling to MapNation's prop surface. */}
+        {/* Bloc rings — a single hairline ring per nation, only when the
+            'blocs' overlay is active and the scenario carries a bloc roster. */}
         {overlay === 'blocs' && blocsAvailable ? (
-          <g aria-hidden pointerEvents="none" data-overlay="blocs">
-            {countryEntries.map((c) => {
-              const pos = NATION_POSITIONS[c.id];
-              if (!pos) return null;
-              const blocKey = blocByCountry.get(c.id) ?? 'unaligned';
-              const radius = computeNationRadius(c, pos.sizeHint);
-              return (
-                <circle
-                  key={`bloc-${c.id}`}
-                  cx={pos.x}
-                  cy={pos.y}
-                  r={radius + 2.5}
-                  fill="none"
-                  stroke={BLOC_COLOR[blocKey]}
-                  strokeWidth={1.75}
-                  strokeOpacity={blocKey === 'unaligned' ? 0.55 : 0.9}
-                />
-              );
-            })}
-          </g>
+          <BlocRings countries={countryEntries} blocByCountry={blocByCountry} />
         ) : null}
       </svg>
 
-      {/* Overlay toggle UI (HTML, anchored absolute) */}
-      <OverlayToggle
+      {/* Bottom legend rail — overlay segmented toggle plus, when the blocs
+          overlay is active, the bloc colour key. */}
+      <MapLegend
         mode={overlay}
         onChange={setOverlay}
         groupLabel={tOverlay('label')}
         labels={overlayLabels}
         disabled={overlayDisabled}
+        blocLabels={blocLegendLabels}
       />
-
-      {/* Bloc legend — only when the blocs overlay is active and the
-          scenario actually carries a bloc roster. */}
-      {overlay === 'blocs' && blocsAvailable ? (
-        <BlocLegend labels={blocLegendLabels} />
-      ) : null}
 
       {/* Tooltip */}
       {tooltipId && tooltipCountry ? (
@@ -843,207 +747,116 @@ function relKey(a: CountryId, b: CountryId) {
 }
 
 // ---------------------------------------------------------------------------
-// Tension overlay
+// Region pass — flat polygons with hairline borders. The fill is overridden
+// by the active overlay (tension heat or bloc tint); otherwise the biome
+// fill flows through.
 // ---------------------------------------------------------------------------
 
-/** Returns a 0..1 tension value per region. */
-function computeRegionTension(state: GameState): Map<string, number> {
-  const base = state.worldTension / 100;
-  const out = new Map<string, number>();
-  for (const id of REGION_ORDER) out.set(id, base);
+type RegionsProps = {
+  overlay: OverlayMode;
+  regionTension: Map<string, number>;
+  regionBlocTint: Map<string, BlocColorKey>;
+  translate: (key: string) => string;
+};
 
-  // Add a contribution from wars / sanctions touching each region.
-  const relations = Object.values(state.relations);
-  for (const r of relations) {
-    const a = state.countries[r.countryA];
-    const b = state.countries[r.countryB];
-    if (!a || !b) continue;
-    const contribution =
-      (r.atWar ? 0.4 : 0) + (r.treaties.includes('sanctions') ? 0.15 : 0);
-    if (contribution === 0) continue;
-    out.set(a.regionId, Math.min(1, (out.get(a.regionId) ?? 0) + contribution));
-    out.set(b.regionId, Math.min(1, (out.get(b.regionId) ?? 0) + contribution));
-  }
-  return out;
-}
-
-/** Map a 0..1 tension to a cool->hot fill colour. */
-function tensionToColor(t: number): string {
-  // 0 = cool slate-blue, 1 = hot rose. Smooth via two-stop blend.
-  const cool: [number, number, number] = [37, 56, 96]; // ~ #253860
-  const mid: [number, number, number] = [120, 90, 60]; // brownish
-  const hot: [number, number, number] = [180, 50, 60]; // rose-700-ish
-  const c = clamp(t, 0, 1);
-  let r: number, g: number, b: number;
-  if (c < 0.5) {
-    const k = c / 0.5;
-    r = cool[0] * (1 - k) + mid[0] * k;
-    g = cool[1] * (1 - k) + mid[1] * k;
-    b = cool[2] * (1 - k) + mid[2] * k;
-  } else {
-    const k = (c - 0.5) / 0.5;
-    r = mid[0] * (1 - k) + hot[0] * k;
-    g = mid[1] * (1 - k) + hot[1] * k;
-    b = mid[2] * (1 - k) + hot[2] * k;
-  }
-  return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-}
-
-// ---------------------------------------------------------------------------
-// Alliance overlay (union-find)
-// ---------------------------------------------------------------------------
-
-function computeAllianceEdges(state: GameState): AllianceEdge[] {
-  const ids: CountryId[] = Object.keys(state.countries);
-  const parent = new Map<CountryId, CountryId>();
-  for (const id of ids) parent.set(id, id);
-  const find = (x: CountryId): CountryId => {
-    let cur = x;
-    while (parent.get(cur) !== cur) {
-      const p = parent.get(cur);
-      if (!p) break;
-      const gp = parent.get(p) ?? p;
-      parent.set(cur, gp);
-      cur = gp;
-    }
-    return cur;
-  };
-  const union = (a: CountryId, b: CountryId) => {
-    const ra = find(a);
-    const rb = find(b);
-    if (ra !== rb) parent.set(ra, rb);
-  };
-
-  const allianceRels: Relation[] = [];
-  for (const r of Object.values(state.relations)) {
-    if (r.treaties.includes('alliance')) {
-      allianceRels.push(r);
-      union(r.countryA, r.countryB);
-    }
-  }
-
-  // Assign deterministic colour per group root.
-  const groupColors = new Map<CountryId, string>();
-  for (const id of ids) {
-    const root = find(id);
-    if (!groupColors.has(root)) {
-      const colorIdx = groupColors.size % ALLIANCE_GROUP_COLORS.length;
-      const color =
-        ALLIANCE_GROUP_COLORS[colorIdx] ?? 'var(--color-fg-muted)';
-      groupColors.set(root, color);
-    }
-  }
-
-  const edges: AllianceEdge[] = [];
-  for (const r of allianceRels) {
-    const pa = NATION_POSITIONS[r.countryA];
-    const pb = NATION_POSITIONS[r.countryB];
-    if (!pa || !pb) continue;
-    const root = find(r.countryA);
-    const color = groupColors.get(root) ?? 'var(--color-fg-muted)';
-    edges.push({
-      from: r.countryA,
-      to: r.countryB,
-      color,
-      x1: pa.x,
-      y1: pa.y,
-      x2: pb.x,
-      y2: pb.y,
-    });
-  }
-  return edges;
-}
-
-// ---------------------------------------------------------------------------
-// Intel overlay
-// ---------------------------------------------------------------------------
-
-function computeIntelMask(state: GameState): Map<CountryId, IntelLevel> {
-  const out = new Map<CountryId, IntelLevel>();
-  const player = state.countries[state.playerCountryId];
-  if (!player) return out;
-  for (const id of Object.keys(state.countries)) {
-    if (id === player.id) {
-      out.set(id, 'full');
-      continue;
-    }
-    const lvl = player.intelligence.knownIntel[id] ?? 'none';
-    out.set(id, lvl);
-  }
-  return out;
-}
-
-function intelToVisuals(level: IntelLevel): {
-  opacity: number;
-  greyscale: number;
-} {
-  switch (level) {
-    case 'full':
-      return { opacity: 1, greyscale: 0 };
-    case 'partial':
-      return { opacity: 0.85, greyscale: 0.2 };
-    case 'rumors':
-      return { opacity: 0.6, greyscale: 0.55 };
-    case 'none':
-    default:
-      return { opacity: 0.35, greyscale: 0.85 };
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Decorative pieces
-// ---------------------------------------------------------------------------
-
-function Grid() {
+function Regions({
+  overlay,
+  regionTension,
+  regionBlocTint,
+  translate,
+}: RegionsProps) {
   return (
-    <g aria-hidden pointerEvents="none" opacity={0.04}>
-      <defs>
-        <pattern
-          id="aurion-grid"
-          width={80}
-          height={80}
-          patternUnits="userSpaceOnUse"
-        >
-          <path
-            d="M 80 0 L 0 0 0 80"
-            fill="none"
-            stroke="var(--color-fg-faint)"
-            strokeWidth={0.6}
-          />
-        </pattern>
-      </defs>
-      <rect
-        x={MAP_VIEWBOX.x}
-        y={MAP_VIEWBOX.y}
-        width={MAP_VIEWBOX.width}
-        height={MAP_VIEWBOX.height}
-        fill="url(#aurion-grid)"
-      />
+    <g aria-hidden>
+      {REGION_ORDER.map((id) => {
+        const r = REGIONS[id];
+        if (!r) return null;
+        const tension = overlay === 'tension' ? regionTension.get(id) ?? 0 : 0;
+        const blocTintKey = overlay === 'blocs' ? regionBlocTint.get(id) : undefined;
+        const fill =
+          overlay === 'tension'
+            ? tensionToColor(tension)
+            : blocTintKey
+              ? BLOC_COLOR[blocTintKey]
+              : r.fill;
+        const fillOpacity =
+          overlay === 'tension'
+            ? 0.55
+            : overlay === 'blocs' && blocTintKey
+              ? 0.4
+              : 0.55;
+        return (
+          <g key={id}>
+            <path
+              d={r.pathD}
+              fill={fill}
+              stroke="var(--color-fg)"
+              strokeOpacity={0.22}
+              strokeWidth={1}
+              fillOpacity={fillOpacity}
+            />
+            <RegionLabel region={r} label={translate(r.nameKey)} />
+          </g>
+        );
+      })}
     </g>
   );
 }
 
 function RegionLabel({ region, label }: { region: RegionDef; label: string }) {
-  const cx = region.bounds.x + region.bounds.w / 2;
-  const cy = region.bounds.y + region.bounds.h / 2;
   return (
     <text
-      x={cx}
-      y={cy}
-      textAnchor="middle"
-      dominantBaseline="middle"
-      fill="var(--color-fg)"
-      fillOpacity={0.18}
-      fontSize={64}
-      fontWeight={700}
-      letterSpacing={6}
+      x={region.bounds.x + 8}
+      y={region.bounds.y + 18}
+      textAnchor="start"
+      dominantBaseline="hanging"
+      fill="var(--color-fg-muted)"
+      fontSize={11}
+      fontWeight={500}
+      letterSpacing={2}
       style={{
         textTransform: 'uppercase',
+        fontFamily: 'var(--font-mono)',
         pointerEvents: 'none',
         userSelect: 'none',
       }}
     >
       {label}
     </text>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Bloc rings — thin coloured ring around each nation when the 'blocs' overlay
+// is active. Rendered separately from the nation dot so the bloc assignment
+// reads as a border, not a glow, and so the dot itself stays uniform.
+// ---------------------------------------------------------------------------
+
+function BlocRings({
+  countries,
+  blocByCountry,
+}: {
+  countries: ReadonlyArray<Country>;
+  blocByCountry: Map<CountryId, BlocColorKey>;
+}) {
+  return (
+    <g aria-hidden pointerEvents="none" data-overlay="blocs">
+      {countries.map((c) => {
+        const pos = NATION_POSITIONS[c.id];
+        if (!pos) return null;
+        const blocKey = blocByCountry.get(c.id) ?? 'unaligned';
+        return (
+          <circle
+            key={`bloc-${c.id}`}
+            cx={pos.x}
+            cy={pos.y}
+            r={6}
+            fill="none"
+            stroke={BLOC_COLOR[blocKey]}
+            strokeWidth={1}
+            strokeOpacity={blocKey === 'unaligned' ? 0.5 : 0.85}
+          />
+        );
+      })}
+    </g>
   );
 }

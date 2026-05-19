@@ -222,7 +222,7 @@ export function SpiesPanel({
           <button
             type="button"
             onClick={() => setComposerOpen(true)}
-            className="w-full rounded-md border border-accent bg-accent/10 px-3 py-2 text-xs font-medium text-accent hover:border-accent-strong hover:bg-accent/20"
+            className="w-full rounded-sm border border-accent bg-accent px-3 py-2 text-xs font-medium text-bg transition hover:border-accent-strong hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
           >
             {t('composer.open')}
           </button>
@@ -237,7 +237,7 @@ export function SpiesPanel({
         {activeOps.length === 0 ? (
           <EmptyState>{t('active.empty')}</EmptyState>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col divide-y divide-border">
             {activeOps.map((op) => (
               <li key={op.id}>
                 <SpyOpCard
@@ -252,19 +252,19 @@ export function SpiesPanel({
 
       {/* Intel summary */}
       <Section title={t('intelSummary.title')}>
-        <ul className="grid grid-cols-1 gap-1 text-xs">
+        <ul className="grid grid-cols-1 divide-y divide-border text-xs">
           {otherCountries.map((c) => {
             const lvl = (intel.knownIntel[c.id] ?? 'none') as IntelLevel;
             return (
               <li
                 key={c.id}
-                className="flex items-center justify-between gap-2 rounded border border-border px-2 py-1"
+                className="flex items-center justify-between gap-2 py-1.5"
               >
                 <span className="text-fg">{tScenario(c.nameKey)}</span>
                 <span
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider',
-                    INTEL_TONE[lvl],
+                    'inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em]',
+                    INTEL_TONE[lvl].split(' ').filter((c) => c.startsWith('text-')).join(' '),
                   )}
                   aria-label={t(`intel.${lvl}`)}
                   title={t(`intel.${lvl}`)}
@@ -407,7 +407,7 @@ function SpyComposer({
         id="spy-type"
         value={type}
         onChange={(e) => setType(e.target.value as SpyOperationType)}
-        className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
+        className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
       >
         {SPY_TYPES.map((sType) => (
           <option key={sType} value={sType}>
@@ -423,7 +423,7 @@ function SpyComposer({
         id="spy-target"
         value={target}
         onChange={(e) => setTarget(e.target.value)}
-        className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
+        className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
       >
         <option value="">{t('composer.targetPlaceholder')}</option>
         {eligibleTargets.map((c) => (
@@ -446,7 +446,7 @@ function SpyComposer({
             id="spy-tech"
             value={stealTechId}
             onChange={(e) => setStealTechId(e.target.value)}
-            className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
+            className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
           >
             <option value="">{t('composer.stealTechPlaceholder')}</option>
             {stealableTechs.map((id) => (
@@ -472,7 +472,7 @@ function SpyComposer({
             onChange={(e) =>
               setSabotageTarget(e.target.value as keyof EconomySectors | 'military' | 'science')
             }
-            className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
+            className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
           >
             {SABOTAGE_TARGETS.map((s) => (
               <option key={s} value={s}>
@@ -494,7 +494,7 @@ function SpyComposer({
             onChange={(e) =>
               setPropagandaFaction((e.target.value || '') as FactionId | '')
             }
-            className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
+            className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
           >
             <option value="">{t('composer.propagandaAny')}</option>
             {FACTION_IDS.map((f) => (
@@ -516,16 +516,16 @@ function SpyComposer({
             type="text"
             value={assassinateRoleKey}
             onChange={(e) => setAssassinateRoleKey(e.target.value)}
-            className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 font-mono text-xs text-fg"
+            className="rounded-sm border border-border bg-transparent px-2 py-1 font-mono text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
           />
         </>
       ) : null}
 
       {/* Live prediction */}
       {target ? (
-        <div className="grid grid-cols-2 gap-2 rounded-md border border-border bg-surface/40 p-2">
+        <div className="grid grid-cols-2 gap-2 border-t border-border pt-2">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-fg-faint">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
               {t('composer.successPreview')}
             </div>
             <div className="font-mono text-sm text-success numeric-tabular">
@@ -533,7 +533,7 @@ function SpyComposer({
             </div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-fg-faint">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
               {t('composer.detectionPreview')}
             </div>
             <div className="font-mono text-sm text-danger numeric-tabular">
@@ -556,7 +556,7 @@ function SpyComposer({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-md border border-border-strong bg-surface-1 px-3 py-2 text-xs text-fg hover:border-border-strong"
+          className="rounded-sm border border-border bg-transparent px-3 py-2 text-xs text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         >
           {tShared('cancel')}
         </button>
@@ -578,7 +578,7 @@ function SpyOpCard({
   const remaining = Math.max(0, op.durationTicks - op.progressTicks);
 
   return (
-    <div className="rounded-md border border-border bg-surface/40 p-2">
+    <div className="flex flex-col gap-1 py-2">
       <div className="flex items-baseline justify-between">
         <span className="text-xs font-medium text-fg">
           {t(`type.${op.type}`)} → {targetName || op.targetCountryId}
@@ -631,8 +631,8 @@ function Stat({
   t: Tone;
 }) {
   return (
-    <div className="rounded-md border border-border bg-surface/40 p-2">
-      <div className="text-[10px] uppercase tracking-wider text-fg-faint">
+    <div className="flex flex-col gap-0.5 border-t border-border pt-2">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
         {label}
       </div>
       <div className={cn('font-mono text-sm numeric-tabular', tone(t))}>

@@ -214,10 +214,8 @@ export function EconomyPanel({
             value={investAmount}
             onChange={(e) => setInvestAmount(e.target.value)}
             className={cn(
-              'rounded-md border px-2 py-1 font-mono numeric-tabular text-xs text-fg',
-              investAmountTooHigh
-                ? 'border-danger bg-danger/15'
-                : 'border-border-strong bg-surface-1',
+              'rounded-sm border bg-transparent px-2 py-1 font-mono numeric-tabular text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent',
+              investAmountTooHigh ? 'border-danger' : 'border-border',
             )}
             aria-invalid={investAmountTooHigh || undefined}
             aria-describedby={investHelpText ? 'economy-invest-help' : undefined}
@@ -291,8 +289,8 @@ function StatLabel({
   t: Tone;
 }) {
   return (
-    <div className="rounded-md border border-border bg-surface/40 p-2">
-      <div className="text-[10px] uppercase tracking-wider text-fg-faint">
+    <div className="flex flex-col gap-0.5 border-t border-border pt-2">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
         {label}
       </div>
       <div className={cn('font-mono text-sm numeric-tabular', tone(t))}>

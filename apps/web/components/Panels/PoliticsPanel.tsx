@@ -132,10 +132,10 @@ export function PoliticsPanel({
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Popularity dial */}
-      <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-surface/40 p-4">
+      <div className="flex flex-col items-center gap-2 border-b border-border pb-4">
         <PopularityDial value={politics.popularity} />
         <div className="text-center">
-          <div className="text-[10px] uppercase tracking-wider text-fg-faint">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
             {t('popularity')}
           </div>
           <div
@@ -150,8 +150,8 @@ export function PoliticsPanel({
       </div>
 
       {/* Government type */}
-      <div className="flex items-center justify-between rounded-md border border-border bg-surface/40 px-3 py-2">
-        <span className="text-[10px] uppercase tracking-wider text-fg-faint">
+      <div className="flex items-center justify-between border-b border-border pb-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
           {t('governmentType')}
         </span>
         <span className="font-mono text-xs text-fg">
@@ -161,14 +161,14 @@ export function PoliticsPanel({
 
       {/* Factions */}
       <Section title={t('factions.title')}>
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col divide-y divide-border">
           {FACTION_IDS.map((fid) => {
             const f = politics.factions[fid];
             const cantAfford = treasury < PLACATE_COST;
             return (
               <li
                 key={fid}
-                className="flex flex-col gap-2 rounded-md border border-border bg-surface/30 p-2"
+                className="flex flex-col gap-2 py-3"
               >
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs font-medium text-fg">
@@ -215,11 +215,11 @@ export function PoliticsPanel({
         {politicalEvents.length === 0 ? (
           <EmptyState>{t('events.empty')}</EmptyState>
         ) : (
-          <ul className="flex flex-col gap-1 text-xs">
+          <ul className="flex flex-col divide-y divide-border text-xs">
             {politicalEvents.map((ev, i) => (
               <li
                 key={`${ev.definitionId}-${ev.firedAtTick}-${i}`}
-                className="flex items-baseline justify-between gap-2 rounded border border-border px-2 py-1"
+                className="flex items-baseline justify-between gap-2 py-1.5"
               >
                 <span className="truncate text-fg">
                   {tScenario(`event.${ev.definitionId}.name`) || ev.definitionId}

@@ -1,8 +1,9 @@
-// Eternal-mode victory counter. A small chip showing how many of the
-// scenario's victory conditions the player has already unlocked, in the
-// shape "🏆 N/M vittorie". Visible ONLY when `state.gameMode === 'eternal'`
-// — Classic / Dethrone / Era-paced modes hide it because their notion of
-// "the game ends" makes a running counter misleading.
+// Eternal-mode victory counter. A small inline counter showing how many of
+// the scenario's victory conditions the player has already unlocked, rendered
+// as a 🏆 symbol + `N/M` value — no chip background, no border. Visible ONLY
+// when `state.gameMode === 'eternal'` — Classic / Dethrone / Era-paced modes
+// hide it because their notion of "the game ends" makes a running counter
+// misleading.
 //
 // Click → small popover listing the conditions and which ones are
 // unlocked. We don't have per-condition unlock timestamps in Phase 3 yet
@@ -93,23 +94,19 @@ export function VictoryCounter() {
         title={t('counter', { unlocked: count, total })}
         disabled={popoverDisabled}
         className={cn(
-          'flex items-center gap-1.5 rounded-md border bg-surface/40 px-2.5 py-1.5 text-xs transition',
-          accent
-            ? 'border-accent/50 text-accent hover:border-accent'
-            : 'border-border text-fg-muted hover:border-border-strong',
+          'flex items-baseline gap-1.5 text-sm transition-colors',
           popoverDisabled
-            ? 'cursor-default opacity-70'
+            ? 'cursor-default text-fg-muted opacity-70'
             : open
-              ? 'border-accent text-accent'
-              : '',
+              ? 'text-accent'
+              : accent
+                ? 'text-accent hover:text-accent'
+                : 'text-fg-muted hover:text-accent',
         )}
       >
         <span aria-hidden="true">🏆</span>
         <span className="numeric-tabular font-mono">
           {count}/{total}
-        </span>
-        <span className="text-[10px] font-semibold uppercase tracking-wider">
-          {t('unlocked')}
         </span>
       </button>
       {open && !popoverDisabled ? (

@@ -31,36 +31,45 @@
 
 :root {
   /* --- Surface ladder -------------------------------------------------- */
-  --color-bg:            oklch(0.13 0.02 260);
-  --color-surface:       oklch(0.17 0.025 260);
-  --color-surface-1:     oklch(0.21 0.028 260);
-  --color-surface-2:     oklch(0.26 0.03  258);
-  --color-border:        oklch(0.30 0.02  255);
-  --color-border-strong: oklch(0.42 0.025 255);
+  /* Atlas-editoriale refresh: deeper near-black base, lower chroma so the
+   * surface ladder reads as truly neutral ink-on-paper-but-dark. Hue stays
+   * faintly cool (250) to keep the surfaces from going warm/sepia under the
+   * amber accent — but blue cast is heavily reduced from 0.020 → 0.008. */
+  --color-bg:            oklch(0.11 0.012 250);
+  --color-surface:       oklch(0.145 0.014 250);
+  --color-surface-1:     oklch(0.185 0.014 250);
+  --color-surface-2:     oklch(0.225 0.014 250);
+  --color-border:        oklch(0.28 0.010 250);
+  --color-border-strong: oklch(0.40 0.012 250);
 
   /* --- Foreground ladder ----------------------------------------------- */
-  /* Slight warm tint (h ~ 80) so white-text feels "lit" rather than clinical. */
-  --color-fg:        oklch(0.97 0.012 85);
-  --color-fg-muted:  oklch(0.78 0.013 85);
-  --color-fg-faint:  oklch(0.58 0.012 85);
+  /* Slight warm tint (h ~ 85) so white-text feels "lit" rather than clinical.
+   * Top step lowered 0.97 → 0.95 so long-form reading feels less harsh. */
+  --color-fg:        oklch(0.95 0.010 85);
+  --color-fg-muted:  oklch(0.76 0.010 85);
+  --color-fg-faint:  oklch(0.56 0.010 85);
 
-  /* --- Brand accent (warm amber-gold) --------------------------------- */
-  --color-accent:        oklch(0.78 0.15 75);
-  --color-accent-strong: oklch(0.83 0.165 72);
-  --color-accent-soft:   oklch(0.78 0.15 75 / 0.16);
+  /* --- Brand accent (warm amber-gold, desaturated) -------------------- */
+  /* Chroma 0.15 → 0.10. Still unmistakably amber-gold against the cool
+   * neutral surfaces, but no longer flares out as a "look at me" colour. */
+  --color-accent:        oklch(0.78 0.10 75);
+  --color-accent-strong: oklch(0.83 0.115 72);
+  --color-accent-soft:   oklch(0.78 0.10 75 / 0.14);
 
-  /* --- Semantic deltas ------------------------------------------------- */
-  --color-success: oklch(0.74 0.13 165);  /* cool emerald */
-  --color-danger:  oklch(0.66 0.13 18);   /* muted geopolitical rose */
-  --color-warning: oklch(0.79 0.14 60);   /* amber, distinct from accent */
-  --color-info:    oklch(0.74 0.10 235);  /* steel blue */
+  /* --- Semantic deltas (chroma trimmed so they signal, not shout) ----- */
+  --color-success: oklch(0.74 0.09 165);  /* muted emerald            */
+  --color-danger:  oklch(0.66 0.10 18);   /* editorial rose, restrained */
+  --color-warning: oklch(0.79 0.10 60);   /* amber, distinct from accent */
+  --color-info:    oklch(0.74 0.07 235);  /* dusty steel blue         */
 
-  /* --- Region accents (harmonised with surface palette) --------------- */
-  --color-region-borealis: oklch(0.66 0.06 245);  /* cool grey-blue   */
-  --color-region-auriana:  oklch(0.72 0.07 145);  /* sage             */
-  --color-region-oriana:   oklch(0.70 0.10 195);  /* teal             */
-  --color-region-meridia:  oklch(0.74 0.11 70);   /* ochre            */
-  --color-region-sahel:    oklch(0.78 0.08 85);   /* sand             */
+  /* --- Region accents (editorial muted palette) ----------------------- */
+  /* Names stay (other agents are binding to them); values shift toward an
+   * editorial atlas palette — slate, sage, teal, ochre, sand. */
+  --color-region-borealis: oklch(0.66 0.04 245);  /* slate            */
+  --color-region-auriana:  oklch(0.72 0.05 145);  /* sage             */
+  --color-region-oriana:   oklch(0.70 0.07 195);  /* teal             */
+  --color-region-meridia:  oklch(0.74 0.08 70);   /* ochre            */
+  --color-region-sahel:    oklch(0.78 0.06 85);   /* sand             */
 
   /* --- Motion scale ---------------------------------------------------- */
   --motion-fast:   120ms;
@@ -78,22 +87,38 @@
   --radius-xl: 16px;
   --radius-2xl: 20px;
 
-  /* --- Elevation (shadows tinted toward background) ------------------- */
-  --shadow-xs: 0 1px 2px 0 oklch(0.05 0.02 260 / 0.5);
-  --shadow-sm: 0 2px 6px -1px oklch(0.05 0.02 260 / 0.55),
-               0 1px 2px -1px oklch(0.05 0.02 260 / 0.4);
-  --shadow-md: 0 8px 24px -6px oklch(0.05 0.02 260 / 0.6),
-               0 2px 4px -2px oklch(0.05 0.02 260 / 0.45);
-  --shadow-lg: 0 18px 48px -12px oklch(0.04 0.02 260 / 0.7),
-               0 4px 8px -4px oklch(0.05 0.02 260 / 0.5);
-  --shadow-glow-accent: 0 0 0 1px oklch(0.78 0.15 75 / 0.55),
-                        0 0 24px -4px oklch(0.78 0.15 75 / 0.45);
+  /* --- Elevation -------------------------------------------------------- *
+   * Shadows are near-vertical (low spread, tight x-offset) and tinted toward
+   * --color-bg rather than pure black, so cards lift quietly off the page
+   * instead of carving holes. Hue matches bg (250) at very low chroma. */
+  --shadow-xs: 0 1px 1px 0 oklch(0.04 0.010 250 / 0.55);
+  --shadow-sm: 0 2px 4px -2px oklch(0.04 0.010 250 / 0.55),
+               0 1px 1px -1px oklch(0.04 0.010 250 / 0.45);
+  --shadow-md: 0 6px 16px -8px oklch(0.04 0.010 250 / 0.6),
+               0 2px 3px -2px oklch(0.04 0.010 250 / 0.5);
+  --shadow-lg: 0 14px 32px -14px oklch(0.04 0.010 250 / 0.65),
+               0 3px 6px -4px oklch(0.04 0.010 250 / 0.5);
+  /* Single hairline outline — no halo. The 24px glow was too "videogame";
+   * editorial reads as a thin ring of intent, not radiance. */
+  --shadow-glow-accent: 0 0 0 1px oklch(0.78 0.10 75 / 0.55);
 
-  /* --- Type scale ------------------------------------------------------ */
+  /* --- Type scale ------------------------------------------------------ *
+   * Editorial type system. Display + body are intentionally the same family
+   * for now (Space Grotesk) so the system is one font deep — when a humanist
+   * sans is wired through next/font in layout.tsx, swap --font-body to point
+   * at it without touching components. Mono is unchanged. */
   --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, -apple-system,
                "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, "JetBrains Mono",
                "SF Mono", Consolas, "Liberation Mono", monospace;
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui,
+                  -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-body:    var(--font-space-grotesk), ui-sans-serif, system-ui,
+                  -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Editorial small-caps tracking — used on HUD + panel headers via
+   * `tracking-[var(--letter-spacing-caps)]` or the `font-caps` recipe. */
+  --letter-spacing-caps: 0.16em;
 }
 
 /* ===========================================================================
@@ -141,8 +166,10 @@
   --color-region-meridia:  var(--color-region-meridia);
   --color-region-sahel:    var(--color-region-sahel);
 
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  --font-sans:    var(--font-sans);
+  --font-mono:    var(--font-mono);
+  --font-display: var(--font-display);
+  --font-body:    var(--font-body);
 
   --radius-xs:  var(--radius-xs);
   --radius-sm:  var(--radius-sm);
@@ -213,9 +240,9 @@ code, kbd, samp, pre,
 }
 
 /* Text selection — a dimmed accent so the highlight feels intentional but
- * never overwhelming on long passages. */
+ * never overwhelming on long passages. Chroma matches refreshed accent. */
 ::selection {
-  background-color: oklch(0.78 0.15 75 / 0.32);
+  background-color: oklch(0.78 0.10 75 / 0.30);
   color: var(--color-fg);
 }
 
@@ -254,13 +281,20 @@ code, kbd, samp, pre,
   text-wrap: pretty;
 }
 
-/* Frosted-glass surface used for the HUD bar, tooltips, modals.
- * Sits on top of the base background and blurs whatever's behind it. */
+/* Flat editorial surface — used for the HUD bar, panels, tooltips, modals.
+ * Solid `--color-surface` with a single hairline bottom border. No blur,
+ * no backdrop-filter, no shadow. The page reads as ink on paper, not glass. */
+@utility flat-surface {
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* TODO(deprecated): kept as a one-release alias for `flat-surface` so other
+ * agents' components (`<… className="glass-surface" />`) keep rendering.
+ * Remove once every consumer migrates to `.flat-surface`. */
 @utility glass-surface {
-  background-color: oklch(0.17 0.025 260 / 0.72);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 
 /* Subtle inner glow — useful around the player nation halo or active CTA. */

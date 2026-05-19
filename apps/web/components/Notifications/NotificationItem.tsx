@@ -8,11 +8,17 @@ import { useTranslations } from 'next-intl';
 import type { EventDefinition, GameEvent } from '@aurion/engine';
 
 import { cn } from '../../lib/cn';
+import type { ScenarioId } from '../../lib/scenarios';
+import { useScenarioMessages } from '../Panels/shared/useScenarioMessages';
 
 export type NotificationItemProps = {
   event: GameEvent;
   /** The matching EventDefinition (or null when not found in the scenario). */
   definition: EventDefinition | null;
+  /** Active scenario id — used to resolve `event.*` strings from the
+   * scenario side-car bundle. `null` when no scenario is loaded (we then
+   * fall back to raw ids). */
+  scenarioId: ScenarioId | null;
   /** Current game tick — used to compute "N weeks ago". */
   currentTick: number;
   /** Click handler. Only meaningful for unresolved events. */
@@ -22,22 +28,28 @@ export type NotificationItemProps = {
 export function NotificationItem({
   event,
   definition,
+  scenarioId,
   currentTick,
   onSelect,
 }: NotificationItemProps) {
   const t = useTranslations('notifications');
-  const tEv = useTranslations();
+  // Event nameKey/descriptionKey/labelKey live in the scenario side-car
+  // bundle, not in the global messages file — resolve them via the
+  // scenario messages hook (same pattern as EventModal / WorldMap).
+  const { t: tScenario } = useScenarioMessages(scenarioId);
   const resolved = event.resolvedChoiceIndex !== null;
   const ago = Math.max(0, currentTick - event.firedAtTick);
 
-  const titleText = definition ? tEv(definition.nameKey) : event.definitionId;
-  const descriptionText = definition ? tEv(definition.descriptionKey) : '';
+  const titleText = definition
+    ? tScenario(definition.nameKey)
+    : event.definitionId;
+  const descriptionText = definition ? tScenario(definition.descriptionKey) : '';
   const chosenLabel =
     resolved &&
     definition &&
     event.resolvedChoiceIndex !== null &&
     definition.choices[event.resolvedChoiceIndex]
-      ? tEv(definition.choices[event.resolvedChoiceIndex]!.labelKey)
+      ? tScenario(definition.choices[event.resolvedChoiceIndex]!.labelKey)
       : null;
 
   const Wrapper = onSelect ? 'button' : 'div';
@@ -47,10 +59,9 @@ export function NotificationItem({
       type={onSelect ? 'button' : undefined}
       onClick={onSelect}
       className={cn(
-        'group flex w-full flex-col gap-1 rounded-lg border p-3 text-left text-xs transition',
-        resolved
-          ? 'border-border bg-bg/30 opacity-70'
-          : 'border-warning/40 bg-warning/5 hover:border-warning hover:bg-warning/10',
+        'group flex w-full flex-col gap-1 bg-transparent py-2 text-left text-xs transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
+        resolved ? 'opacity-70' : null,
+        onSelect ? 'hover:text-fg' : null,
       )}
       aria-label={titleText}
     >
@@ -59,7 +70,7 @@ export function NotificationItem({
         <span
           className={cn(
             'flex-1 truncate font-semibold',
-            resolved ? 'text-fg-muted' : 'text-warning',
+            resolved ? 'text-fg-muted' : 'text-fg',
           )}
         >
           {titleText}
@@ -74,11 +85,11 @@ export function NotificationItem({
         </p>
       ) : null}
       {chosenLabel ? (
-        <p className="text-[10px] uppercase tracking-wider text-success/80">
+        <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-success">
           {t('chose', { label: chosenLabel })}
         </p>
       ) : !resolved ? (
-        <p className="text-[10px] uppercase tracking-wider text-warning">
+        <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-warning">
           {t('actionRequired')}
         </p>
       ) : null}
@@ -87,14 +98,14 @@ export function NotificationItem({
 }
 
 function NotificationIcon({ resolved }: { resolved: boolean }) {
+  // Single ink accent — no chip background, just a typographic glyph in the
+  // semantic colour for the state.
   return (
     <span
       aria-hidden="true"
       className={cn(
-        'flex h-5 w-5 items-center justify-center rounded-full text-[11px]',
-        resolved
-          ? 'bg-surface-2 text-fg-faint'
-          : 'bg-warning/20 text-warning',
+        'inline-flex h-4 w-4 items-center justify-center font-mono text-[11px]',
+        resolved ? 'text-fg-faint' : 'text-warning',
       )}
     >
       {resolved ? '✓' : '!'}

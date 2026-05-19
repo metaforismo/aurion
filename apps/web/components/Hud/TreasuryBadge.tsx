@@ -1,6 +1,11 @@
 // Treasury display. Shows the player's current treasury formatted as compact
 // currency, plus a coloured weekly delta arrow so the player can see at a
 // glance whether they're hemorrhaging money.
+//
+// Visual: inline label + value + delta. No card chrome — the parent HUD owns
+// the row. The delta uses ▲ / ▼ glyphs coloured by `success` / `danger`; the
+// treasury value itself turns `danger` only when actually negative, so the
+// player isn't yelled at for a tight-but-positive budget.
 
 'use client';
 
@@ -42,10 +47,7 @@ export function TreasuryBadge() {
   const arrow = weekly > 0 ? '▲' : weekly < 0 ? '▼' : '·';
 
   return (
-    <div
-      className="flex items-baseline gap-2 rounded-md border border-border bg-bg/40 px-3 py-1.5"
-      title={t('treasury')}
-    >
+    <div className="flex items-baseline gap-2" title={t('treasury')}>
       <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-faint">
         {t('treasury')}
       </span>

@@ -18,21 +18,26 @@ import { cn } from '../../../lib/cn';
 
 export type ActionButtonTone = 'primary' | 'neutral' | 'danger';
 
+// Editorial buttons: no gradient, no pill. Radius is var(--radius-sm) (rounded-sm).
+//   - primary   = accent surface, bg-coloured text (high-contrast CTA)
+//   - neutral   = transparent surface, hairline border, fg text
+//   - danger    = transparent surface, danger text, hairline border that
+//                 warms to danger on hover
 const TONE_STYLES: Record<ActionButtonTone, { enabled: string; pressed: string }> = {
   primary: {
     enabled:
-      'border-accent bg-accent/10 text-accent hover:border-accent-strong hover:bg-accent/20',
-    pressed: 'bg-accent/30',
+      'border-accent bg-accent text-bg hover:bg-accent-strong hover:border-accent-strong',
+    pressed: 'bg-accent-strong',
   },
   neutral: {
     enabled:
-      'border-border-strong bg-surface-1 text-fg hover:border-border-strong hover:bg-surface-2',
-    pressed: 'bg-surface-2',
+      'border-border bg-transparent text-fg hover:border-border-strong',
+    pressed: 'bg-transparent',
   },
   danger: {
     enabled:
-      'border-danger bg-danger/15 text-danger hover:border-danger hover:bg-danger/25',
-    pressed: 'bg-danger/30',
+      'border-border bg-transparent text-danger hover:border-danger',
+    pressed: 'bg-transparent',
   },
 };
 
@@ -103,9 +108,9 @@ export function ActionButton({
       title={disabledReason ?? undefined}
       data-testid={dataTestId}
       className={cn(
-        'flex w-full flex-col items-stretch gap-0.5 rounded-md border px-3 py-2 text-left text-xs transition',
+        'flex w-full flex-col items-stretch gap-0.5 rounded-sm border px-3 py-2 text-left text-xs transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
         isDisabled
-          ? 'cursor-not-allowed border-border bg-surface/40 text-fg-faint'
+          ? 'cursor-not-allowed border-border bg-transparent text-fg-faint'
           : TONE_STYLES[tone].enabled,
         busy ? TONE_STYLES[tone].pressed : null,
         className,

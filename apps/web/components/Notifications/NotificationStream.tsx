@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { GameEvent } from '@aurion/engine';
 
 import { useGameStore } from '../../lib/store';
+import type { ScenarioId } from '../../lib/scenarios';
 
 import { NotificationItem } from './NotificationItem';
 
@@ -44,11 +45,11 @@ export function NotificationStream() {
 
   return (
     <aside
-      className="flex h-full min-h-0 flex-col gap-2 rounded-xl border border-border bg-surface/30 p-3"
+      className="flex h-full min-h-0 flex-col gap-2 border border-border bg-bg p-3"
       aria-label={t('title')}
     >
-      <header className="flex items-baseline justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
+      <header className="flex items-baseline justify-between border-b border-border pb-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
           {t('title')}
         </h2>
         <span className="numeric-tabular font-mono text-[10px] text-fg-faint">
@@ -56,13 +57,13 @@ export function NotificationStream() {
         </span>
       </header>
       {visible.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border p-4 text-center text-xs text-fg-faint">
+        <div className="flex flex-1 items-center justify-center px-1 py-4 text-center text-xs italic text-fg-faint">
           {t('empty')}
         </div>
       ) : (
         <ol
           ref={listRef}
-          className="flex flex-1 min-h-0 flex-col gap-2 overflow-y-auto pr-1"
+          className="flex flex-1 min-h-0 flex-col divide-y divide-border overflow-y-auto pr-1"
         >
           {visible.map((event, idx) => {
             const definition =
@@ -73,11 +74,13 @@ export function NotificationStream() {
             // on resolve), but be defensive.
             const isActionable =
               event.resolvedChoiceIndex === null && idx === 0;
+            const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
             return (
               <li key={`${event.definitionId}-${event.firedAtTick}-${idx}`}>
                 <NotificationItem
                   event={event}
                   definition={definition}
+                  scenarioId={scenarioId}
                   currentTick={tick}
                   // Selecting just sets isAutoPaused via the existing
                   // `selectHasOpenEvent` path; the EventModal is already

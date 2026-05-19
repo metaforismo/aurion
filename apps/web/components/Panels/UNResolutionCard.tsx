@@ -46,19 +46,28 @@ const KIND_ICON: Record<UNResolutionKind, LucideIcon> = {
   condemnation: Megaphone,
 };
 
-const STATUS_TONE: Record<UNResolution['status'], string> = {
-  voting: 'text-warning border-warning/40 bg-warning/10',
-  passed: 'text-success border-success/40 bg-success/10',
-  failed: 'text-fg-faint border-border bg-surface/40',
-  vetoed: 'text-danger border-danger/40 bg-danger/10',
+// Editorial pass: each resolution shows status via a 2px left rule + a
+// status-coloured chip in the header — never a tinted surface fill.
+const STATUS_RULE: Record<UNResolution['status'], string> = {
+  voting: 'border-l-2 border-warning',
+  passed: 'border-l-2 border-success',
+  failed: 'border-l-2 border-border',
+  vetoed: 'border-l-2 border-danger',
+};
+
+const STATUS_CHIP: Record<UNResolution['status'], string> = {
+  voting: 'text-warning',
+  passed: 'text-success',
+  failed: 'text-fg-faint',
+  vetoed: 'text-danger',
 };
 
 // Per-vote chip styling. Veto pills reuse the danger token; abstain stays neutral.
 const VOTE_CHIP_TONE: Record<UNVote, string> = {
-  yes: 'bg-success/15 text-success border-success/40',
-  no: 'bg-danger/15 text-danger border-danger/40',
-  abstain: 'bg-surface-2 text-fg-muted border-border',
-  veto: 'bg-danger/25 text-danger border-danger',
+  yes: 'border-success text-success',
+  no: 'border-danger text-danger',
+  abstain: 'border-border text-fg-muted',
+  veto: 'border-danger text-danger',
 };
 
 // ---------------------------------------------------------------------------
@@ -129,13 +138,16 @@ export function UNResolutionCard({
   return (
     <article
       className={cn(
-        'flex flex-col gap-2 rounded-lg border bg-surface/40 p-3 transition',
-        STATUS_TONE[resolution.status],
+        'flex flex-col gap-2 py-3 pl-3 transition',
+        STATUS_RULE[resolution.status],
       )}
     >
       {/* Header: kind icon + title + status pill. */}
       <header className="flex items-start gap-2">
-        <Icon aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+        <Icon
+          aria-hidden
+          className={cn('mt-0.5 h-4 w-4 shrink-0', STATUS_CHIP[resolution.status])}
+        />
         <div className="flex flex-1 flex-col gap-0.5">
           <h3 className="text-sm font-semibold leading-tight text-fg">
             {translateOrFallback(t, resolution.titleKey, fallbackKindTitle(resolution))}
@@ -146,8 +158,8 @@ export function UNResolutionCard({
         </div>
         <span
           className={cn(
-            'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider',
-            STATUS_TONE[resolution.status],
+            'shrink-0 font-mono text-[10px] uppercase tracking-[0.14em]',
+            STATUS_CHIP[resolution.status],
           )}
         >
           {t(`status.${resolution.status}`)}
@@ -278,10 +290,8 @@ export function UNResolutionCard({
                 <li
                   key={cid}
                   className={cn(
-                    'flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase',
-                    v
-                      ? VOTE_CHIP_TONE[v]
-                      : 'border-border bg-surface text-fg-faint',
+                    'flex items-center gap-1 rounded-sm border bg-transparent px-2 py-0.5 text-[10px] font-mono uppercase',
+                    v ? VOTE_CHIP_TONE[v] : 'border-border text-fg-faint',
                   )}
                 >
                   <span className="truncate">{countryName(cid)}</span>
@@ -360,7 +370,7 @@ function TallyChip({
   return (
     <li
       className={cn(
-        'flex items-center gap-1 rounded-full border px-2 py-0.5',
+        'flex items-center gap-1 rounded-sm border bg-transparent px-2 py-0.5',
         VOTE_CHIP_TONE[vote],
       )}
     >

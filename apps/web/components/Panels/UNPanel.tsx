@@ -169,15 +169,15 @@ export function UNPanel({
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Header strip */}
-      <header className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-fg">
+      <header className="flex items-center justify-between gap-2 border-b border-border pb-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
           {t('title')}
         </h2>
         <span
           className={
             playerIsCouncil
-              ? 'rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-[10px] font-mono uppercase text-success'
-              : 'rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-mono uppercase text-fg-faint'
+              ? 'font-mono text-[10px] uppercase tracking-[0.14em] text-success'
+              : 'font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint'
           }
         >
           {playerIsCouncil ? t('councilMember') : t('notCouncilMember')}
@@ -191,7 +191,7 @@ export function UNPanel({
         ) : active.length === 0 ? (
           <EmptyState>{t('empty')}</EmptyState>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col divide-y divide-border">
             {active.map((r) => (
               <li key={r.id}>
                 <UNResolutionCard
@@ -220,7 +220,7 @@ export function UNPanel({
         {history.length === 0 ? (
           <EmptyState>{t('historyEmpty')}</EmptyState>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col divide-y divide-border">
             {history.map((r) => (
               <li key={r.id}>
                 <UNResolutionCard

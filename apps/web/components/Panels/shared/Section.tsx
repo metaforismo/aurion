@@ -31,18 +31,15 @@ export function Section({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <section
-      className={cn(
-        'flex flex-col rounded-lg border border-border bg-surface/40',
-        className,
-      )}
+      className={cn('flex flex-col border-t border-border', className)}
     >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
+        className="flex w-full items-center justify-between gap-2 px-0 py-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
       >
-        <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-fg">
+        <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
           <span
             aria-hidden
             className={cn(
@@ -60,12 +57,10 @@ export function Section({
           {title}
         </span>
         {trailing ? (
-          <span className="text-xs text-fg-faint">{trailing}</span>
+          <span className="text-[11px] font-mono text-fg-faint">{trailing}</span>
         ) : null}
       </button>
-      {open ? (
-        <div className="border-t border-border px-3 py-3">{children}</div>
-      ) : null}
+      {open ? <div className="pb-3 pt-1">{children}</div> : null}
     </section>
   );
 }

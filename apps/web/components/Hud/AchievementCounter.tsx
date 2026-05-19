@@ -52,13 +52,12 @@ export function AchievementCounter() {
       aria-label={label}
       title={label}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/60 px-2.5 py-1',
-        'font-mono text-[11px] tabular-nums text-fg-muted transition-colors',
-        'hover:border-accent/50 hover:text-accent',
+        'inline-flex items-baseline gap-1.5 font-mono text-[11px] tabular-nums',
+        'text-fg-muted transition-colors hover:text-accent',
       )}
     >
-      <Trophy aria-hidden className="h-3.5 w-3.5 text-accent" />
-      <span>
+      <Trophy aria-hidden className="h-3.5 w-3.5 self-center text-accent" />
+      <span className="numeric-tabular">
         {unlocked}/{total}
       </span>
     </Link>

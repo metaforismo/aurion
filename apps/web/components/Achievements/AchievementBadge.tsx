@@ -25,20 +25,22 @@ export type AchievementBadgeProps = {
  *   - silver → fg-muted (neutral)
  *   - gold   → accent (brand highlight)
  */
+// Editorial badge: hairline border + tier-coloured text and dot. No tinted
+// fill — the chip stays flat against panel surfaces.
 const TIER_STYLES: Record<AchievementDef['tier'], { ring: string; chip: string; dot: string }> = {
   bronze: {
-    ring: 'border-warning/40',
-    chip: 'bg-warning/15 text-warning',
+    ring: 'border-border',
+    chip: 'bg-transparent text-warning',
     dot: 'bg-warning',
   },
   silver: {
-    ring: 'border-border-strong',
-    chip: 'bg-surface-2 text-fg-muted',
+    ring: 'border-border',
+    chip: 'bg-transparent text-fg-muted',
     dot: 'bg-fg-muted',
   },
   gold: {
-    ring: 'border-accent',
-    chip: 'bg-accent/15 text-accent',
+    ring: 'border-border',
+    chip: 'bg-transparent text-accent',
     dot: 'bg-accent',
   },
 };
@@ -61,9 +63,9 @@ export function AchievementBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium',
+        'inline-flex items-center gap-2 rounded-sm border px-3 py-1 text-xs font-medium',
         styles.ring,
-        unlocked ? styles.chip : 'bg-surface-1 text-fg-faint',
+        unlocked ? styles.chip : 'bg-transparent text-fg-faint',
         className,
       )}
       aria-label={`${tierLabel} — ${name}`}
@@ -75,7 +77,7 @@ export function AchievementBadge({
           unlocked ? styles.dot : 'bg-fg-faint/40',
         )}
       />
-      <span className="uppercase tracking-wider text-[10px] opacity-70">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-70">
         {tierLabel}
       </span>
       <span className="truncate">{name}</span>

@@ -33,9 +33,7 @@ export function EternalFirstVictoryModal() {
 
   return (
     <Modal
-      title={
-        <span className="text-2xl font-bold text-accent">{t('title')}</span>
-      }
+      title={t('title')}
       // Celebratory beat — must be acknowledged so the player understands the
       // Eternal contract. Non-dismissable via ESC / backdrop, only the
       // explicit "Continua" button closes it.
@@ -45,13 +43,13 @@ export function EternalFirstVictoryModal() {
         <button
           type="button"
           onClick={acknowledge}
-          className="rounded-md bg-accent px-4 py-2 text-xs font-semibold text-bg transition hover:bg-accent-strong"
+          className="rounded-sm border border-accent bg-accent px-4 py-2 text-xs font-semibold text-bg transition hover:border-accent-strong hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         >
           {t('continue')}
         </button>
       }
     >
-      <p className="leading-relaxed text-fg-muted">
+      <p className="leading-relaxed text-fg">
         {t('body', { condition: conditionName })}
       </p>
     </Modal>

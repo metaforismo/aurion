@@ -17,10 +17,12 @@ import { useGameStore } from '../../lib/store';
 
 const AUTO_DISMISS_MS = 3_500;
 
+// Editorial toast: solid bg, single deep shadow, ink hierarchy via the
+// per-tone left rule + text colour. No tinted fill.
 const TONE_CLASS = {
-  success: 'border-success/50 bg-success/15 text-success',
-  info: 'border-info/50 bg-info/15 text-info',
-  warning: 'border-warning/50 bg-warning/15 text-warning',
+  success: 'border-l-2 border-success text-success',
+  info: 'border-l-2 border-info text-info',
+  warning: 'border-l-2 border-warning text-warning',
 } as const;
 
 export function ActionToastStack() {
@@ -54,8 +56,9 @@ export function ActionToastStack() {
       {toasts.map((t) => (
         <div
           key={t.id}
+          style={{ boxShadow: 'var(--shadow-lg)' }}
           className={cn(
-            'pointer-events-auto rounded-md border px-3 py-2 text-xs font-medium shadow-lg',
+            'pointer-events-auto rounded-sm border border-border bg-bg px-3 py-2 text-xs font-medium',
             'animate-in fade-in slide-in-from-bottom-2 duration-200',
             TONE_CLASS[t.tone ?? 'success'],
           )}

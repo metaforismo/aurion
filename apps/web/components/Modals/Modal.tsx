@@ -154,7 +154,8 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-bg/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-40 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'color-mix(in oklch, var(--color-bg) 70%, transparent)' }}
       onMouseDown={onBackdropClick}
       role="presentation"
     >
@@ -166,21 +167,25 @@ export function Modal({
         aria-describedby={descriptionId}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
+        style={{ boxShadow: 'var(--shadow-lg)' }}
         className={cn(
-          'relative flex w-full flex-col rounded-2xl border border-border bg-surface-1 text-fg shadow-2xl outline-none',
+          'relative flex w-full flex-col rounded-md border border-border bg-bg text-fg outline-none',
           sizeClass,
           className,
         )}
       >
         <header className="flex items-start gap-4 border-b border-border px-6 py-4">
-          <h2 id={titleId} className="flex-1 text-lg font-semibold text-fg">
+          <h2
+            id={titleId}
+            className="flex-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted"
+          >
             {title}
           </h2>
           {dismissable ? (
             <button
               type="button"
               onClick={handleClose}
-              className="rounded-md border border-transparent p-1 text-fg-muted transition hover:border-border-strong hover:text-fg"
+              className="rounded-sm border border-transparent p-1 text-fg-muted transition hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
               aria-label="close"
             >
               <svg
@@ -195,7 +200,7 @@ export function Modal({
             </button>
           ) : null}
         </header>
-        <div className="flex-1 overflow-y-auto px-6 py-5 text-sm text-fg-muted">
+        <div className="flex-1 overflow-y-auto px-6 py-5 text-sm text-fg">
           {children}
         </div>
         {footer ? (

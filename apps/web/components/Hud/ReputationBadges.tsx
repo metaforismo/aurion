@@ -1,16 +1,19 @@
-// Per-bloc reputation badges. Three small chips (Western / Eastern / Non-Aligned)
-// that show the player's current integer reputation in each active bloc plus a
-// coloured indicator dot:
+// Per-bloc reputation chips. Three compact inline pairs (Western / Eastern /
+// Non-Aligned) that show the player's current integer reputation in each
+// active bloc. Rendered as ticker-style small caps + signed value:
 //
-//   < -30 → red (danger)
-//   -30..30 → amber (warning / neutral)
-//   > 30 → green (success)
+//   W +24    E -18    NA +5
+//
+// Colour rules on the signed value:
+//   value < -30 → red    (danger)
+//   |value| <= 30 → fg   (neutral)
+//   value >  30 → green  (success)
 //
 // The whole strip is hidden when the active scenario does not opt into the
 // Phase 3 bloc system (i.e. `state.reputation === undefined`). This keeps
 // Phase 1/2 saves visually quiet — the bloc system is purely additive.
 //
-// Clicking a chip — or the small "Dettagli" link on the right — opens the
+// Clicking any chip — or the small "Dettagli" link on the right — opens the
 // `ReputationDetailModal`, which surfaces the full -100..+100 bar per bloc
 // and the most recent reputation deltas the engine has queued.
 //
@@ -37,6 +40,13 @@ const BLOC_LABEL_KEY: Readonly<Record<ActiveBlocId, string>> = {
   'non-aligned': 'bloc.non-aligned',
 };
 
+/** Short ticker-style code per bloc — fits the Bloomberg-header aesthetic. */
+const BLOC_SHORT: Readonly<Record<ActiveBlocId, string>> = {
+  western: 'W',
+  eastern: 'E',
+  'non-aligned': 'NA',
+};
+
 /** Stable `data-testid` per bloc — consumed by E2E specs. */
 const BLOC_TESTID: Readonly<Record<ActiveBlocId, string>> = {
   western: 'reputation-badge-western',
@@ -57,7 +67,7 @@ export function ReputationBadges() {
   return (
     <>
       <div
-        className="flex items-center gap-1.5"
+        className="flex items-baseline gap-3"
         role="group"
         aria-label={t('title')}
       >
@@ -71,7 +81,7 @@ export function ReputationBadges() {
               key={blocId}
               blocId={blocId}
               value={value}
-              label={t(BLOC_LABEL_KEY[blocId])}
+              short={BLOC_SHORT[blocId]}
               tooltip={t('tooltip', { bloc: t(BLOC_LABEL_KEY[blocId]) })}
               onOpen={() => setOpen(true)}
             />
@@ -80,7 +90,7 @@ export function ReputationBadges() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="rounded-md border border-transparent px-1.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-fg-faint transition hover:border-border-strong hover:text-fg"
+          className="text-[10px] font-semibold uppercase tracking-wider text-fg-faint transition-colors hover:text-accent"
         >
           {t('details')}
         </button>
@@ -91,38 +101,33 @@ export function ReputationBadges() {
 }
 
 // ---------------------------------------------------------------------------
-// Single bloc chip
+// Single bloc chip — small caps short code + signed number, no chrome.
 // ---------------------------------------------------------------------------
 
 type BlocChipProps = {
   blocId: ActiveBlocId;
   value: number;
-  label: string;
+  short: string;
   tooltip: string;
   onOpen: () => void;
 };
 
-function BlocChip({ blocId, value, label, tooltip, onOpen }: BlocChipProps) {
-  const dotTone = reputationDotTone(value);
+function BlocChip({ blocId, value, short, tooltip, onOpen }: BlocChipProps) {
   return (
     <button
       type="button"
       onClick={onOpen}
       data-testid={BLOC_TESTID[blocId]}
-      className="flex w-[80px] items-center gap-1.5 rounded-md border border-border bg-surface/40 px-2 py-1.5 text-left transition hover:border-border-strong"
+      className="flex items-baseline gap-1.5 text-left transition-colors hover:text-accent"
       title={tooltip}
       data-bloc={blocId}
     >
-      <span
-        className={cn('inline-block h-2 w-2 shrink-0 rounded-full', dotTone)}
-        aria-hidden="true"
-      />
-      <span className="truncate text-[10px] font-semibold uppercase tracking-wider text-fg-faint">
-        {label}
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-faint">
+        {short}
       </span>
       <span
         className={cn(
-          'numeric-tabular ml-auto font-mono text-xs',
+          'numeric-tabular font-mono text-sm',
           value > 30
             ? 'text-success'
             : value < -30
@@ -134,13 +139,6 @@ function BlocChip({ blocId, value, label, tooltip, onOpen }: BlocChipProps) {
       </span>
     </button>
   );
-}
-
-/** Map a raw reputation value to the dot's Tailwind background utility. */
-function reputationDotTone(value: number): string {
-  if (value < -30) return 'bg-danger';
-  if (value > 30) return 'bg-success';
-  return 'bg-warning';
 }
 
 /** Render reputation with an explicit sign so trends read at a glance. */

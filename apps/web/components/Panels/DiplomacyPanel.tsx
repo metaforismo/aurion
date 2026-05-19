@@ -107,11 +107,11 @@ export function DiplomacyPanel({
   return (
     <div className="flex flex-col gap-3 p-4">
       {/* Sort toolbar */}
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs uppercase tracking-wider text-fg-faint">
+      <div className="flex items-center justify-between gap-2 border-b border-border pb-2">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
           {t('countries.title')} ({rows.length})
         </span>
-        <div className="flex gap-1" role="group" aria-label={t('sort.label')}>
+        <div className="flex gap-3" role="group" aria-label={t('sort.label')}>
           {(['alpha', 'attitude', 'treaties'] as const).map((m) => (
             <button
               key={m}
@@ -119,10 +119,10 @@ export function DiplomacyPanel({
               onClick={() => setSortMode(m)}
               aria-pressed={sortMode === m}
               className={cn(
-                'rounded border px-2 py-0.5 text-[11px] transition',
+                'border-b-2 px-0.5 py-0.5 text-[11px] font-medium uppercase tracking-wider transition focus-visible:outline-none',
                 sortMode === m
-                  ? 'border-accent bg-accent/15 text-accent'
-                  : 'border-border-strong bg-surface-1 text-fg-muted hover:border-border-strong',
+                  ? 'border-accent text-fg'
+                  : 'border-transparent text-fg-muted hover:text-fg',
               )}
             >
               {t(`sort.${m}`)}
@@ -131,7 +131,7 @@ export function DiplomacyPanel({
         </div>
       </div>
 
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col divide-y divide-border">
         {rows.map(({ country, relation }) => {
           const expandedNow = expanded === country.id;
           return (
@@ -231,21 +231,19 @@ function CountryRow({
   void fmt;
 
   return (
-    <article
-      className={cn(
-        'rounded-md border bg-surface/40 transition',
-        expanded ? 'border-accent' : 'border-border hover:border-border-strong',
-      )}
-    >
+    <article>
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="flex w-full items-center gap-2 px-2 py-1.5 text-left"
+        className={cn(
+          'flex w-full items-center gap-2 py-2 text-left transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
+          expanded ? 'text-fg' : 'text-fg-muted hover:text-fg',
+        )}
       >
         <span
           aria-hidden
-          className="inline-block h-3 w-3 shrink-0 rounded-full border border-border"
+          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
           style={{ backgroundColor: country.color }}
         />
         <span className="flex-1 truncate text-xs font-medium text-fg">
@@ -255,17 +253,17 @@ function CountryRow({
           {attitude > 0 ? `+${attitude}` : attitude}
         </span>
         {atWar ? (
-          <span className="rounded-full border border-danger bg-danger/15 px-1.5 py-0.5 text-[10px] font-mono uppercase text-danger">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-danger">
             {t('atWar')}
           </span>
         ) : null}
         {treaties.length > 0 ? (
-          <span className="text-[10px] text-fg-faint">{treaties.length}</span>
+          <span className="font-mono text-[10px] text-fg-faint">{treaties.length}</span>
         ) : null}
       </button>
 
       {expanded ? (
-        <div className="flex flex-col gap-2 border-t border-border p-2">
+        <div className="flex flex-col gap-2 border-t border-border py-3">
           {/* Treaties */}
           {treaties.length > 0 ? (
             <ul className="flex flex-wrap gap-1">
@@ -273,7 +271,7 @@ function CountryRow({
                 <li
                   key={tr}
                   className={cn(
-                    'rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase',
+                    'rounded-sm border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider',
                     TREATY_TONE[tr],
                   )}
                 >

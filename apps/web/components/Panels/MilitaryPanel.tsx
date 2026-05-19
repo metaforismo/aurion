@@ -339,10 +339,8 @@ export function MilitaryPanel({
             value={trainAmount}
             onChange={(e) => setTrainAmount(e.target.value)}
             className={cn(
-              'rounded-md border px-2 py-1 font-mono numeric-tabular text-xs text-fg',
-              trainTooHigh
-                ? 'border-danger bg-danger/15'
-                : 'border-border-strong bg-surface-1',
+              'rounded-sm border bg-transparent px-2 py-1 font-mono numeric-tabular text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent',
+              trainTooHigh ? 'border-danger' : 'border-border',
             )}
             aria-invalid={trainTooHigh || undefined}
           />
@@ -375,7 +373,7 @@ export function MilitaryPanel({
             id="military-deploy-region"
             value={deployRegion}
             onChange={(e) => setDeployRegion(e.target.value)}
-            className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
+            className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
           >
             <option value="">{t('deploy.regionPlaceholder')}</option>
             {regions.map((r) => (
@@ -396,10 +394,8 @@ export function MilitaryPanel({
             value={deployUnits}
             onChange={(e) => setDeployUnits(e.target.value)}
             className={cn(
-              'rounded-md border px-2 py-1 font-mono numeric-tabular text-xs text-fg',
-              deployTooMany
-                ? 'border-danger bg-danger/15'
-                : 'border-border-strong bg-surface-1',
+              'rounded-sm border bg-transparent px-2 py-1 font-mono numeric-tabular text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent',
+              deployTooMany ? 'border-danger' : 'border-border',
             )}
             aria-invalid={deployTooMany || undefined}
           />
@@ -430,14 +426,11 @@ export function MilitaryPanel({
         {military.deployedUnits.length === 0 ? (
           <EmptyState>{t('deployed.empty')}</EmptyState>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col divide-y divide-border">
             {military.deployedUnits.map((dep) => {
               const age = Math.max(0, state.tick - dep.issuedAtTick);
               return (
-                <li
-                  key={dep.id}
-                  className="rounded-md border border-border bg-surface/40 p-2"
-                >
+                <li key={dep.id} className="py-2">
                   <div className="flex items-baseline justify-between">
                     <span className="text-xs font-medium text-fg">
                       {regionLabel(dep.regionId)}
@@ -461,14 +454,9 @@ export function MilitaryPanel({
         {wars.length === 0 ? (
           <EmptyState>{t('wars.empty')}</EmptyState>
         ) : (
-          <ul className="flex flex-wrap gap-1">
+          <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-mono uppercase tracking-wider text-danger">
             {wars.map((w) => (
-              <li
-                key={w.with}
-                className="rounded-full border border-danger bg-danger/15 px-2 py-0.5 text-[11px] text-danger"
-              >
-                {w.name}
-              </li>
+              <li key={w.with}>{w.name}</li>
             ))}
           </ul>
         )}
@@ -574,11 +562,16 @@ function NuclearArsenalSection({
   return (
     <section
       aria-label={t('section.title')}
-      className="flex flex-col gap-3 rounded-lg border-2 border-danger/70 bg-danger/[0.04] p-3"
+      className="flex flex-col gap-3 border-t border-danger pt-3"
     >
       <header className="flex items-center gap-2">
         <Radiation aria-hidden className={cn('h-4 w-4', tone('danger'))} />
-        <h3 className={cn('text-xs font-bold uppercase tracking-wider', tone('danger'))}>
+        <h3
+          className={cn(
+            'text-[11px] font-semibold uppercase tracking-[0.14em]',
+            tone('danger'),
+          )}
+        >
           {t('section.title')}
         </h3>
       </header>
@@ -586,7 +579,7 @@ function NuclearArsenalSection({
       {/* Permanent warning copy — keeps the moral weight visible at a glance. */}
       <p
         className={cn(
-          'flex items-start gap-1.5 rounded-md border border-danger/60 bg-danger/10 px-2 py-1.5 text-[11px] leading-relaxed',
+          'flex items-start gap-1.5 border-l-2 border-danger px-2 py-1 text-[11px] leading-relaxed',
           tone('danger'),
         )}
       >
@@ -597,8 +590,8 @@ function NuclearArsenalSection({
       {/* Arsenal stats */}
       <div className="grid grid-cols-2 gap-2">
         <Stat label={t('arsenal.count')} value={fmt.number(warheadCount)} t="danger" />
-        <div className="rounded-md border border-border bg-surface/40 p-2">
-          <div className="text-[10px] uppercase tracking-wider text-fg-faint">
+        <div className="flex flex-col gap-0.5 border-t border-border pt-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
             {t('arsenal.deliveryLabel')}
           </div>
           <div className={cn('font-mono text-sm numeric-tabular', tone('danger'))}>
@@ -616,7 +609,7 @@ function NuclearArsenalSection({
           id="nuke-region"
           value={nukeRegion}
           onChange={(e) => setNukeRegion(e.target.value)}
-          className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
+          className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
         >
           <option value="">{t('target.regionPlaceholder')}</option>
           {regions.map((r) => (
@@ -653,7 +646,7 @@ function NuclearArsenalSection({
           id="nuke-country"
           value={nukeCountry}
           onChange={(e) => setNukeCountry(e.target.value)}
-          className="rounded-md border border-border-strong bg-surface-1 px-2 py-1 text-xs text-fg"
+          className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
         >
           <option value="">{t('target.countryPlaceholder')}</option>
           {enemyCountries.map((c) => (
@@ -682,13 +675,11 @@ function NuclearArsenalSection({
       </div>
 
       {/* Dismantle — small, subtle, pro-disarmament path. */}
-      <div className="mt-2 flex flex-col gap-1.5 border-t border-danger/40 pt-3">
+      <div className="mt-2 flex flex-col gap-1.5 border-t border-border pt-3">
         <p
           className={cn(
-            'rounded-md border px-2 py-1.5 text-[11px] leading-relaxed',
-            treatyActive
-              ? 'border-success/50 bg-success/10 text-success'
-              : 'border-warning/50 bg-warning/10 text-warning',
+            'border-l-2 px-2 py-1 text-[11px] leading-relaxed',
+            treatyActive ? 'border-success text-success' : 'border-warning text-warning',
           )}
         >
           {treatyActive
@@ -708,10 +699,10 @@ function NuclearArsenalSection({
           aria-disabled={noWarheads}
           title={noWarheads ? t('arsenal.noWarheads') : undefined}
           className={cn(
-            'self-start rounded-md border px-2.5 py-1 text-[11px] font-semibold transition',
+            'self-start rounded-sm border bg-transparent px-2.5 py-1 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
             noWarheads
-              ? 'cursor-not-allowed border-border bg-surface/40 text-fg-faint'
-              : 'border-fg-faint bg-surface-1 text-fg-muted hover:border-fg-muted hover:text-fg',
+              ? 'cursor-not-allowed border-border text-fg-faint'
+              : 'border-border text-fg-muted hover:border-border-strong hover:text-fg',
           )}
         >
           {t('button.dismantle', { count: warheadCount, boost: dismantleBoost })}
@@ -731,8 +722,8 @@ function Stat({
   t: Tone;
 }) {
   return (
-    <div className="rounded-md border border-border bg-surface/40 p-2">
-      <div className="text-[10px] uppercase tracking-wider text-fg-faint">
+    <div className="flex flex-col gap-0.5 border-t border-border pt-2">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
         {label}
       </div>
       <div className={cn('font-mono text-sm numeric-tabular', tone(t))}>

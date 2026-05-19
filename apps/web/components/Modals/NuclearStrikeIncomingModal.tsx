@@ -65,25 +65,18 @@ export function NuclearStrikeIncomingModal({
       // demands a deliberate beat before the loop resumes.
       dismissable={false}
       size="md"
-      className="border-2 border-danger shadow-[0_0_72px_-8px_rgba(220,38,38,0.6)]"
+      className="border-danger"
       title={
         <span className="flex items-center gap-2">
-          <Skull aria-hidden className={cn('h-6 w-6', tone('danger'))} />
-          <span
-            className={cn(
-              'font-bold uppercase tracking-wider',
-              tone('danger'),
-            )}
-          >
-            {t('title')}
-          </span>
+          <Skull aria-hidden className={cn('h-4 w-4', tone('danger'))} />
+          <span className={cn(tone('danger'))}>{t('title')}</span>
         </span>
       }
       footer={
         <button
           type="button"
           onClick={dismiss}
-          className="rounded-md border border-danger bg-danger/15 px-4 py-2 text-xs font-semibold text-danger transition hover:bg-danger/25"
+          className="rounded-sm border border-danger bg-transparent px-4 py-2 text-xs font-semibold text-danger transition hover:border-danger focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         >
           {t('dismiss')}
         </button>
