@@ -152,20 +152,35 @@ export function EconomyPanel({
         />
       </div>
 
-      {/* Sectors */}
+      {/* Sectors. We highlight the dominant share with `text-fg`; the
+          smaller shares fade to `text-fg-muted` so the eye snaps to the
+          economy's centre of gravity at a glance. The inner span sets its
+          own colour, overriding StatBar's default `text-fg` wrapper. */}
       <Section title={t('sectors.title')}>
         <ul className="flex flex-col gap-2">
-          {SECTOR_KEYS.map((s) => (
-            <li key={s}>
-              <StatBar
-                label={t(`sectors.${s}`)}
-                value={economy.sectors[s] * 100}
-                max={100}
-                valueLabel={fmt.number(economy.sectors[s], { style: 'percent', maximumFractionDigits: 1 })}
-                tone={SECTOR_TONES[s]}
-              />
-            </li>
-          ))}
+          {(() => {
+            const dominant = SECTOR_KEYS.reduce<keyof EconomySectors>(
+              (best, k) =>
+                economy.sectors[k] > economy.sectors[best] ? k : best,
+              SECTOR_KEYS[0]!,
+            );
+            return SECTOR_KEYS.map((s) => (
+              <li key={s}>
+                <StatBar
+                  label={
+                    <span className={s === dominant ? 'text-fg' : 'text-fg-muted'}>
+                      {t(`sectors.${s}`)}
+                    </span>
+                  }
+                  value={economy.sectors[s] * 100}
+                  max={100}
+                  valueLabel={fmt.number(economy.sectors[s], { style: 'percent', maximumFractionDigits: 1 })}
+                  tone={SECTOR_TONES[s]}
+                  ariaLabel={t(`sectors.${s}`)}
+                />
+              </li>
+            ));
+          })()}
         </ul>
       </Section>
 

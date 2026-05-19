@@ -75,7 +75,7 @@ export function StatBar({
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={Math.round(value)}
-        className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2"
+        className="h-2 w-full overflow-hidden rounded-full bg-surface-2"
       >
         <div
           className={cn('h-full rounded-full transition-[width]', TONE_FILL[tone])}

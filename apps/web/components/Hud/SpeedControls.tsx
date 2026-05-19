@@ -1,8 +1,13 @@
 // Speed control row. Plain text buttons — `⏸  1×  2×  4×` — with the active
 // speed coloured in `text-accent`. No pill background, no segmented border:
 // in the FT-terminal aesthetic the buttons are typographic, not chromed.
-// A small "auto-pausa" caps tag appears when the engine has paused itself
-// for an open event / hidden tab / win-loss state.
+//
+// Visual grouping: the pause glyph sits with the speed multipliers as one
+// transport-style cluster `[⏸] [1× 2× 4×]`, then a wider gap before the
+// "auto-pausa" state tag — so the row reads `[transport] ... STATE` rather
+// than `[icon] [speeds] [state]` running together. The state caps tag only
+// appears when the engine has paused itself for an open event / hidden tab /
+// win-loss state.
 
 'use client';
 
@@ -12,40 +17,46 @@ import { cn } from '../../lib/cn';
 import { type Speed } from '../../lib/store';
 import { useTicker } from '../../lib/ticker';
 
-const SPEEDS: readonly Speed[] = [0, 1, 2, 4];
+const PAUSE_SPEED: Speed = 0;
+const PLAY_SPEEDS: readonly Speed[] = [1, 2, 4];
 
 export function SpeedControls() {
   const ticker = useTicker();
   const t = useTranslations('hud.speed');
   const tHud = useTranslations('hud');
 
+  const renderButton = (s: Speed) => {
+    const active = ticker.speed === s;
+    return (
+      <button
+        key={s}
+        type="button"
+        onClick={() => ticker.setSpeed(s)}
+        aria-pressed={active}
+        aria-label={speedAriaLabel(s, t)}
+        className={cn(
+          'numeric-tabular transition-colors',
+          active ? 'text-accent' : 'text-fg-muted hover:text-fg',
+        )}
+      >
+        <span aria-hidden="true">{speedGlyph(s)}</span>
+      </button>
+    );
+  };
+
   return (
-    <div className="flex items-baseline gap-2">
+    <div className="flex items-baseline gap-5">
       <div
-        className="flex items-baseline gap-2 font-mono text-sm"
+        className="flex items-baseline gap-3 font-mono text-sm"
         role="group"
         aria-label={t('label')}
       >
-        {SPEEDS.map((s) => {
-          const active = ticker.speed === s;
-          return (
-            <button
-              key={s}
-              type="button"
-              onClick={() => ticker.setSpeed(s)}
-              aria-pressed={active}
-              aria-label={speedAriaLabel(s, t)}
-              className={cn(
-                'numeric-tabular transition-colors',
-                active
-                  ? 'text-accent'
-                  : 'text-fg-muted hover:text-fg',
-              )}
-            >
-              <span aria-hidden="true">{speedGlyph(s)}</span>
-            </button>
-          );
-        })}
+        {/* Transport cluster: pause sits with the speeds, separated by a
+            slightly wider gap so it reads as a related-but-distinct control. */}
+        {renderButton(PAUSE_SPEED)}
+        <div className="flex items-baseline gap-2">
+          {PLAY_SPEEDS.map(renderButton)}
+        </div>
       </div>
       {ticker.isAutoPaused ? (
         <span className="text-[10px] font-semibold uppercase tracking-wider text-warning">

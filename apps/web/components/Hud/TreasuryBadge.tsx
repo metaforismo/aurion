@@ -1,6 +1,12 @@
-// Treasury display. Shows the player's current treasury formatted as compact
-// currency, plus a coloured weekly delta arrow so the player can see at a
-// glance whether they're hemorrhaging money.
+// Treasury display. Shows the player's current treasury formatted as a
+// thousand-separated euro amount, plus a coloured weekly delta arrow so the
+// player can see at a glance whether they're hemorrhaging money.
+//
+// Formatting note: we deliberately drop `notation: 'compact'` on the delta
+// to avoid the unit-duplication smell of "13,2 Mld €  ▲ +550,4 Mln €". The
+// main value still carries the `€` so the row stays self-describing, while
+// the weekly delta is rendered as a bare signed integer with thousands
+// separators — the surrounding label ("Treasury") supplies the unit.
 //
 // Visual: inline label + value + delta. No card chrome — the parent HUD owns
 // the row. The delta uses ▲ / ▼ glyphs coloured by `success` / `danger`; the
@@ -23,18 +29,19 @@ export function TreasuryBadge() {
   const weekly = player?.economy.weeklyIncome ?? 0;
   const isNegative = treasury < 0;
 
+  // Main treasury: thousands-separated EUR, no compact notation. We keep the
+  // currency style here so the value is self-identifying without a label.
   const treasuryFormatted = format.number(Math.round(treasury), {
     style: 'currency',
     currency: 'EUR',
-    notation: 'compact',
-    maximumFractionDigits: 1,
+    maximumFractionDigits: 0,
   });
 
+  // Weekly delta: bare signed integer with thousands separators. The
+  // adjacent treasury value (and the small-caps label) already establish the
+  // unit — duplicating "€" would over-decorate the row.
   const weeklyFormatted = format.number(Math.round(weekly), {
-    style: 'currency',
-    currency: 'EUR',
-    notation: 'compact',
-    maximumFractionDigits: 1,
+    maximumFractionDigits: 0,
     signDisplay: 'always',
   });
 

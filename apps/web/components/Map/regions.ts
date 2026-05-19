@@ -17,6 +17,19 @@ export const MAP_VIEWBOX = {
   height: 900,
 } as const;
 
+// Inner playable bounds — the rectangle that contains every region polygon's
+// extent. Used by the renderer to draw the map frame (hairline border, north
+// indicator, map label) and to size the ocean tint that sits behind the
+// regions. Computed by hand from the union of REGIONS[*].bounds (with a small
+// pad so the hairline border sits a few px outside the polygons rather than
+// flush against them).
+export const PLAY_BOUNDS = {
+  x: 30,
+  y: 50,
+  width: 1540,
+  height: 830,
+} as const;
+
 export type RegionDef = {
   id: RegionId;
   /** i18n key under the `map.regions.*` namespace. */

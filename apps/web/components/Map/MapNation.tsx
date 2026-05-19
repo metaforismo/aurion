@@ -38,6 +38,12 @@ export type MapNationProps = {
    * mix the dot fill toward slate ink.
    */
   greyscale: number;
+  /**
+   * Optional 2-3 char localised marker rendered next to the player dot
+   * ("YOU" / "TU"). Only consulted when `isPlayer` is true. Provides a
+   * non-colour anchor so the player nation reads even for colour-blind users.
+   */
+  playerMarker?: string;
   onPointerEnter: (e: PointerEvent<SVGGElement>) => void;
   onPointerMove: (e: PointerEvent<SVGGElement>) => void;
   onPointerLeave: (e: PointerEvent<SVGGElement>) => void;
@@ -46,8 +52,10 @@ export type MapNationProps = {
 };
 
 // Squash the legacy GDP-driven radius (~7..28 px) down to small editorial dots.
+// Bumped a hair from the previous 2.4..4.5 px range so capital markers read
+// at the larger label font size without looking pinched.
 function dotRadius(hintRadius: number): number {
-  return Math.max(2.4, Math.min(4.5, hintRadius * 0.22));
+  return Math.max(3, Math.min(5.5, hintRadius * 0.24));
 }
 
 export default function MapNation(props: MapNationProps) {
@@ -65,8 +73,11 @@ export default function MapNation(props: MapNationProps) {
     opacity: props.opacity,
   };
 
-  // Label sits just under the dot with a small gap.
-  const labelY = props.cy + r + 11;
+  // Label sits just under the dot with a small gap. fontSize bumped from 9 →
+  // 12 (per the second-pass map critique: country labels were illegible at
+  // 8-9px). Centred horizontally on the capital dot.
+  const labelFontSize = 12;
+  const labelY = props.cy + r + labelFontSize + 2;
 
   return (
     <g
@@ -74,6 +85,7 @@ export default function MapNation(props: MapNationProps) {
       tabIndex={0}
       aria-label={props.ariaLabel}
       data-country={props.countryId}
+      data-player={props.isPlayer ? 'true' : undefined}
       onPointerEnter={props.onPointerEnter}
       onPointerMove={props.onPointerMove}
       onPointerLeave={props.onPointerLeave}
@@ -93,6 +105,21 @@ export default function MapNation(props: MapNationProps) {
         fill="transparent"
         pointerEvents="all"
       />
+
+      {/* Player country anchor — a faint accent disc behind the dot so the
+          player nation reads as a clear visual anchor on the map (not just
+          another marker). Sits below the hover/selected rings so they still
+          paint cleanly when interacted with. */}
+      {props.isPlayer ? (
+        <circle
+          cx={props.cx}
+          cy={props.cy}
+          r={r + 5}
+          fill="var(--color-accent)"
+          fillOpacity={0.16}
+          pointerEvents="none"
+        />
+      ) : null}
 
       {/* Hover hairline — 1.5px accent ring, no shadow. */}
       {props.isHovered && !props.isSelected ? (
@@ -124,44 +151,84 @@ export default function MapNation(props: MapNationProps) {
         />
       ) : null}
 
-      {/* The capital marker — single small filled dot, no border. */}
+      {/* The capital marker — filled dot. Player nation gets a thicker
+          accent border so the "yours" identity reads beyond just hue
+          (colour-blind accessibility + non-coloured intel-mask states). */}
       <circle
         cx={props.cx}
         cy={props.cy}
         r={r}
         fill={dotFill}
+        stroke={props.isPlayer ? 'var(--color-accent)' : 'var(--color-bg)'}
+        strokeWidth={props.isPlayer ? 1.5 : 0.5}
+        strokeOpacity={props.isPlayer ? 1 : 0.6}
         pointerEvents="none"
       />
 
-      {/* Country label — small uppercase tracked mono. */}
+      {/* Country label — uppercase tracked mono, centred under the dot. */}
       {props.label ? (
         <g pointerEvents="none">
           <text
             x={props.cx}
             y={labelY}
             textAnchor="middle"
-            fill={props.isPlayer ? 'var(--color-accent)' : 'var(--color-fg)'}
-            fillOpacity={props.isPlayer ? 1 : 0.92}
-            fontSize={9}
-            fontWeight={500}
-            letterSpacing={1.2}
+            fill={props.isPlayer ? 'var(--color-fg)' : 'var(--color-fg-muted)'}
+            fillOpacity={props.isPlayer ? 1 : 0.88}
+            fontSize={labelFontSize}
+            fontWeight={props.isPlayer ? 600 : 500}
+            letterSpacing={1.4}
             style={{
               textTransform: 'uppercase',
               fontFamily: 'var(--font-mono)',
               userSelect: 'none',
-            }}
+              // Subtle paint-order stroke so the label remains legible when
+              // it sits over a region polygon. No glow, no shadow.
+              paintOrder: 'stroke',
+              stroke: 'var(--color-bg)',
+              strokeWidth: 3,
+              strokeOpacity: 0.85,
+              strokeLinejoin: 'round',
+            } as CSSProperties}
           >
             {props.label}
           </text>
           {props.isSelected ? (
             <line
-              x1={props.cx - measureLabelHalf(props.label)}
-              y1={labelY + 3}
-              x2={props.cx + measureLabelHalf(props.label)}
-              y2={labelY + 3}
+              x1={props.cx - measureLabelHalf(props.label, labelFontSize)}
+              y1={labelY + 4}
+              x2={props.cx + measureLabelHalf(props.label, labelFontSize)}
+              y2={labelY + 4}
               stroke="var(--color-accent)"
               strokeWidth={1}
             />
+          ) : null}
+          {/* Player marker — a tiny tracked-caps badge above the dot
+              ("TU" / "YOU"). Anchors the player nation with a textual cue,
+              not just a colour. Only rendered when both label and marker
+              are provided so intel-mask redaction (label hidden) still
+              hides the marker too. */}
+          {props.isPlayer && props.playerMarker ? (
+            <text
+              x={props.cx}
+              y={props.cy - r - 6}
+              textAnchor="middle"
+              fill="var(--color-accent)"
+              fontSize={9}
+              fontWeight={600}
+              letterSpacing={1.4}
+              style={{
+                textTransform: 'uppercase',
+                fontFamily: 'var(--font-mono)',
+                userSelect: 'none',
+                paintOrder: 'stroke',
+                stroke: 'var(--color-bg)',
+                strokeWidth: 3,
+                strokeOpacity: 0.85,
+                strokeLinejoin: 'round',
+              } as CSSProperties}
+            >
+              {props.playerMarker}
+            </text>
           ) : null}
         </g>
       ) : null}
@@ -170,12 +237,13 @@ export default function MapNation(props: MapNationProps) {
 }
 
 /**
- * Approximate half-width of the label at fontSize=9 + letterSpacing=1.2 in
- * uppercase mono. We avoid getBBox (forces layout) and estimate from char
- * count — close enough for an underline indicator.
+ * Approximate half-width of the label at the given font size with
+ * letterSpacing=1.4 in uppercase mono. We avoid getBBox (forces layout) and
+ * estimate from char count — close enough for an underline indicator.
  */
-function measureLabelHalf(label: string): number {
-  return Math.max(8, (label.length * 6.2) / 2);
+function measureLabelHalf(label: string, fontSize: number): number {
+  const charW = fontSize * 0.68;
+  return Math.max(8, (label.length * charW) / 2);
 }
 
 // ---------------------------------------------------------------------------

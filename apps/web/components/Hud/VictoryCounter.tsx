@@ -28,7 +28,9 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { VictoryConditionDef, VictoryConditionId } from '@aurion/engine';
 
 import { cn } from '../../lib/cn';
+import type { ScenarioId } from '../../lib/scenarios';
 import { useGameStore } from '../../lib/store';
+import { useScenarioMessages } from '../Panels/shared/useScenarioMessages';
 // Note: a `selectVictoryProgress` selector is exported from the store for
 // callers (and tests) that want both numbers as one object. We deliberately
 // don't subscribe through it here because it would allocate a fresh object
@@ -45,6 +47,14 @@ export function VictoryCounter() {
   const gameMode = useGameStore((s) => s.state?.gameMode);
   const unlocked = useGameStore((s) => s.state?.unlockedVictories);
   const conditions = useGameStore((s) => s.scenario?.victoryConditions);
+  // Scenario-defined victory nameKeys (e.g. `victory.qs.economic.name`) live
+  // in the scenario side-car bundle, not in the global UI messages. We load
+  // the side-car here so the popover can resolve them; the hook returns the
+  // raw key on miss, which we degrade further to a sensible fallback below.
+  const scenarioId = useGameStore(
+    (s) => (s.scenario?.id ?? null) as ScenarioId | null,
+  );
+  const { t: tScenario } = useScenarioMessages(scenarioId);
 
   // Close on outside click while open.
   useEffect(() => {
@@ -113,6 +123,7 @@ export function VictoryCounter() {
         <VictoryPopover
           conditions={conditionList}
           unlocked={unlockedList}
+          tScenario={tScenario}
         />
       ) : null}
     </div>
@@ -126,15 +137,21 @@ export function VictoryCounter() {
 type VictoryPopoverProps = {
   conditions: readonly VictoryConditionDef[];
   unlocked: readonly VictoryConditionId[];
+  /** Scenario message getter — resolves `victory.<scope>.<id>.name` keys that
+   * live in the side-car bundle. Returns the raw key on miss. */
+  tScenario: (key: string | undefined | null) => string;
 };
 
-function VictoryPopover({ conditions, unlocked }: VictoryPopoverProps) {
+function VictoryPopover({
+  conditions,
+  unlocked,
+  tScenario,
+}: VictoryPopoverProps) {
   const t = useTranslations('hud.victory');
-  // We deliberately use the root translator so we can resolve any victory
-  // nameKey the scenario throws at us — the Phase 1 scenario format puts
-  // them under `victory.<id>.name` but newer scenarios may live in their
-  // own namespace. Falling through to the raw key keeps the UI rendering
-  // even when a translation is missing.
+  // We also keep the root translator as a fallback — generic victory keys
+  // (`victory.economic.name`) are shipped in the global UI bundle and only
+  // scenario-scoped variants (`victory.qs.economic.name`,
+  // `victory.gf.economic.name`, …) live in the side-car file.
   const tRoot = useTranslations();
   const titleId = useId();
   const unlockedSet = new Set<VictoryConditionId>(unlocked);
@@ -155,11 +172,11 @@ function VictoryPopover({ conditions, unlocked }: VictoryPopoverProps) {
       <ul className="flex flex-col gap-1.5">
         {conditions.map((c) => {
           const isUnlocked = unlockedSet.has(c.id);
-          // `nameKey` is a fully-qualified i18n key like `victory.economic.name`.
-          // next-intl returns the key as-is if no translation is registered,
-          // which is fine: the scenario author can ship the translation later
-          // without breaking the UI.
-          const label = safeTranslate(tRoot, c.nameKey);
+          // Resolution order:
+          //   1. Scenario side-car (`victory.qs.economic.name`, …).
+          //   2. Global UI bundle (generic `victory.economic.name`).
+          //   3. The raw key as a last-resort fallback.
+          const label = resolveVictoryLabel(tScenario, tRoot, c.nameKey);
           return (
             <li
               key={c.id}
@@ -183,20 +200,26 @@ function VictoryPopover({ conditions, unlocked }: VictoryPopoverProps) {
 }
 
 /**
- * Wraps `t(key)` in a try/catch so the popover never crashes on a missing
- * translation. Returns the key itself as a last resort — preferable to
- * blowing up the HUD just because a scenario added a new victory whose
- * label isn't shipped yet.
+ * Try the scenario side-car bundle first (where scenario-scoped victory
+ * conditions like `victory.qs.economic.name` live), then fall back to the
+ * global UI bundle (which carries the generic `victory.economic.name`), and
+ * finally to the raw key. Never throws — so the HUD keeps rendering even
+ * when a scenario adds a new victory whose label isn't shipped yet.
  */
-function safeTranslate(
-  t: ReturnType<typeof useTranslations>,
+function resolveVictoryLabel(
+  tScenario: (key: string | undefined | null) => string,
+  tRoot: ReturnType<typeof useTranslations>,
   key: string,
 ): string {
+  const scenarioValue = tScenario(key);
+  if (scenarioValue && scenarioValue !== key) return scenarioValue;
   try {
-    return t(key);
+    const rootValue = tRoot(key);
+    if (rootValue && rootValue !== key) return rootValue;
   } catch {
-    return key;
+    // fall through
   }
+  return key;
 }
 
 export default VictoryCounter;

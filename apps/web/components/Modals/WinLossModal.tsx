@@ -11,12 +11,14 @@ import type { GameState, Scenario, WinLossState } from '@aurion/engine';
 
 import { Link } from '../../i18n/navigation';
 import { cn } from '../../lib/cn';
+import type { ScenarioId } from '../../lib/scenarios';
 import {
   selectLossReason,
   selectPlayerCountry,
   useGameStore,
   type LossReason,
 } from '../../lib/store';
+import { useScenarioMessages } from '../Panels/shared/useScenarioMessages';
 
 import { Modal } from './Modal';
 
@@ -107,6 +109,12 @@ function Reason({
   const t = useTranslations('modals.winLoss');
   const tVictory = useTranslations('victory');
   const tVictoryScreen = useTranslations('victoryScreen');
+  // Scenario-scoped victory condition nameKeys (e.g. `victory.qs.economic.name`,
+  // `victory.gf.economic.name`) live ONLY in the scenario side-car bundle.
+  // Generic ones (`victory.economic.name`) ship in the global UI bundle.
+  // We consult the side-car first so QS / GF / MC scenarios resolve cleanly.
+  const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
+  const { t: tScenario } = useScenarioMessages(scenarioId);
 
   if (winLoss === 'won') {
     // Look up the descriptive name of the chosen victory condition.
@@ -117,7 +125,9 @@ function Reason({
     return (
       <p className="text-sm text-fg-muted">
         {t('wonReason', {
-          condition: nameKey ? tVictoryFallback(tVictory, nameKey) : selectedVictoryCondition,
+          condition: nameKey
+            ? resolveVictoryName(tScenario, tVictory, nameKey)
+            : selectedVictoryCondition,
         })}
       </p>
     );
@@ -137,19 +147,23 @@ function Reason({
 }
 
 /**
- * `useTranslations('victory')` exposes a *namespaced* lookup, but the
- * scenario's nameKey is already fully-qualified (e.g. `victory.economic.name`).
- * We strip the leading namespace so the call resolves correctly. Falls back to
- * the raw key if the format isn't recognized.
+ * Resolve a victory-condition nameKey through both the scenario side-car
+ * and the global UI bundle. Scenario-scoped variants
+ * (`victory.qs.economic.name`, `victory.gf.economic.name`, …) live ONLY in
+ * the side-car file; the generic shape (`victory.economic.name`) ships in
+ * `messages/{en,it}.json` under the `victory` namespace. We consult the
+ * side-car first, then strip the leading `victory.` prefix and ask the
+ * global namespaced translator, finally degrading to the raw key.
  */
-function tVictoryFallback(
+function resolveVictoryName(
+  tScenario: (key: string | undefined | null) => string,
   tVictory: ReturnType<typeof useTranslations<'victory'>>,
   fullKey: string,
 ): string {
+  const scenarioValue = tScenario(fullKey);
+  if (scenarioValue && scenarioValue !== fullKey) return scenarioValue;
   const prefix = 'victory.';
   if (!fullKey.startsWith(prefix)) return fullKey;
-  // next-intl typings are intentionally strict about key shape; cast through
-  // string here because our scenario data drives the value at runtime.
   const rel = fullKey.slice(prefix.length);
   try {
     return (tVictory as unknown as (k: string) => string)(rel);

@@ -924,7 +924,8 @@
       "sahel-karoun": "Sahel-Karoun"
     },
     "nation": {
-      "aria": "{name}, {region} region, GDP {gdp}, army {army}"
+      "aria": "{name}, {region} region, GDP {gdp}, army {army}",
+      "youMarker": "YOU"
     }
   },
   "tutorial": {

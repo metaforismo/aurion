@@ -41,7 +41,9 @@ import type {
 } from '@aurion/engine';
 
 import { cn } from '../../lib/cn';
+import type { ScenarioId } from '../../lib/scenarios';
 import { useGameStore } from '../../lib/store';
+import { useScenarioMessages } from '../Panels/shared/useScenarioMessages';
 
 import { Modal } from './Modal';
 
@@ -76,6 +78,12 @@ export function UNResolutionModal({
 }: UNResolutionModalProps) {
   const t = useTranslations('modals.unResolution');
   const tPanel = useTranslations('panelUN');
+  // Title / description / country-name keys for resolutions live in the
+  // scenario side-car bundle (`un.<scenario>.*`, `country.<id>.name`), not
+  // the global UI messages. Resolve them via `useScenarioMessages` — same
+  // pattern as EventModal / UNResolutionCard.
+  const scenarioId = scenario.id as ScenarioId;
+  const { t: tScenario } = useScenarioMessages(scenarioId);
   const applyAction = useGameStore((s) => s.applyAction);
   const setSelectedPanel = useGameStore((s) => s.setSelectedPanel);
 
@@ -93,15 +101,24 @@ export function UNResolutionModal({
   const targetLabel = useMemo<string | null>(() => {
     if (resolution.targetCountryId) {
       const c = state.countries[resolution.targetCountryId];
-      return c?.nameKey ?? resolution.targetCountryId;
+      if (!c) return resolution.targetCountryId;
+      const resolved = tScenario(c.nameKey);
+      return resolved && resolved !== c.nameKey
+        ? resolved
+        : resolution.targetCountryId;
     }
     if (resolution.targetRegionId) return resolution.targetRegionId;
     return null;
-  }, [resolution, state.countries]);
+  }, [resolution, state.countries, tScenario]);
 
-  const proposerLabel =
-    state.countries[resolution.proposerCountryId]?.nameKey ??
-    resolution.proposerCountryId;
+  const proposerLabel = (() => {
+    const c = state.countries[resolution.proposerCountryId];
+    if (!c) return resolution.proposerCountryId;
+    const resolved = tScenario(c.nameKey);
+    return resolved && resolved !== c.nameKey
+      ? resolved
+      : resolution.proposerCountryId;
+  })();
 
   // Vote dispatcher used by the four buttons. After a successful dispatch we
   // close the modal; on error we keep it open so the player sees the toast
@@ -163,10 +180,10 @@ export function UNResolutionModal({
       {/* Resolution headline */}
       <div className="space-y-2">
         <h3 className="text-base font-semibold text-fg">
-          {translateScenarioKey(resolution.titleKey, resolution.kind)}
+          {translateScenarioKey(tScenario, resolution.titleKey, resolution.kind)}
         </h3>
         <p className="text-sm leading-relaxed text-fg-muted">
-          {translateScenarioKey(resolution.descriptionKey, '')}
+          {translateScenarioKey(tScenario, resolution.descriptionKey, '')}
         </p>
       </div>
 
@@ -253,18 +270,19 @@ export function UNResolutionModal({
 
 /**
  * Resolution title / description keys are populated by the engine at trigger
- * time, sourced from the active scenario's bundle. We try the next-intl
- * lookup at runtime via the dynamic root translator, falling back gracefully
- * to a sensible default.
- *
- * We avoid pulling in `useScenarioMessages` here to keep the modal cheap.
+ * time, sourced from the active scenario's side-car bundle. We resolve them
+ * through `useScenarioMessages` (passed in by the caller as `tScenario`),
+ * degrading to `fallback` when the key isn't shipped.
  */
-function translateScenarioKey(key: string | undefined, fallback: string): string {
+function translateScenarioKey(
+  tScenario: (key: string | undefined | null) => string,
+  key: string | undefined,
+  fallback: string,
+): string {
   if (!key) return fallback;
-  // The Modal renders inside the same locale provider as the rest of the app,
-  // so a missing key surfaces as the raw string from next-intl. We just
-  // mirror that behaviour in the no-translator path.
-  return key.length > 0 ? key : fallback;
+  const resolved = tScenario(key);
+  if (!resolved || resolved === key) return fallback;
+  return resolved;
 }
 
 // ---------------------------------------------------------------------------

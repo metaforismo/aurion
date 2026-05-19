@@ -6,16 +6,24 @@
 //
 // Colour rules on the signed value:
 //   value < -30 → red    (danger)
-//   |value| <= 30 → fg   (neutral)
 //   value >  30 → green  (success)
+//   value !== 0 → fg     (earned visual weight in the ±30 dead-zone)
+//   value === 0 → fg-faint (muted — the chip is a position anchor, not a fact)
+//
+// When every bloc reads zero (game-start or pre-event scenarios) we mute the
+// whole strip so the chips don't punch above their weight. Once any value
+// goes non-zero the relevant chips light up while remaining zeros stay
+// muted — the eye is drawn to the bloc that actually changed.
 //
 // The whole strip is hidden when the active scenario does not opt into the
 // Phase 3 bloc system (i.e. `state.reputation === undefined`). This keeps
 // Phase 1/2 saves visually quiet — the bloc system is purely additive.
 //
 // Clicking any chip — or the small "Dettagli" link on the right — opens the
-// `ReputationDetailModal`, which surfaces the full -100..+100 bar per bloc
-// and the most recent reputation deltas the engine has queued.
+// `ReputationDetailModal`. The DETTAGLI affordance itself is hidden when the
+// engine has nothing historical to show (no pending reputation deltas) — the
+// modal's "Recent changes" section would otherwise be a dead "history
+// unavailable" placeholder.
 //
 // Strict TS: we only render once we have a non-null `state` AND a defined
 // `reputation` record.
@@ -56,6 +64,7 @@ const BLOC_TESTID: Readonly<Record<ActiveBlocId, string>> = {
 
 export function ReputationBadges() {
   const reputation = useGameStore((s) => s.state?.reputation);
+  const pendingDeltas = useGameStore((s) => s.state?.pendingReputationDeltas);
   const t = useTranslations('hud.reputation');
   const [open, setOpen] = useState(false);
 
@@ -63,6 +72,12 @@ export function ReputationBadges() {
   // suppress when the reputation record exists but is empty: an empty roster
   // would render a confusing zero-chip strip.
   if (!reputation) return null;
+
+  // Has the engine queued any historical deltas the modal can surface? The
+  // modal's "Recent changes" section is otherwise a dead "history unavailable"
+  // placeholder, so we hide the DETTAGLI affordance until there's something
+  // to read.
+  const hasHistory = (pendingDeltas?.length ?? 0) > 0;
 
   return (
     <>
@@ -87,13 +102,15 @@ export function ReputationBadges() {
             />
           );
         })}
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="text-[10px] font-semibold uppercase tracking-wider text-fg-faint transition-colors hover:text-accent"
-        >
-          {t('details')}
-        </button>
+        {hasHistory ? (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="text-[10px] font-semibold uppercase tracking-wider text-fg-faint transition-colors hover:text-accent"
+          >
+            {t('details')}
+          </button>
+        ) : null}
       </div>
       {open ? <ReputationDetailModal onClose={() => setOpen(false)} /> : null}
     </>
@@ -113,6 +130,18 @@ type BlocChipProps = {
 };
 
 function BlocChip({ blocId, value, short, tooltip, onOpen }: BlocChipProps) {
+  // Zero values are muted — a stable anchor in the row but visually quiet.
+  // Non-zero values earn semantic colour (success / danger past ±30, fg in
+  // the dead-zone).
+  const valueClass =
+    value === 0
+      ? 'text-fg-faint'
+      : value > 30
+        ? 'text-success'
+        : value < -30
+          ? 'text-danger'
+          : 'text-fg';
+
   return (
     <button
       type="button"
@@ -125,16 +154,7 @@ function BlocChip({ blocId, value, short, tooltip, onOpen }: BlocChipProps) {
       <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-faint">
         {short}
       </span>
-      <span
-        className={cn(
-          'numeric-tabular font-mono text-sm',
-          value > 30
-            ? 'text-success'
-            : value < -30
-              ? 'text-danger'
-              : 'text-fg',
-        )}
-      >
+      <span className={cn('numeric-tabular font-mono text-sm', valueClass)}>
         {formatSigned(value)}
       </span>
     </button>

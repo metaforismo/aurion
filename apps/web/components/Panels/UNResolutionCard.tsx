@@ -86,6 +86,12 @@ export type UNResolutionCardProps = {
   countryName: (id: CountryId) => string;
   /** Lookup: region id → translated display name. */
   regionName: (id: string) => string;
+  /**
+   * Scenario message getter for resolving `un.<scenario>.<kind>.title` /
+   * `*.description` keys that live in the side-car bundle. Returns the raw
+   * key on miss; the card falls back to a generic per-kind label.
+   */
+  tScenario: (key: string | undefined | null) => string;
   /** Forwarded so the Vote / Veto buttons can surface engine errors. */
   onErrors?: (errors: string[]) => void;
   /** Vote dispatcher. Always returns the engine's i18n-key error array. */
@@ -108,6 +114,7 @@ export function UNResolutionCard({
   councilMemberIds,
   countryName,
   regionName,
+  tScenario,
   onErrors,
   onVote,
   onVeto,
@@ -150,10 +157,14 @@ export function UNResolutionCard({
         />
         <div className="flex flex-1 flex-col gap-0.5">
           <h3 className="text-sm font-semibold leading-tight text-fg">
-            {translateOrFallback(t, resolution.titleKey, fallbackKindTitle(resolution))}
+            {resolveScenarioKey(
+              tScenario,
+              resolution.titleKey,
+              fallbackKindTitle(resolution),
+            )}
           </h3>
           <p className="text-[11px] leading-snug text-fg-muted">
-            {translateOrFallback(t, resolution.descriptionKey, '')}
+            {resolveScenarioKey(tScenario, resolution.descriptionKey, '')}
           </p>
         </div>
         <span
@@ -331,23 +342,20 @@ function resolveTargetLabel(
 }
 
 /**
- * `useTranslations('panelUN')` only resolves keys it knows about. Resolution
- * titles / descriptions live in scenario bundles (the engine populates the
- * `titleKey` / `descriptionKey` at trigger time) — when the lookup throws we
- * fall back to a stable default rather than break the whole card.
+ * Resolve a scenario-defined key (e.g. `un.gf.condemnation.title`) through
+ * the scenario side-car bundle. The side-car getter returns the raw key on
+ * miss, in which case we degrade to the supplied generic fallback so the
+ * card never renders a dangling i18n key in front of the player.
  */
-function translateOrFallback(
-  t: ReturnType<typeof useTranslations<'panelUN'>>,
+function resolveScenarioKey(
+  tScenario: (key: string | undefined | null) => string,
   key: string | undefined,
   fallback: string,
 ): string {
   if (!key) return fallback;
-  try {
-    // Cast to string-keyed function: scenario keys are runtime strings.
-    return (t as unknown as (k: string) => string)(key);
-  } catch {
-    return fallback;
-  }
+  const value = tScenario(key);
+  if (!value || value === key) return fallback;
+  return value;
 }
 
 function fallbackKindTitle(resolution: UNResolution): string {

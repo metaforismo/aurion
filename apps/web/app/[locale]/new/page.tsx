@@ -9,6 +9,22 @@
 
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
+import type { ComponentType, ReactNode, SVGProps } from 'react';
+import {
+  BookOpen,
+  Coins,
+  Crown,
+  Flag,
+  Gauge,
+  Globe,
+  Handshake,
+  Infinity as InfinityIcon,
+  Microscope,
+  Shield,
+  Skull,
+  Sword,
+  Target,
+} from 'lucide-react';
 import type {
   CountryId,
   DifficultyTuning,
@@ -17,6 +33,7 @@ import type {
   VictoryConditionId,
 } from '@aurion/engine';
 
+import { useScenarioMessages } from '../../../components/Panels/shared/useScenarioMessages';
 import { Link, useRouter } from '../../../i18n/navigation';
 import { cn } from '../../../lib/cn';
 import {
@@ -148,6 +165,38 @@ const HARSH_WHEN_HIGH = new Set<string>([
 ]);
 
 // ---------------------------------------------------------------------------
+// Icon maps (lucide-react, monochrome outline). Centralised so each step
+// composes a single source of truth and so we can swap icons without hunting
+// through the cards. Rendered with `text-fg-muted` to keep the editorial
+// monochrome direction (no decorative colour, only the active card's accent
+// border carries hue).
+// ---------------------------------------------------------------------------
+
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+
+const VICTORY_ICONS: Readonly<Record<VictoryConditionId, IconComponent>> = {
+  economic: Coins,
+  military: Sword,
+  scientific: Microscope,
+  diplomatic: Handshake,
+  domination: Globe,
+};
+
+const DIFFICULTY_ICONS: Readonly<Record<string, IconComponent>> = {
+  easy: Shield,
+  normal: Gauge,
+  hard: Target,
+  ironMan: Skull,
+};
+
+const GAME_MODE_ICONS: Readonly<Record<GameMode, IconComponent>> = {
+  classic: Flag,
+  eternal: InfinityIcon,
+  'era-paced': BookOpen,
+  dethrone: Crown,
+};
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
@@ -274,8 +323,17 @@ export default function NewGamePage() {
     }
   };
 
+  // Each step renders its own small-caps "Passo N di 5" line through
+  // <StepHeading>, bound to the section title. The orphan line that used to
+  // float between the breadcrumb and the cards was removed — the breadcrumb
+  // already announces position via `aria-current` + the bolded current step.
+  const stepCounterLabel = t('stepOf', {
+    current: currentStepIndex + 1,
+    total: STEPS.length,
+  });
+
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-8 bg-bg px-6 py-12 text-fg">
+    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 bg-bg px-6 py-10 text-fg">
       <header className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-fg">{t('title')}</h1>
         <Link
@@ -288,12 +346,9 @@ export default function NewGamePage() {
 
       <Breadcrumbs current={step} onJump={handleGoToStep} />
 
-      <p className="text-sm text-fg-faint">
-        {t('stepOf', { current: currentStepIndex + 1, total: STEPS.length })}
-      </p>
-
       {step === 'scenario' ? (
         <ScenarioStep
+          stepLabel={stepCounterLabel}
           selected={scenarioId}
           onSelect={(id) => {
             setScenarioId(id);
@@ -307,6 +362,7 @@ export default function NewGamePage() {
 
       {step === 'country' ? (
         <CountryStep
+          stepLabel={stepCounterLabel}
           scenario={scenario}
           scenarioError={scenarioError}
           selected={countryId}
@@ -318,6 +374,7 @@ export default function NewGamePage() {
 
       {step === 'victory' ? (
         <VictoryStep
+          stepLabel={stepCounterLabel}
           selected={victory}
           onSelect={(id) => setVictory(id)}
           onBack={() => setStep('country')}
@@ -327,6 +384,7 @@ export default function NewGamePage() {
 
       {step === 'difficulty' ? (
         <DifficultyStep
+          stepLabel={stepCounterLabel}
           scenario={scenario}
           selected={difficultyId}
           onSelect={(id) => setDifficultyId(id)}
@@ -337,6 +395,7 @@ export default function NewGamePage() {
 
       {step === 'gameMode' ? (
         <GameModeStep
+          stepLabel={stepCounterLabel}
           scenarioId={scenarioId}
           selected={gameMode}
           onSelect={setGameMode}
@@ -409,14 +468,88 @@ function Breadcrumbs({
 }
 
 // ---------------------------------------------------------------------------
+// Shared step chrome
+//
+// Two tiny helpers used by every step so the wizard stays consistent:
+//   - StepHeading: small-caps step counter + section title + description.
+//     Replaces the previous orphan "Passo N di 5" line that floated above
+//     each section.
+//   - NavButton: editorial back/next button (rounded-sm, no pill chrome).
+//     The primary variant matches the accent CTA used by ActionButton — the
+//     final "Avvia partita" reuses it so the wizard ends on the same amber
+//     accent the rest of the editorial chrome lands on (no more green-cyan).
+// ---------------------------------------------------------------------------
+
+function StepHeading({
+  stepLabel,
+  title,
+  description,
+}: {
+  stepLabel: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-faint">
+        {stepLabel}
+      </span>
+      <h2 className="text-xl font-semibold text-fg">{title}</h2>
+      <p className="text-sm text-fg-muted">{description}</p>
+    </div>
+  );
+}
+
+type NavButtonVariant = 'primary' | 'secondary';
+
+function NavButton({
+  variant,
+  disabled,
+  onClick,
+  children,
+}: {
+  variant: NavButtonVariant;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  // Both variants use the editorial radius (rounded-sm). Primary is the amber
+  // accent CTA — same chrome as ActionButton's "primary" tone, so the
+  // wizard's "Avvia partita" lines up with in-game action buttons. Secondary
+  // is a hairline-bordered transparent surface for back/cancel.
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-disabled={disabled}
+      className={cn(
+        'rounded-sm border px-5 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
+        variant === 'primary'
+          ? disabled
+            ? 'cursor-not-allowed border-border bg-transparent text-fg-faint'
+            : 'border-accent bg-accent text-bg hover:border-accent-strong hover:bg-accent-strong'
+          : disabled
+            ? 'cursor-not-allowed border-border bg-transparent text-fg-faint'
+            : 'border-border bg-transparent text-fg hover:border-border-strong',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Step 1: scenario
 // ---------------------------------------------------------------------------
 
 function ScenarioStep({
+  stepLabel,
   selected,
   onSelect,
   onNext,
 }: {
+  stepLabel: string;
   selected: ScenarioId | null;
   onSelect: (id: ScenarioId) => void;
   onNext: () => void;
@@ -439,14 +572,11 @@ function ScenarioStep({
 
   return (
     <section className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-xl font-semibold text-fg">
-          {t('stepScenario.title')}
-        </h2>
-        <p className="mt-1 text-sm text-fg-muted">
-          {t('stepScenario.description')}
-        </p>
-      </div>
+      <StepHeading
+        stepLabel={stepLabel}
+        title={t('stepScenario.title')}
+        description={t('stepScenario.description')}
+      />
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {scenarios.map((meta) => {
           const status = getEffectiveStatus(meta.id);
@@ -491,20 +621,14 @@ function ScenarioStep({
           </button>
         </div>
       ) : null}
-      <div className="flex justify-end">
-        <button
-          type="button"
+      <div className="flex justify-end pt-2">
+        <NavButton
+          variant="primary"
           disabled={!selected}
           onClick={onNext}
-          className={cn(
-            'rounded-xl px-5 py-2 text-sm font-semibold transition-colors',
-            selected
-              ? 'bg-accent text-bg hover:bg-accent-strong'
-              : 'bg-surface-1 text-fg-faint',
-          )}
         >
           {tCommon('next')}
-        </button>
+        </NavButton>
       </div>
     </section>
   );
@@ -537,6 +661,12 @@ function ScenarioCard({
       ? tFallback('description')
       : rawDescription;
 
+  // Editorial direction: the "available" chip read as decorative noise when
+  // every scenario was available. We only render a status chip for
+  // non-available states (currently just `planned`). Future lock states
+  // (Premium, Locked, …) can fold into the same `showStatus` branch.
+  const showStatus = status !== 'available';
+
   return (
     <button
       type="button"
@@ -544,7 +674,7 @@ function ScenarioCard({
       disabled={disabled}
       aria-pressed={selected}
       className={cn(
-        'flex h-full w-full flex-col gap-2 rounded-xl border px-4 py-3 text-left transition-colors',
+        'flex h-full w-full flex-col gap-2 rounded-md border px-4 py-3 text-left transition-colors',
         selected
           ? 'border-accent bg-accent/15 text-fg shadow-md'
           : 'border-border bg-surface-1 text-fg hover:border-border-strong',
@@ -553,14 +683,16 @@ function ScenarioCard({
     >
       <div className="flex items-start justify-between gap-3">
         <span className="font-semibold">{name}</span>
-        <span
-          className={cn(
-            'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-            status === 'planned' ? toneChip('warning') : toneChip('success'),
-          )}
-        >
-          {statusLabel}
-        </span>
+        {showStatus ? (
+          <span
+            className={cn(
+              'shrink-0 rounded-sm border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+              toneChip('warning'),
+            )}
+          >
+            {statusLabel}
+          </span>
+        ) : null}
       </div>
       <p className="text-xs text-fg-muted">{description}</p>
     </button>
@@ -572,6 +704,7 @@ function ScenarioCard({
 // ---------------------------------------------------------------------------
 
 function CountryStep({
+  stepLabel,
   scenario,
   scenarioError,
   selected,
@@ -579,6 +712,7 @@ function CountryStep({
   onBack,
   onNext,
 }: {
+  stepLabel: string;
   scenario: Scenario | null;
   scenarioError: string | null;
   selected: CountryId | null;
@@ -589,19 +723,23 @@ function CountryStep({
   const t = useTranslations('setup');
   const tCommon = useTranslations('common');
   const tStats = useTranslations('setup.country.stats');
-  const tCountry = useTranslations();
+  // Country / capital / faction names live ONLY in the scenario side-car
+  // bundles (apps/web/content/scenarios/<id>.{en,it}.json) — they are NOT in
+  // the global `messages/{en,it}.json` UI bundle. Using `useTranslations()`
+  // here would surface MISSING_MESSAGE warnings for every `country.<id>.name`
+  // key. We resolve them through the scenario message bundle instead, same
+  // pattern as EventModal / NotificationItem / EraTransitionModal.
+  const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
+  const { t: tScenario } = useScenarioMessages(scenarioId);
   const fmt = useFormatter();
 
   return (
     <section className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-xl font-semibold text-fg">
-          {t('stepCountry.title')}
-        </h2>
-        <p className="mt-1 text-sm text-fg-muted">
-          {t('stepCountry.description')}
-        </p>
-      </div>
+      <StepHeading
+        stepLabel={stepLabel}
+        title={t('stepCountry.title')}
+        description={t('stepCountry.description')}
+      />
       {scenarioError ? (
         <p
           className={cn(
@@ -619,12 +757,17 @@ function CountryStep({
             if (!country) return null;
             const factionsCount = Object.keys(country.politics?.factions ?? {})
               .length;
-            // Display name resolves through the merged i18n bundle (or the
-            // country's id when no message file ships it). The safeTranslate
-            // wrapper swallows next-intl's MISSING_MESSAGE warning so the
-            // wizard's console isn't flooded when a scenario doesn't ship
-            // the country's name in the global UI bundle.
-            const displayName = safeTranslate(tCountry, country.nameKey, id);
+            // Resolve display name + capital through the scenario message
+            // bundle. `tScenario` returns the raw key on miss; we degrade to
+            // the country id so the row never looks empty while the bundle
+            // is still loading (or when content is missing).
+            const rawName = tScenario(country.nameKey);
+            const displayName =
+              rawName && rawName !== country.nameKey ? rawName : id;
+            const capitalKey = (country as { capitalKey?: string }).capitalKey;
+            const rawCapital = capitalKey ? tScenario(capitalKey) : '';
+            const capital =
+              capitalKey && rawCapital !== capitalKey ? rawCapital : '';
             return (
               <li key={id}>
                 <button
@@ -632,12 +775,16 @@ function CountryStep({
                   onClick={() => onSelect(id)}
                   aria-pressed={selected === id}
                   className={cn(
-                    'flex w-full flex-col gap-2 rounded-xl border px-4 py-3 text-left transition-colors',
+                    'flex w-full flex-col gap-2 rounded-md border px-4 py-3 text-left transition-colors',
                     selected === id
                       ? 'border-accent bg-accent/15 text-fg shadow-md'
                       : 'border-border bg-surface-1 text-fg hover:border-border-strong',
                   )}
                 >
+                  {/* Row: small colour dot + display name (+ optional capital).
+                      The duplicated raw id chip on the right was a debug
+                      remnant — removed so the row reads like a city + name
+                      banner instead of "name … name" noise. */}
                   <div className="flex items-center gap-3">
                     <span
                       aria-hidden
@@ -645,11 +792,16 @@ function CountryStep({
                       style={{ backgroundColor: country.color }}
                     />
                     <span className="font-medium">{displayName}</span>
-                    <span className="ml-auto text-xs text-fg-faint">{id}</span>
+                    {capital ? (
+                      <span className="text-xs text-fg-faint">· {capital}</span>
+                    ) : null}
                   </div>
-                  <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-muted">
+                  {/* Stats row: labels are `text-fg-faint` (one notch
+                      softer than `text-fg-muted`) so the numbers carry the
+                      visual weight per editorial direction. */}
+                  <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
                     <div className="flex items-center gap-1">
-                      <dt>{tStats('gdp')}:</dt>
+                      <dt className="text-fg-faint">{tStats('gdp')}:</dt>
                       <dd className="font-mono text-fg">
                         {fmt.number(country.economy.gdp, {
                           notation: 'compact',
@@ -658,7 +810,7 @@ function CountryStep({
                       </dd>
                     </div>
                     <div className="flex items-center gap-1">
-                      <dt>{tStats('popularity')}:</dt>
+                      <dt className="text-fg-faint">{tStats('popularity')}:</dt>
                       <dd className="font-mono text-fg">
                         {fmt.number(country.politics?.popularity ?? 0, {
                           maximumFractionDigits: 0,
@@ -666,7 +818,7 @@ function CountryStep({
                       </dd>
                     </div>
                     <div className="flex items-center gap-1">
-                      <dt>{tStats('factions')}:</dt>
+                      <dt className="text-fg-faint">{tStats('factions')}:</dt>
                       <dd className="font-mono text-fg">{factionsCount}</dd>
                     </div>
                   </dl>
@@ -678,27 +830,17 @@ function CountryStep({
       ) : !scenarioError ? (
         <p className="text-sm text-fg-faint">…</p>
       ) : null}
-      <div className="flex justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-xl border border-border bg-surface-1 px-5 py-2 text-sm text-fg hover:border-border-strong"
-        >
+      <div className="flex justify-between pt-2">
+        <NavButton variant="secondary" onClick={onBack}>
           ← {tCommon('back')}
-        </button>
-        <button
-          type="button"
+        </NavButton>
+        <NavButton
+          variant="primary"
           disabled={!selected}
           onClick={onNext}
-          className={cn(
-            'rounded-xl px-5 py-2 text-sm font-semibold transition-colors',
-            selected
-              ? 'bg-accent text-bg hover:bg-accent-strong'
-              : 'bg-surface-1 text-fg-faint',
-          )}
         >
           {tCommon('next')}
-        </button>
+        </NavButton>
       </div>
     </section>
   );
@@ -709,11 +851,13 @@ function CountryStep({
 // ---------------------------------------------------------------------------
 
 function VictoryStep({
+  stepLabel,
   selected,
   onSelect,
   onBack,
   onNext,
 }: {
+  stepLabel: string;
   selected: VictoryConditionId | null;
   onSelect: (id: VictoryConditionId) => void;
   onBack: () => void;
@@ -725,57 +869,58 @@ function VictoryStep({
 
   return (
     <section className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-xl font-semibold text-fg">
-          {t('stepVictory.title')}
-        </h2>
-        <p className="mt-1 text-sm text-fg-muted">
-          {t('stepVictory.description')}
-        </p>
-      </div>
+      <StepHeading
+        stepLabel={stepLabel}
+        title={t('stepVictory.title')}
+        description={t('stepVictory.description')}
+      />
       <ul className="flex flex-col gap-2">
-        {VICTORY_IDS.map((id) => (
-          <li key={id}>
-            <button
-              type="button"
-              onClick={() => onSelect(id)}
-              aria-pressed={selected === id}
-              className={cn(
-                'flex w-full flex-col gap-1 rounded-xl border px-4 py-3 text-left transition-colors',
-                selected === id
-                  ? 'border-accent bg-accent/15 text-fg shadow-md'
-                  : 'border-border bg-surface-1 text-fg hover:border-border-strong',
-              )}
-            >
-              <span className="font-medium">{tVictory(`${id}.name`)}</span>
-              <span className="text-xs text-fg-muted">
-                {tVictory(`${id}.description`)}
-              </span>
-            </button>
-          </li>
-        ))}
+        {VICTORY_IDS.map((id) => {
+          // Single mono outline icon per victory type, sourced from
+          // lucide-react and rendered with `text-fg-muted` — the active
+          // card's accent border still carries the only colour cue.
+          const Icon = VICTORY_ICONS[id];
+          const isSelected = selected === id;
+          return (
+            <li key={id}>
+              <button
+                type="button"
+                onClick={() => onSelect(id)}
+                aria-pressed={isSelected}
+                className={cn(
+                  'flex w-full flex-row items-start gap-3 rounded-md border px-4 py-3 text-left transition-colors',
+                  isSelected
+                    ? 'border-accent bg-accent/15 text-fg shadow-md'
+                    : 'border-border bg-surface-1 text-fg hover:border-border-strong',
+                )}
+              >
+                <Icon
+                  aria-hidden="true"
+                  className="mt-0.5 h-5 w-5 shrink-0 text-fg-muted"
+                  strokeWidth={1.5}
+                />
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="font-medium">{tVictory(`${id}.name`)}</span>
+                  <span className="text-xs text-fg-muted">
+                    {tVictory(`${id}.description`)}
+                  </span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
-      <div className="flex justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-xl border border-border bg-surface-1 px-5 py-2 text-sm text-fg hover:border-border-strong"
-        >
+      <div className="flex justify-between pt-2">
+        <NavButton variant="secondary" onClick={onBack}>
           ← {tCommon('back')}
-        </button>
-        <button
-          type="button"
+        </NavButton>
+        <NavButton
+          variant="primary"
           disabled={!selected}
           onClick={onNext}
-          className={cn(
-            'rounded-xl px-5 py-2 text-sm font-semibold transition-colors',
-            selected
-              ? 'bg-accent text-bg hover:bg-accent-strong'
-              : 'bg-surface-1 text-fg-faint',
-          )}
         >
           {tCommon('next')}
-        </button>
+        </NavButton>
       </div>
     </section>
   );
@@ -786,12 +931,14 @@ function VictoryStep({
 // ---------------------------------------------------------------------------
 
 function DifficultyStep({
+  stepLabel,
   scenario,
   selected,
   onSelect,
   onBack,
   onNext,
 }: {
+  stepLabel: string;
   scenario: Scenario | null;
   selected: string | null;
   onSelect: (id: string) => void;
@@ -805,14 +952,11 @@ function DifficultyStep({
 
   return (
     <section className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-xl font-semibold text-fg">
-          {t('stepDifficulty.title')}
-        </h2>
-        <p className="mt-1 text-sm text-fg-muted">
-          {t('stepDifficulty.description')}
-        </p>
-      </div>
+      <StepHeading
+        stepLabel={stepLabel}
+        title={t('stepDifficulty.title')}
+        description={t('stepDifficulty.description')}
+      />
       {presets.length === 0 ? (
         <p className="text-sm text-fg-faint">…</p>
       ) : (
@@ -828,27 +972,17 @@ function DifficultyStep({
           ))}
         </ul>
       )}
-      <div className="flex justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-xl border border-border bg-surface-1 px-5 py-2 text-sm text-fg hover:border-border-strong"
-        >
+      <div className="flex justify-between pt-2">
+        <NavButton variant="secondary" onClick={onBack}>
           ← {tCommon('back')}
-        </button>
-        <button
-          type="button"
+        </NavButton>
+        <NavButton
+          variant="primary"
           disabled={!selected}
           onClick={onNext}
-          className={cn(
-            'rounded-xl px-5 py-2 text-sm font-semibold transition-colors',
-            selected
-              ? 'bg-accent text-bg hover:bg-accent-strong'
-              : 'bg-surface-1 text-fg-faint',
-          )}
         >
           {tCommon('next')}
-        </button>
+        </NavButton>
       </div>
     </section>
   );
@@ -896,13 +1030,17 @@ function DifficultyCard({
     return [...known, ...extra];
   }, [preset.modifiers]);
 
+  // Pick the icon by preset id; fall back to Gauge (generic difficulty meter)
+  // so authors who add custom presets still get a visual anchor.
+  const Icon = DIFFICULTY_ICONS[preset.id] ?? Gauge;
+
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        'flex h-full w-full flex-col gap-3 rounded-xl border px-4 py-4 text-left transition-colors',
+        'flex h-full w-full flex-col gap-3 rounded-md border px-4 py-4 text-left transition-colors',
         selected
           ? 'border-accent bg-accent/15 text-fg shadow-lg'
           : 'border-border bg-surface-1 text-fg hover:border-border-strong',
@@ -910,9 +1048,19 @@ function DifficultyCard({
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-base font-semibold">{name}</span>
+        <span className="flex min-w-0 items-center gap-2">
+          <Icon
+            aria-hidden="true"
+            className="h-5 w-5 shrink-0 text-fg-muted"
+            strokeWidth={1.5}
+          />
+          <span className="truncate text-base font-semibold">{name}</span>
+        </span>
         {recommended ? (
-          <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide', toneChip('accent'))}>
+          <span
+            className="shrink-0 rounded-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-fg"
+            style={{ backgroundColor: 'var(--color-accent-soft)' }}
+          >
             {tStep('recommended')}
           </span>
         ) : null}
@@ -1008,6 +1156,7 @@ function ModifierChip({ name, value }: { name: string; value: number }) {
 // ---------------------------------------------------------------------------
 
 function GameModeStep({
+  stepLabel,
   scenarioId,
   selected,
   onSelect,
@@ -1015,6 +1164,7 @@ function GameModeStep({
   onStart,
   isLoading,
 }: {
+  stepLabel: string;
   scenarioId: ScenarioId | null;
   selected: SelectableGameMode;
   onSelect: (mode: SelectableGameMode) => void;
@@ -1046,10 +1196,11 @@ function GameModeStep({
       className="flex flex-col gap-4"
       data-testid="game-mode-picker"
     >
-      <div>
-        <h2 className="text-xl font-semibold text-fg">{tMode('title')}</h2>
-        <p className="mt-1 text-sm text-fg-muted">{tMode('description')}</p>
-      </div>
+      <StepHeading
+        stepLabel={stepLabel}
+        title={tMode('title')}
+        description={tMode('description')}
+      />
       <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-4">
         {GAME_MODES.map((mode) => {
           const disabled = mode === 'era-paced' && !eraPacedAvailable;
@@ -1079,27 +1230,21 @@ function GameModeStep({
           {tMode('dethrone.isolationUnavailable')}
         </p>
       ) : null}
-      <div className="flex justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-xl border border-border bg-surface-1 px-5 py-2 text-sm text-fg hover:border-border-strong"
-        >
+      <div className="flex justify-between pt-2">
+        <NavButton variant="secondary" onClick={onBack}>
           ← {tCommon('back')}
-        </button>
-        <button
-          type="button"
+        </NavButton>
+        {/* "Avvia partita" is the final CTA. Editorial direction asks for
+            the amber accent palette (same as ActionButton's primary tone)
+            — not the previous green-cyan `bg-success` fill which sat
+            outside the editorial palette. */}
+        <NavButton
+          variant="primary"
           disabled={isLoading}
           onClick={onStart}
-          className={cn(
-            'rounded-xl px-5 py-2 text-sm font-semibold transition-colors',
-            !isLoading
-              ? 'bg-success text-bg hover:opacity-90'
-              : 'bg-surface-1 text-fg-faint',
-          )}
         >
           {isLoading ? t('preparing') : t('start')}
-        </button>
+        </NavButton>
       </div>
     </section>
   );
@@ -1121,18 +1266,6 @@ const GAME_MODE_TONE: Readonly<
   dethrone: 'warning',
 };
 
-/**
- * Inline glyphs per game mode. Kept as text so we don't pull in lucide-react
- * just for four icons — the card has its own border + tone treatment that
- * carries the visual weight.
- */
-const GAME_MODE_GLYPH: Readonly<Record<SelectableGameMode, string>> = {
-  classic: '\u{2691}', // flag
-  eternal: '\u{221E}', // infinity
-  'era-paced': '\u{1F4D6}', // book (chapters)
-  dethrone: '\u{1F451}', // crown
-};
-
 function GameModeCard({
   mode,
   selected,
@@ -1151,7 +1284,11 @@ function GameModeCard({
 }) {
   const tMode = useTranslations('setup.gameMode');
   const cardTone = GAME_MODE_TONE[mode];
-  const glyph = GAME_MODE_GLYPH[mode];
+  // Monochrome outline icon per mode (Flag / Infinity / BookOpen / Crown).
+  // Replaces the emoji glyphs (🚩 ∞ 📖 👑) per editorial direction — no
+  // colour, no emoji noise; the card's accent border still carries the
+  // selection cue and the recommended pill the "default" cue.
+  const Icon = GAME_MODE_ICONS[mode];
   const recommended = mode === RECOMMENDED_GAME_MODE;
   const name = tMode(`${mode}.name`);
   const description = tMode(`${mode}.description`);
@@ -1168,7 +1305,7 @@ function GameModeCard({
       title={disabled ? disabledReason : undefined}
       data-testid={`game-mode-option-${mode}`}
       className={cn(
-        'flex h-full w-full flex-col gap-2 rounded-xl border px-4 py-4 text-left transition-colors',
+        'flex h-full w-full flex-col gap-2 rounded-md border px-4 py-4 text-left transition-colors',
         selected
           ? cn(
               'shadow-md',
@@ -1186,24 +1323,21 @@ function GameModeCard({
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2">
-          <span
+        <span className="flex min-w-0 items-center gap-2">
+          <Icon
             aria-hidden="true"
-            className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-full bg-surface-2 text-base',
-              tone(cardTone),
-            )}
-          >
-            {glyph}
-          </span>
-          <span className="text-base font-semibold">{name}</span>
+            className="h-5 w-5 shrink-0 text-fg-muted"
+            strokeWidth={1.5}
+          />
+          <span className="truncate text-base font-semibold">{name}</span>
         </span>
         {recommended ? (
+          // Smaller pill (no border, sharper corner) sitting on the soft
+          // accent token rather than the solid accent fill — keeps the
+          // "CONSIGLIATA" cue present but quieter.
           <span
-            className={cn(
-              'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-              toneChip('accent'),
-            )}
+            className="shrink-0 rounded-sm px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-fg"
+            style={{ backgroundColor: 'var(--color-accent-soft)' }}
           >
             {tMode('recommended')}
           </span>
@@ -1217,21 +1351,3 @@ function GameModeCard({
   );
 }
 
-/**
- * Resolve `key` through next-intl, swallowing the MISSING_MESSAGE warning
- * when the merged scenario bundle doesn't ship a translation for it.
- * Falls back to `fallback` (typically the entity id) so the UI still
- * renders something meaningful instead of crashing or showing the raw key.
- */
-function safeTranslate(
-  t: ReturnType<typeof useTranslations>,
-  key: string,
-  fallback: string,
-): string {
-  try {
-    const out = t(key);
-    return out === key ? fallback : out;
-  } catch {
-    return fallback;
-  }
-}

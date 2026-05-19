@@ -64,12 +64,17 @@
 
   /* --- Region accents (editorial muted palette) ----------------------- */
   /* Names stay (other agents are binding to them); values shift toward an
-   * editorial atlas palette — slate, sage, teal, ochre, sand. */
-  --color-region-borealis: oklch(0.66 0.04 245);  /* slate            */
-  --color-region-auriana:  oklch(0.72 0.05 145);  /* sage             */
-  --color-region-oriana:   oklch(0.70 0.07 195);  /* teal             */
-  --color-region-meridia:  oklch(0.74 0.08 70);   /* ochre            */
-  --color-region-sahel:    oklch(0.78 0.06 85);   /* sand             */
+   * editorial atlas palette — slate, sage, teal, ochre, sand.
+   * Lightness pulled into the mid-tone band (~0.55-0.62) and chroma raised
+   * slightly so each region's hue identity reads against the dark
+   * `--color-bg` (L=0.11) even when painted at <1.0 fillOpacity. The
+   * earlier values (L=0.66-0.78, C=0.04-0.08) washed out against the
+   * background and the five biomes became indistinguishable. */
+  --color-region-borealis: oklch(0.55 0.06 245);  /* slate            */
+  --color-region-auriana:  oklch(0.58 0.08 150);  /* sage             */
+  --color-region-oriana:   oklch(0.55 0.09 200);  /* teal             */
+  --color-region-meridia:  oklch(0.60 0.11 65);   /* ochre            */
+  --color-region-sahel:    oklch(0.62 0.09 80);   /* sand             */
 
   /* --- Motion scale ---------------------------------------------------- */
   --motion-fast:   120ms;

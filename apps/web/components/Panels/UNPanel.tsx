@@ -201,6 +201,7 @@ export function UNPanel({
                   councilMemberIds={councilMembers}
                   countryName={countryName}
                   regionName={regionName}
+                  tScenario={tScenario}
                   onErrors={onErrors}
                   onVote={handleVote}
                   onVeto={playerIsCouncil ? handleVeto : undefined}
@@ -230,6 +231,7 @@ export function UNPanel({
                   councilMemberIds={councilMembers}
                   countryName={countryName}
                   regionName={regionName}
+                  tScenario={tScenario}
                   onErrors={onErrors}
                   onVote={handleVote}
                 />

@@ -4,13 +4,21 @@
 // matching event modal — which we surface simply by triggering the same
 // auto-pause path the engine uses (the EventModal will be on screen because
 // `selectHasOpenEvent` is true).
+//
+// Collapse behaviour: when there are zero events, the rail collapses to a
+// 32px-wide bar with a single bell icon (no wasted whitespace). The user can
+// click the bar to expand it back to the full width — and as soon as the
+// engine pushes a new event, the rail auto-expands. The width transition is
+// animated (200ms) so the change reads as deliberate rather than jumpy.
 
 'use client';
 
+import { Bell } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GameEvent } from '@aurion/engine';
 
+import { cn } from '../../lib/cn';
 import { useGameStore } from '../../lib/store';
 import type { ScenarioId } from '../../lib/scenarios';
 
@@ -25,6 +33,12 @@ export function NotificationStream() {
   const t = useTranslations('notifications');
 
   const listRef = useRef<HTMLOListElement | null>(null);
+
+  // User-driven expand flag — only consulted while the queue is empty. Once a
+  // notification arrives we force-expand so the player never misses an
+  // incoming event. Defaults to collapsed: a fresh game has zero events and
+  // there's no reason to claim the full width.
+  const [userExpanded, setUserExpanded] = useState(false);
 
   // Newest-first slice for display.
   const visible = useMemo(() => {
@@ -43,16 +57,45 @@ export function NotificationStream() {
     el.scrollTop = 0;
   }, [lastFired]);
 
+  // A non-empty queue forces the expanded layout. Otherwise honour the user
+  // toggle (defaults to collapsed).
+  const isCollapsed = events.length === 0 && !userExpanded;
+
+  if (isCollapsed) {
+    return (
+      <aside
+        className="flex h-full min-h-0 w-8 flex-col items-center border border-border bg-bg py-3 transition-[width] duration-200 ease-out"
+        aria-label={t('title')}
+      >
+        <button
+          type="button"
+          onClick={() => setUserExpanded(true)}
+          aria-expanded={false}
+          aria-label={t('title')}
+          title={t('title')}
+          className="flex h-6 w-6 items-center justify-center text-fg-faint transition-colors hover:text-fg"
+        >
+          <Bell aria-hidden="true" className="h-3.5 w-3.5" />
+        </button>
+      </aside>
+    );
+  }
+
   return (
     <aside
-      className="flex h-full min-h-0 flex-col gap-2 border border-border bg-bg p-3"
+      className="flex h-full min-h-0 w-full flex-col gap-2 border border-border bg-bg p-3 transition-[width] duration-200 ease-out"
       aria-label={t('title')}
     >
       <header className="flex items-baseline justify-between border-b border-border pb-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
           {t('title')}
         </h2>
-        <span className="numeric-tabular font-mono text-[10px] text-fg-faint">
+        <span
+          className={cn(
+            'numeric-tabular font-mono text-[10px] text-fg-faint',
+            events.length === 0 && 'sr-only',
+          )}
+        >
           {visible.length}/{events.length}
         </span>
       </header>

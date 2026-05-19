@@ -62,6 +62,7 @@ import {
 import {
   MAP_VIEWBOX,
   NATION_POSITIONS,
+  PLAY_BOUNDS,
   REGIONS,
   REGION_ORDER,
   validateGeometry,
@@ -94,6 +95,7 @@ export default function WorldMap() {
   const tIntel = useTranslations('map.intel');
   const tOverlay = useTranslations('map.overlay');
   const tTooltip = useTranslations('map.tooltip');
+  const tNation = useTranslations('map.nation');
 
   // -- Store subscriptions (narrow selectors, no whole-state) --------------
   const state = useGameStore((s) => s.state);
@@ -178,11 +180,15 @@ export default function WorldMap() {
   }, [state]);
 
   // -- ViewBox state (zoom + pan + smooth focus) ---------------------------
+  // Default to the tight PLAY_BOUNDS crop so the map fills its container
+  // edge-to-edge rather than letterboxing within the looser MAP_VIEWBOX.
+  // Pan/zoom clamps continue to use MAP_VIEWBOX so a small amount of
+  // overscan is still reachable at the edges.
   const [viewBox, setViewBox] = useState<ViewBox>({
-    x: MAP_VIEWBOX.x,
-    y: MAP_VIEWBOX.y,
-    w: MAP_VIEWBOX.width,
-    h: MAP_VIEWBOX.height,
+    x: PLAY_BOUNDS.x,
+    y: PLAY_BOUNDS.y,
+    w: PLAY_BOUNDS.width,
+    h: PLAY_BOUNDS.height,
   });
   const [transitioning, setTransitioning] = useState(false);
   const transitionTimer = useRef<number | null>(null);
@@ -307,10 +313,10 @@ export default function WorldMap() {
         const start = pinchStateRef.current.startVB;
         const newW = clamp(
           start.w * ratio,
-          MAP_VIEWBOX.width / MAX_ZOOM,
-          MAP_VIEWBOX.width / MIN_ZOOM,
+          PLAY_BOUNDS.width / MAX_ZOOM,
+          PLAY_BOUNDS.width / MIN_ZOOM,
         );
-        const newH = (newW / MAP_VIEWBOX.width) * MAP_VIEWBOX.height;
+        const newH = (newW / PLAY_BOUNDS.width) * PLAY_BOUNDS.height;
         // Anchor to the pinch centre.
         const centerSvg = clientToSvg(
           pinchStateRef.current.centerClient,
@@ -382,10 +388,10 @@ export default function WorldMap() {
         const factor = Math.exp(ev.deltaY * 0.001);
         const newW = clamp(
           prev.w * factor,
-          MAP_VIEWBOX.width / MAX_ZOOM,
-          MAP_VIEWBOX.width / MIN_ZOOM,
+          PLAY_BOUNDS.width / MAX_ZOOM,
+          PLAY_BOUNDS.width / MIN_ZOOM,
         );
-        const newH = (newW / MAP_VIEWBOX.width) * MAP_VIEWBOX.height;
+        const newH = (newW / PLAY_BOUNDS.width) * PLAY_BOUNDS.height;
         const centerSvg = clientToSvg(
           { x: ev.clientX, y: ev.clientY },
           rect,
@@ -516,6 +522,22 @@ export default function WorldMap() {
           onClick={handleBackgroundClick}
         />
 
+        {/* Ocean tint — a single low-contrast wash inside PLAY_BOUNDS so the
+            five region polygons read as landmasses in a sea rather than as
+            disconnected islands floating in void. Sits above the bg rect
+            (so background clicks still clear the selection) but below the
+            region paths. */}
+        <rect
+          x={PLAY_BOUNDS.x}
+          y={PLAY_BOUNDS.y}
+          width={PLAY_BOUNDS.width}
+          height={PLAY_BOUNDS.height}
+          fill="var(--color-region-borealis)"
+          fillOpacity={0.07}
+          onClick={handleBackgroundClick}
+          pointerEvents="all"
+        />
+
         {/* Region silhouettes — flat single-colour fills, hairline borders.
             Overlays mutate the fill (tension heat, bloc tint); they don't
             add extra glow layers. */}
@@ -525,6 +547,27 @@ export default function WorldMap() {
           regionBlocTint={regionBlocTint}
           translate={tRegions}
         />
+
+        {/* Oriana grouping outline — the six small island polygons are
+            authored as separate sub-paths; a faint dashed hairline around
+            their bounding box visually groups them as one archipelago so
+            they don't read as six unrelated specks. Rendered above region
+            fills but below nation dots. */}
+        {REGIONS.oriana ? (
+          <rect
+            aria-hidden
+            pointerEvents="none"
+            x={REGIONS.oriana.bounds.x - 6}
+            y={REGIONS.oriana.bounds.y - 6}
+            width={REGIONS.oriana.bounds.w + 12}
+            height={REGIONS.oriana.bounds.h + 12}
+            fill="none"
+            stroke="var(--color-fg)"
+            strokeOpacity={0.18}
+            strokeWidth={1}
+            strokeDasharray="3 4"
+          />
+        ) : null}
 
         {/* Alliance edges (only when selected overlay) */}
         {overlay === 'alliances' ? (
@@ -570,6 +613,7 @@ export default function WorldMap() {
                 }
                 ariaLabel={ariaLabel}
                 isPlayer={isPlayer}
+                playerMarker={isPlayer ? tNation('youMarker') : undefined}
                 isSelected={isSelected}
                 isHovered={isHovered}
                 opacity={opacity}
@@ -604,6 +648,13 @@ export default function WorldMap() {
         {overlay === 'blocs' && blocsAvailable ? (
           <BlocRings countries={countryEntries} blocByCountry={blocByCountry} />
         ) : null}
+
+        {/* Map frame — hairline border around the playable area + two
+            small-caps corner labels (MAP top-left, N ↑ compass top-right).
+            Anchors the SVG so it doesn't read as content floating in void.
+            Rendered last so it sits above everything; pointer-events
+            disabled so it never swallows clicks. */}
+        <MapFrame />
       </svg>
 
       {/* Bottom legend rail — overlay segmented toggle plus, when the blocs
@@ -778,19 +829,25 @@ function Regions({
             : blocTintKey
               ? BLOC_COLOR[blocTintKey]
               : r.fill;
+        // Base biome fill paints at higher opacity than the overlay tints
+        // (which already carry meaning of their own and shouldn't compete
+        // with the base hue identity). The previous 0.55 across all modes
+        // produced muddy slate-on-bg where the region hue was lost; bumped
+        // values restore the editorial palette identity while still
+        // sitting clearly below the nation dots.
         const fillOpacity =
           overlay === 'tension'
-            ? 0.55
+            ? 0.6
             : overlay === 'blocs' && blocTintKey
-              ? 0.4
-              : 0.55;
+              ? 0.5
+              : 0.82;
         return (
           <g key={id}>
             <path
               d={r.pathD}
               fill={fill}
               stroke="var(--color-fg)"
-              strokeOpacity={0.22}
+              strokeOpacity={0.34}
               strokeWidth={1}
               fillOpacity={fillOpacity}
             />
@@ -805,14 +862,15 @@ function Regions({
 function RegionLabel({ region, label }: { region: RegionDef; label: string }) {
   return (
     <text
-      x={region.bounds.x + 8}
-      y={region.bounds.y + 18}
+      x={region.bounds.x + 12}
+      y={region.bounds.y + 22}
       textAnchor="start"
       dominantBaseline="hanging"
-      fill="var(--color-fg-muted)"
-      fontSize={11}
+      fill="var(--color-fg)"
+      fillOpacity={0.78}
+      fontSize={14}
       fontWeight={500}
-      letterSpacing={2}
+      letterSpacing={2.6}
       style={{
         textTransform: 'uppercase',
         fontFamily: 'var(--font-mono)',
@@ -822,6 +880,90 @@ function RegionLabel({ region, label }: { region: RegionDef; label: string }) {
     >
       {label}
     </text>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Map frame — hairline border around PLAY_BOUNDS plus two corner labels
+// (MAP top-left, N ↑ compass top-right). Pure presentational; no store reads.
+// Sits above the regions and nations, never receives pointer events.
+// ---------------------------------------------------------------------------
+
+function MapFrame() {
+  const { x, y, width, height } = PLAY_BOUNDS;
+  // Inset slightly so the strokes don't get clipped by container edges when
+  // the SVG is rendered into a tightly-cropped <div>.
+  const inset = 2;
+  return (
+    <g aria-hidden pointerEvents="none" data-frame="map">
+      <rect
+        x={x + inset}
+        y={y + inset}
+        width={width - inset * 2}
+        height={height - inset * 2}
+        fill="none"
+        stroke="var(--color-fg)"
+        strokeOpacity={0.34}
+        strokeWidth={1}
+      />
+      {/* Map / scenario label — small caps mono, top-left corner. */}
+      <text
+        x={x + 16}
+        y={y + 22}
+        textAnchor="start"
+        dominantBaseline="middle"
+        fill="var(--color-fg-muted)"
+        fontSize={11}
+        fontWeight={500}
+        letterSpacing={2.6}
+        style={{
+          textTransform: 'uppercase',
+          fontFamily: 'var(--font-mono)',
+          userSelect: 'none',
+        }}
+      >
+        MAP — AURION
+      </text>
+      {/* North compass — small caps "N" + an arrow line. Plain text + a
+          stroked arrow so it reads as cartographic notation, not chrome. */}
+      <g transform={`translate(${x + width - 26} ${y + 16})`}>
+        <text
+          x={0}
+          y={0}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="var(--color-fg-muted)"
+          fontSize={11}
+          fontWeight={500}
+          letterSpacing={2}
+          style={{
+            textTransform: 'uppercase',
+            fontFamily: 'var(--font-mono)',
+            userSelect: 'none',
+          }}
+        >
+          N
+        </text>
+        <line
+          x1={0}
+          y1={8}
+          x2={0}
+          y2={20}
+          stroke="var(--color-fg-muted)"
+          strokeOpacity={0.7}
+          strokeWidth={1}
+        />
+        <polyline
+          points="-3,11 0,7 3,11"
+          fill="none"
+          stroke="var(--color-fg-muted)"
+          strokeOpacity={0.7}
+          strokeWidth={1}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+    </g>
   );
 }
 
