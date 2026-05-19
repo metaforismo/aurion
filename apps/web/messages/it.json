@@ -921,7 +921,18 @@
       "auriana": "Auriana",
       "oriana": "Oriana",
       "meridia": "Meridia",
-      "sahel-karoun": "Sahel-Karoun"
+      "sahel-karoun": "Sahel-Karoun",
+      "mc-americas": "Americhe",
+      "mc-europe": "Europa",
+      "mc-africa": "Africa",
+      "mc-middle-east": "Medio Oriente",
+      "mc-asia-pacific": "Asia-Pacifico",
+      "mc-oceania": "Oceania",
+      "gf-north-atlantic": "Atlantico del Nord",
+      "gf-warsaw-pact": "Patto di Varsavia",
+      "gf-non-aligned": "Non Allineati",
+      "gf-global-south": "Sud Globale",
+      "gf-asian-tigers": "Tigri Asiatiche"
     },
     "nation": {
       "aria": "{name}, regione {region}, PIL {gdp}, esercito {army}",

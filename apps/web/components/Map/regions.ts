@@ -1,7 +1,18 @@
 // Hand-authored stylised geometry for the Aurion world map. Coordinates live
 // inside a 1600x900 SVG viewBox. The map is intentionally NOT geographic — it
-// is a board-game style layout where each macro-region has a recognisable
-// silhouette and each nation a fixed circle position inside it.
+// is a board-game style layout, but unlike the previous "five floating
+// geometric primitives" pass the four mainland regions now share *exact*
+// boundary curves so the silhouette reads as one continent with internal
+// borders, and Oriana sits as a true archipelago of irregular islands east of
+// the strait.
+//
+// Authoring notes — the four shared boundaries (Borealis/Auriana, Borealis/
+// Meridia, Auriana/Sahel, Auriana/Meridia, Sahel/Meridia) are defined as
+// cubic-Bezier curve segments. When the same curve appears on both sides of a
+// border, one region traverses it forward and the other traverses the *same*
+// control-point sequence in reverse (cp2,cp1 swapped, endpoints swapped). The
+// effect is that no gap or overlap exists between adjacent regions, even
+// though each region is still a self-contained closed path.
 //
 // Two invariants are validated at module load (in dev only) to catch authoring
 // drift early:
@@ -17,17 +28,16 @@ export const MAP_VIEWBOX = {
   height: 900,
 } as const;
 
-// Inner playable bounds — the rectangle that contains every region polygon's
-// extent. Used by the renderer to draw the map frame (hairline border, north
-// indicator, map label) and to size the ocean tint that sits behind the
-// regions. Computed by hand from the union of REGIONS[*].bounds (with a small
-// pad so the hairline border sits a few px outside the polygons rather than
-// flush against them).
+// Tight crop around the landmass + archipelago. The SVG's default viewBox is
+// set to this on mount so the continent fills the container edge-to-edge
+// rather than leaving large empty seas at the top and bottom. Pan/zoom clamps
+// continue to use MAP_VIEWBOX so a small amount of overscan remains
+// reachable at the edges.
 export const PLAY_BOUNDS = {
-  x: 30,
-  y: 50,
-  width: 1540,
-  height: 830,
+  x: 20,
+  y: 40,
+  width: 1560,
+  height: 850,
 } as const;
 
 export type RegionDef = {
@@ -45,66 +55,269 @@ export type RegionDef = {
 };
 
 // ---------------------------------------------------------------------------
-// Region silhouettes. The shapes are deliberately blocky/stylised; the
-// emphasis is on legibility at small sizes, not realism.
+// Region silhouettes.
+//
+// The four mainland regions share boundary curves at three triple-junctions:
+//   TJ1 = (620, 380)  Borealis · Auriana · Meridia
+//   TJ2 = (640, 660)  Auriana · Sahel · Meridia
+//
+// Shared boundary segment sets (all written here forward; reversed copies
+// appear inside the path strings below):
+//
+//   B/A  (Borealis south-west / Auriana north),  P0=(80,280) → TJ1
+//     C 140 250, 200 320, 240 300
+//     C 300 290, 340 370, 380 360
+//     C 430 350, 460 300, 500 320
+//     C 560 340, 580 360, 620 380
+//
+//   B/M  (Borealis south-east / Meridia north),  TJ1 → P8=(1100,420)
+//     C 680 400, 720 340, 740 360
+//     C 800 380, 820 430, 860 410
+//     C 920 390, 940 340, 980 360
+//     C 1040 380, 1070 400, 1100 420
+//
+//   A/M  (Auriana east / Meridia west),  TJ1 → TJ2
+//     C 680 420, 640 450, 660 470
+//     C 690 510, 610 540, 640 560
+//     C 680 600, 610 630, 640 660
+//
+//   A/S  (Auriana south / Sahel north),  (140,640) → TJ2
+//     C 180 660, 210 620, 240 640
+//     C 290 670, 340 640, 380 660
+//     C 430 680, 490 630, 520 640
+//     C 570 650, 610 650, 640 660
+//
+//   S/M  (Sahel east / Meridia south-west),  TJ2 → (760,800)
+//     C 680 680, 690 710, 700 720
+//     C 720 750, 750 770, 760 800
 // ---------------------------------------------------------------------------
 
-// Region fills/strokes pull from the design-token palette declared in
-// `app/globals.css` (`--color-region-*`). Using `var(--token)` directly here
-// (rather than a hex literal) means the regions automatically follow any
-// future palette tweak without a JS change.
 export const REGIONS: Record<string, RegionDef> = {
   borealis: {
     id: 'borealis',
     nameKey: 'borealis',
     fill: 'var(--color-region-borealis)',
     stroke: 'var(--color-border-strong)',
-    pathD:
-      'M 40 60 L 1560 60 L 1560 200 L 1480 250 L 1380 230 L 1260 270 L 1120 240 L 980 280 L 840 250 L 700 280 L 560 250 L 420 290 L 280 260 L 160 290 L 40 260 Z',
-    bounds: { x: 40, y: 60, w: 1520, h: 230 },
+    // CW perimeter:
+    //   1. North coast (NW → NE) with three fjords / two inlets, ~10 cubic
+    //      segments.
+    //   2. East coast curving SE down to the B/M endpoint (1100, 420).
+    //   3. B/M reversed (east → west) → TJ1.
+    //   4. B/A reversed (east → west) → (80, 280).
+    //   5. West coast (south → north) back to NW corner.
+    pathD: [
+      'M 80 100',
+      // North coast (NW → NE) — irregular with inlets at x≈540 and x≈1000.
+      'C 140 90, 180 130, 240 110',
+      'C 300 100, 340 75, 400 85',
+      'C 460 95, 480 150, 540 130',
+      'C 600 110, 640 80, 700 90',
+      'C 760 95, 790 70, 840 80',
+      'C 900 90, 940 140, 1000 120',
+      'C 1060 100, 1100 80, 1160 90',
+      'C 1220 100, 1260 75, 1320 85',
+      'C 1380 95, 1420 80, 1450 100',
+      // East coast (NE → B/M endpoint) — bulges east then curves SW into the
+      // strait. Faces the Oriana archipelago across the sea.
+      'C 1480 150, 1490 200, 1470 240',
+      'C 1450 290, 1410 320, 1370 340',
+      'C 1320 360, 1240 360, 1180 390',
+      'C 1140 410, 1120 420, 1100 420',
+      // B/M reversed — shared with Meridia north coast.
+      'C 1070 400, 1040 380, 980 360',
+      'C 940 340, 920 390, 860 410',
+      'C 820 430, 800 380, 740 360',
+      'C 720 340, 680 400, 620 380',
+      // B/A reversed — shared with Auriana north coast.
+      'C 580 360, 560 340, 500 320',
+      'C 460 300, 430 350, 380 360',
+      'C 340 370, 300 290, 240 300',
+      'C 200 320, 140 250, 80 280',
+      // West coast (SW → NW corner).
+      'C 60 240, 50 200, 60 160',
+      'C 70 130, 75 110, 80 100',
+      'Z',
+    ].join(' '),
+    bounds: { x: 40, y: 60, w: 1460, h: 380 },
   },
   auriana: {
     id: 'auriana',
     nameKey: 'auriana',
     fill: 'var(--color-region-auriana)',
     stroke: 'var(--color-border-strong)',
-    pathD:
-      'M 120 320 L 640 320 L 700 380 L 700 520 L 620 600 L 520 640 L 380 640 L 260 600 L 180 540 L 140 460 L 120 380 Z',
-    bounds: { x: 120, y: 320, w: 580, h: 320 },
+    // CW perimeter:
+    //   1. B/A forward (NW → TJ1) — shared with Borealis south coast.
+    //   2. A/M forward (TJ1 → TJ2) — shared with Meridia west coast.
+    //   3. A/S reversed (TJ2 → west coast) — shared with Sahel north coast.
+    //   4. West coast (south → north) back to NW corner.
+    pathD: [
+      'M 80 280',
+      // B/A forward.
+      'C 140 250, 200 320, 240 300',
+      'C 300 290, 340 370, 380 360',
+      'C 430 350, 460 300, 500 320',
+      'C 560 340, 580 360, 620 380',
+      // A/M forward.
+      'C 680 420, 640 450, 660 470',
+      'C 690 510, 610 540, 640 560',
+      'C 680 600, 610 630, 640 660',
+      // A/S reversed — shared with Sahel north coast.
+      'C 610 650, 570 650, 520 640',
+      'C 490 630, 430 680, 380 660',
+      'C 340 640, 290 670, 240 640',
+      'C 210 620, 180 660, 140 640',
+      // West coast (south → north).
+      'C 100 580, 90 540, 100 540',
+      'C 80 480, 60 440, 80 440',
+      'C 60 400, 50 360, 60 360',
+      'C 60 340, 70 310, 80 280',
+      'Z',
+    ].join(' '),
+    bounds: { x: 50, y: 290, w: 660, h: 380 },
   },
   oriana: {
     id: 'oriana',
     nameKey: 'oriana',
     fill: 'var(--color-region-oriana)',
     stroke: 'var(--color-border-strong)',
-    // Composed of several "islands" via sub-paths — each starts with M.
+    // Seven irregular islands of varying size and shape arranged NE-SW along
+    // the eastern edge of the continent, separated from Meridia/Borealis by
+    // a narrow strait. Each island is a self-contained closed cubic path
+    // (sub-path with its own M/Z); no two share a silhouette. Sizes:
+    //   tenshido  (large, NE-SW elongated)        ≈ 240×130
+    //   hakaria   (medium-large, kidney)          ≈ 110×90
+    //   aolan     (medium, rounded triangle)      ≈ 120×90
+    //   sankai    (medium, sickle)                ≈ 115×70
+    //   mireku    (medium-small, rounded blob)    ≈ 85×60
+    //   pelagia   (medium-small, elongated)       ≈ 100×60
+    //   islet     (dot, no country)               ≈ 35×25
     pathD: [
-      'M 1240 320 L 1360 320 L 1400 360 L 1380 420 L 1300 440 L 1240 400 Z', // tenshido isle (NW)
-      'M 1420 360 L 1540 360 L 1560 420 L 1500 460 L 1420 440 Z', // hakaria isle
-      'M 1180 480 L 1280 480 L 1320 540 L 1280 600 L 1180 600 L 1140 540 Z', // aolan
-      'M 1340 500 L 1460 500 L 1500 560 L 1440 620 L 1340 600 Z', // sankai
-      'M 1440 640 L 1540 640 L 1560 700 L 1500 740 L 1440 720 Z', // mireku
-      'M 1240 660 L 1340 660 L 1360 720 L 1300 760 L 1240 740 Z', // pelagia
+      // tenshido isle — large irregular oblong.
+      'M 1220 360',
+      'C 1250 320, 1300 310, 1340 320',
+      'C 1390 330, 1420 360, 1440 390',
+      'C 1450 420, 1430 440, 1390 440',
+      'C 1340 450, 1290 440, 1250 420',
+      'C 1210 400, 1200 380, 1220 360',
+      'Z',
+      // hakaria isle — kidney-shaped.
+      'M 1460 380',
+      'C 1500 370, 1540 380, 1560 410',
+      'C 1570 440, 1550 460, 1510 450',
+      'C 1480 460, 1455 440, 1450 415',
+      'C 1450 400, 1455 385, 1460 380',
+      'Z',
+      // aolan isle — rounded triangle.
+      'M 1180 510',
+      'C 1210 495, 1250 500, 1280 520',
+      'C 1290 545, 1270 575, 1240 580',
+      'C 1210 580, 1180 565, 1170 545',
+      'C 1170 525, 1175 515, 1180 510',
+      'Z',
+      // sankai isle — sickle.
+      'M 1370 530',
+      'C 1410 520, 1450 535, 1470 560',
+      'C 1470 580, 1440 590, 1410 585',
+      'C 1380 590, 1360 575, 1355 555',
+      'C 1355 540, 1360 533, 1370 530',
+      'Z',
+      // tiny islet between aolan and sankai — no country lives here.
+      'M 1320 575',
+      'C 1330 570, 1345 575, 1350 583',
+      'C 1348 592, 1335 595, 1325 590',
+      'C 1318 585, 1318 580, 1320 575',
+      'Z',
+      // pelagia isle — elongated east-west.
+      'M 1260 690',
+      'C 1290 680, 1330 690, 1345 710',
+      'C 1340 730, 1310 740, 1280 730',
+      'C 1255 725, 1245 710, 1248 700',
+      'C 1250 695, 1255 692, 1260 690',
+      'Z',
+      // mireku isle — small rounded blob.
+      'M 1460 670',
+      'C 1490 660, 1525 670, 1540 695',
+      'C 1535 715, 1510 720, 1485 715',
+      'C 1465 712, 1455 700, 1455 685',
+      'C 1455 678, 1457 673, 1460 670',
+      'Z',
     ].join(' '),
-    bounds: { x: 1140, y: 320, w: 420, h: 440 },
+    bounds: { x: 1170, y: 300, w: 400, h: 450 },
   },
   meridia: {
     id: 'meridia',
     nameKey: 'meridia',
     fill: 'var(--color-region-meridia)',
     stroke: 'var(--color-border-strong)',
-    pathD:
-      'M 760 540 L 1080 540 L 1120 620 L 1100 720 L 1040 800 L 940 840 L 840 820 L 760 760 L 720 680 L 740 600 Z',
-    bounds: { x: 720, y: 540, w: 400, h: 300 },
+    // CW perimeter:
+    //   1. B/M forward (TJ1 → east coast endpoint).
+    //   2. East coast (north → south) with a small cape at y≈600.
+    //   3. South coast (east → west) back to the S/M endpoint.
+    //   4. S/M reversed (south → TJ2) — shared with Sahel east coast.
+    //   5. A/M reversed (TJ2 → TJ1) — shared with Auriana east coast.
+    pathD: [
+      'M 620 380',
+      // B/M forward.
+      'C 680 400, 720 340, 740 360',
+      'C 800 380, 820 430, 860 410',
+      'C 920 390, 940 340, 980 360',
+      'C 1040 380, 1070 400, 1100 420',
+      // East coast (top → south-east cape → south coast endpoint).
+      'C 1130 460, 1140 480, 1140 500',
+      'C 1150 540, 1170 580, 1160 600',
+      'C 1150 640, 1160 680, 1140 700',
+      'C 1130 730, 1110 760, 1080 780',
+      // South coast (east → west).
+      'C 1040 805, 1000 820, 980 820',
+      'C 940 825, 900 825, 880 820',
+      'C 850 815, 830 815, 820 810',
+      'C 800 805, 780 800, 760 800',
+      // S/M reversed.
+      'C 750 770, 720 750, 700 720',
+      'C 690 710, 680 680, 640 660',
+      // A/M reversed.
+      'C 610 630, 680 600, 640 560',
+      'C 610 540, 690 510, 660 470',
+      'C 640 450, 680 420, 620 380',
+      'Z',
+    ].join(' '),
+    bounds: { x: 600, y: 340, w: 590, h: 500 },
   },
   'sahel-karoun': {
     id: 'sahel-karoun',
     nameKey: 'sahel-karoun',
     fill: 'var(--color-region-sahel)',
     stroke: 'var(--color-border-strong)',
-    pathD:
-      'M 100 660 L 700 660 L 740 720 L 720 800 L 660 850 L 540 870 L 400 860 L 280 840 L 160 800 L 100 740 Z',
-    bounds: { x: 100, y: 660, w: 640, h: 210 },
+    // CW perimeter:
+    //   1. A/S forward (NW → TJ2).
+    //   2. S/M forward (TJ2 → south coast endpoint).
+    //   3. South coast (east → west) with a small peninsula at x≈420.
+    //   4. West coast (south → north) back to NW corner.
+    pathD: [
+      'M 140 640',
+      // A/S forward.
+      'C 180 660, 210 620, 240 640',
+      'C 290 670, 340 640, 380 660',
+      'C 430 680, 490 630, 520 640',
+      'C 570 650, 610 650, 640 660',
+      // S/M forward.
+      'C 680 680, 690 710, 700 720',
+      'C 720 750, 750 770, 760 800',
+      // South coast (east → west) — peninsula bulges south around x=420.
+      'C 740 820, 720 830, 700 830',
+      'C 650 845, 610 820, 580 810',
+      'C 540 805, 510 850, 480 860',
+      'C 450 870, 430 875, 420 870',
+      'C 400 865, 380 855, 360 850',
+      'C 320 845, 290 845, 260 840',
+      'C 230 838, 200 834, 180 830',
+      // West coast (south → north).
+      'C 140 810, 110 790, 100 780',
+      'C 90 760, 110 720, 120 700',
+      'C 130 680, 130 660, 140 640',
+      'Z',
+    ].join(' '),
+    bounds: { x: 80, y: 660, w: 700, h: 230 },
   },
 };
 
@@ -169,7 +382,7 @@ export const NATION_POSITIONS: Record<string, NationPosition> = {
   // The MC scenario uses non-legacy region ids (mc-africa, mc-oceania) that
   // the board-style world map does not paint as silhouettes. We still place
   // these three nations on plausible board coordinates inside Sahel-Karoun
-  // (Africa) and the Pacific edge of Oriana (Oceania) so the world overview
+  // (Africa) and the open sea south of Oriana (Oceania) so the world overview
   // shows them rather than leaving silent gaps. validateGeometry tolerates
   // the unknown regionId case (it warns rather than errors) so a missing
   // legacy region won't fail the dev-time check.

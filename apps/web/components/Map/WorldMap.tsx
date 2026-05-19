@@ -64,10 +64,12 @@ import {
   NATION_POSITIONS,
   PLAY_BOUNDS,
   REGIONS,
-  REGION_ORDER,
   validateGeometry,
+  type NationPosition,
   type RegionDef,
 } from './regions';
+import { MC_NATION_POSITIONS, MC_REGIONS } from './regions-mc';
+import { GF_NATION_POSITIONS, GF_REGIONS } from './regions-gf';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -102,6 +104,39 @@ export default function WorldMap() {
   const scenario = useGameStore((s) => s.scenario);
   const selectedCountryId = useGameStore((s) => s.selectedCountryId);
   const selectCountry = useGameStore((s) => s.selectCountry);
+
+  // -- Scenario-aware geometry resolution ----------------------------------
+  // The Aurion-fantasy regions (`REGIONS`) cover the Aurion-world scenarios
+  // (ascesa-aurion, quick-start). Mondo Contemporaneo and Guerra Fredda use
+  // their own continent / bloc silhouettes from dedicated modules. We pick
+  // the right pair at render time so the rest of the component code can stay
+  // oblivious to which world it's drawing.
+  const effectiveRegions: Record<string, RegionDef> = useMemo(() => {
+    if (scenario?.id === 'mondo-contemporaneo') return MC_REGIONS;
+    if (scenario?.id === 'guerra-fredda') return GF_REGIONS;
+    return REGIONS;
+  }, [scenario?.id]);
+  const effectiveRegionOrder: readonly string[] = useMemo(
+    () => Object.keys(effectiveRegions),
+    [effectiveRegions],
+  );
+  const effectivePositions: Record<string, NationPosition> = useMemo(() => {
+    if (scenario?.id === 'mondo-contemporaneo') {
+      // Merge so any legacy fallback entry in NATION_POSITIONS is still
+      // reachable; MC-specific entries win.
+      return { ...NATION_POSITIONS, ...MC_NATION_POSITIONS };
+    }
+    if (scenario?.id === 'guerra-fredda') {
+      return { ...NATION_POSITIONS, ...GF_NATION_POSITIONS };
+    }
+    return NATION_POSITIONS;
+  }, [scenario?.id]);
+  // Keep the latest map available to the store subscriber below (which can't
+  // close over the memoised value because it runs outside React's lifecycle).
+  const effectivePositionsRef = useRef(effectivePositions);
+  useEffect(() => {
+    effectivePositionsRef.current = effectivePositions;
+  }, [effectivePositions]);
 
   // -- Local UI state -------------------------------------------------------
   const [overlay, setOverlay] = useState<OverlayMode>('none');
@@ -202,7 +237,7 @@ export default function WorldMap() {
       if (s.selectedCountryId === prev.selectedCountryId) return;
       const id = s.selectedCountryId;
       if (!id) return;
-      const pos = NATION_POSITIONS[id];
+      const pos = effectivePositionsRef.current[id];
       if (!pos) return;
       setViewBox((current) => {
         const w = current.w;
@@ -512,7 +547,10 @@ export default function WorldMap() {
         }}
       >
         {/* Background — captures clicks to clear selection. Solid page bg,
-            no gradient or grid; the map reads ink-on-paper. */}
+            no gradient or grid; the map reads ink-on-paper. The hand-authored
+            continent now reads as a coherent silhouette on its own, so the
+            previous ocean-tint wash + dashed Oriana grouping rect + framed
+            map chrome have all been removed in favour of an unframed canvas. */}
         <rect
           x={MAP_VIEWBOX.x - 200}
           y={MAP_VIEWBOX.y - 200}
@@ -522,52 +560,17 @@ export default function WorldMap() {
           onClick={handleBackgroundClick}
         />
 
-        {/* Ocean tint — a single low-contrast wash inside PLAY_BOUNDS so the
-            five region polygons read as landmasses in a sea rather than as
-            disconnected islands floating in void. Sits above the bg rect
-            (so background clicks still clear the selection) but below the
-            region paths. */}
-        <rect
-          x={PLAY_BOUNDS.x}
-          y={PLAY_BOUNDS.y}
-          width={PLAY_BOUNDS.width}
-          height={PLAY_BOUNDS.height}
-          fill="var(--color-region-borealis)"
-          fillOpacity={0.07}
-          onClick={handleBackgroundClick}
-          pointerEvents="all"
-        />
-
         {/* Region silhouettes — flat single-colour fills, hairline borders.
             Overlays mutate the fill (tension heat, bloc tint); they don't
             add extra glow layers. */}
         <Regions
+          regions={effectiveRegions}
+          order={effectiveRegionOrder}
           overlay={overlay}
           regionTension={regionTension}
           regionBlocTint={regionBlocTint}
           translate={tRegions}
         />
-
-        {/* Oriana grouping outline — the six small island polygons are
-            authored as separate sub-paths; a faint dashed hairline around
-            their bounding box visually groups them as one archipelago so
-            they don't read as six unrelated specks. Rendered above region
-            fills but below nation dots. */}
-        {REGIONS.oriana ? (
-          <rect
-            aria-hidden
-            pointerEvents="none"
-            x={REGIONS.oriana.bounds.x - 6}
-            y={REGIONS.oriana.bounds.y - 6}
-            width={REGIONS.oriana.bounds.w + 12}
-            height={REGIONS.oriana.bounds.h + 12}
-            fill="none"
-            stroke="var(--color-fg)"
-            strokeOpacity={0.18}
-            strokeWidth={1}
-            strokeDasharray="3 4"
-          />
-        ) : null}
 
         {/* Alliance edges (only when selected overlay) */}
         {overlay === 'alliances' ? (
@@ -577,7 +580,7 @@ export default function WorldMap() {
         {/* Nations */}
         <g>
           {countryEntries.map((c) => {
-            const pos = NATION_POSITIONS[c.id];
+            const pos = effectivePositions[c.id];
             if (!pos) return null;
             const radius = computeNationRadius(c, pos.sizeHint);
             const isPlayer = c.id === playerCountryId;
@@ -646,15 +649,12 @@ export default function WorldMap() {
         {/* Bloc rings — a single hairline ring per nation, only when the
             'blocs' overlay is active and the scenario carries a bloc roster. */}
         {overlay === 'blocs' && blocsAvailable ? (
-          <BlocRings countries={countryEntries} blocByCountry={blocByCountry} />
+          <BlocRings
+            countries={countryEntries}
+            blocByCountry={blocByCountry}
+            positions={effectivePositions}
+          />
         ) : null}
-
-        {/* Map frame — hairline border around the playable area + two
-            small-caps corner labels (MAP top-left, N ↑ compass top-right).
-            Anchors the SVG so it doesn't read as content floating in void.
-            Rendered last so it sits above everything; pointer-events
-            disabled so it never swallows clicks. */}
-        <MapFrame />
       </svg>
 
       {/* Bottom legend rail — overlay segmented toggle plus, when the blocs
@@ -804,6 +804,8 @@ function relKey(a: CountryId, b: CountryId) {
 // ---------------------------------------------------------------------------
 
 type RegionsProps = {
+  regions: Record<string, RegionDef>;
+  order: readonly string[];
   overlay: OverlayMode;
   regionTension: Map<string, number>;
   regionBlocTint: Map<string, BlocColorKey>;
@@ -811,6 +813,8 @@ type RegionsProps = {
 };
 
 function Regions({
+  regions,
+  order,
   overlay,
   regionTension,
   regionBlocTint,
@@ -818,8 +822,8 @@ function Regions({
 }: RegionsProps) {
   return (
     <g aria-hidden>
-      {REGION_ORDER.map((id) => {
-        const r = REGIONS[id];
+      {order.map((id) => {
+        const r = regions[id];
         if (!r) return null;
         const tension = overlay === 'tension' ? regionTension.get(id) ?? 0 : 0;
         const blocTintKey = overlay === 'blocs' ? regionBlocTint.get(id) : undefined;
@@ -884,90 +888,6 @@ function RegionLabel({ region, label }: { region: RegionDef; label: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Map frame — hairline border around PLAY_BOUNDS plus two corner labels
-// (MAP top-left, N ↑ compass top-right). Pure presentational; no store reads.
-// Sits above the regions and nations, never receives pointer events.
-// ---------------------------------------------------------------------------
-
-function MapFrame() {
-  const { x, y, width, height } = PLAY_BOUNDS;
-  // Inset slightly so the strokes don't get clipped by container edges when
-  // the SVG is rendered into a tightly-cropped <div>.
-  const inset = 2;
-  return (
-    <g aria-hidden pointerEvents="none" data-frame="map">
-      <rect
-        x={x + inset}
-        y={y + inset}
-        width={width - inset * 2}
-        height={height - inset * 2}
-        fill="none"
-        stroke="var(--color-fg)"
-        strokeOpacity={0.34}
-        strokeWidth={1}
-      />
-      {/* Map / scenario label — small caps mono, top-left corner. */}
-      <text
-        x={x + 16}
-        y={y + 22}
-        textAnchor="start"
-        dominantBaseline="middle"
-        fill="var(--color-fg-muted)"
-        fontSize={11}
-        fontWeight={500}
-        letterSpacing={2.6}
-        style={{
-          textTransform: 'uppercase',
-          fontFamily: 'var(--font-mono)',
-          userSelect: 'none',
-        }}
-      >
-        MAP — AURION
-      </text>
-      {/* North compass — small caps "N" + an arrow line. Plain text + a
-          stroked arrow so it reads as cartographic notation, not chrome. */}
-      <g transform={`translate(${x + width - 26} ${y + 16})`}>
-        <text
-          x={0}
-          y={0}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="var(--color-fg-muted)"
-          fontSize={11}
-          fontWeight={500}
-          letterSpacing={2}
-          style={{
-            textTransform: 'uppercase',
-            fontFamily: 'var(--font-mono)',
-            userSelect: 'none',
-          }}
-        >
-          N
-        </text>
-        <line
-          x1={0}
-          y1={8}
-          x2={0}
-          y2={20}
-          stroke="var(--color-fg-muted)"
-          strokeOpacity={0.7}
-          strokeWidth={1}
-        />
-        <polyline
-          points="-3,11 0,7 3,11"
-          fill="none"
-          stroke="var(--color-fg-muted)"
-          strokeOpacity={0.7}
-          strokeWidth={1}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </g>
-    </g>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Bloc rings — thin coloured ring around each nation when the 'blocs' overlay
 // is active. Rendered separately from the nation dot so the bloc assignment
 // reads as a border, not a glow, and so the dot itself stays uniform.
@@ -976,14 +896,16 @@ function MapFrame() {
 function BlocRings({
   countries,
   blocByCountry,
+  positions,
 }: {
   countries: ReadonlyArray<Country>;
   blocByCountry: Map<CountryId, BlocColorKey>;
+  positions: Record<string, NationPosition>;
 }) {
   return (
     <g aria-hidden pointerEvents="none" data-overlay="blocs">
       {countries.map((c) => {
-        const pos = NATION_POSITIONS[c.id];
+        const pos = positions[c.id];
         if (!pos) return null;
         const blocKey = blocByCountry.get(c.id) ?? 'unaligned';
         return (
