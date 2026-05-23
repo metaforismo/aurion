@@ -46,6 +46,7 @@ import { useGameStore } from '../../lib/store';
 import MapLegend from './MapLegend';
 import MapNation from './MapNation';
 import MapTooltip from './MapTooltip';
+import RealWorldMap, { isRealWorldScenario } from './RealWorldMap';
 import {
   AllianceEdges,
   BLOC_COLOR,
@@ -95,7 +96,20 @@ function isSupportedLocale(s: string | undefined): s is SupportedLocale {
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ * Top-level renderer. Reads the scenario id once and dispatches to either
+ * the real-world Atlas renderer (Natural Earth borders) or the legacy
+ * hand-coded fictional renderer below. This split keeps the legacy code
+ * intact as a fallback while letting the three real-world scenarios + the
+ * Quick Start subset benefit from real cartography.
+ */
 export default function WorldMap() {
+  const scenarioId = useGameStore((s) => s.scenario?.id);
+  if (isRealWorldScenario(scenarioId)) return <RealWorldMap />;
+  return <LegacyWorldMap />;
+}
+
+function LegacyWorldMap() {
   const t = useTranslations('map');
   const tRegions = useTranslations('map.regions');
   const tIntel = useTranslations('map.intel');
