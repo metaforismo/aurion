@@ -10,6 +10,12 @@
 //   value !== 0 → fg     (earned visual weight in the ±30 dead-zone)
 //   value === 0 → fg-faint (muted — the chip is a position anchor, not a fact)
 //
+// Magnitude bar: under each value sits a 1px-tall bar whose length is
+// proportional to |value| / 100 (capped at 100% width). Bar colour matches
+// the value's semantic tone (success / danger / fg-muted). The bar gives
+// the row a glanceable shape — "two thirds full and red" reads faster than
+// the integer alone — without competing with the text.
+//
 // When every bloc reads zero (game-start or pre-event scenarios) we mute the
 // whole strip so the chips don't punch above their weight. Once any value
 // goes non-zero the relevant chips light up while remaining zeros stay
@@ -118,7 +124,7 @@ export function ReputationBadges() {
 }
 
 // ---------------------------------------------------------------------------
-// Single bloc chip — small caps short code + signed number, no chrome.
+// Single bloc chip — small caps short code + signed number + magnitude bar.
 // ---------------------------------------------------------------------------
 
 type BlocChipProps = {
@@ -142,20 +148,50 @@ function BlocChip({ blocId, value, short, tooltip, onOpen }: BlocChipProps) {
           ? 'text-danger'
           : 'text-fg';
 
+  // Magnitude bar: |value| / 100, capped. Bar colour mirrors the value tone
+  // (success / danger past ±30, fg-muted otherwise so the bar reads as a
+  // neutral hint rather than competing with the integer). The bar lives in
+  // a flex column with the text+value pair so it sits flush under the
+  // number.
+  const magnitude = Math.min(100, Math.abs(value));
+  const barWidthPct = Math.min(100, Math.max(0, magnitude));
+  const barColorClass =
+    value === 0
+      ? 'bg-transparent'
+      : value > 30
+        ? 'bg-success'
+        : value < -30
+          ? 'bg-danger'
+          : 'bg-fg-muted';
+
   return (
     <button
       type="button"
       onClick={onOpen}
       data-testid={BLOC_TESTID[blocId]}
-      className="flex items-baseline gap-1.5 text-left transition-colors hover:text-accent"
+      className="group flex flex-col items-stretch gap-0.5 text-left transition-colors hover:text-accent"
       title={tooltip}
       data-bloc={blocId}
     >
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-faint">
-        {short}
+      <span className="flex items-baseline gap-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-faint">
+          {short}
+        </span>
+        <span className={cn('numeric-tabular font-mono text-sm', valueClass)}>
+          {formatSigned(value)}
+        </span>
       </span>
-      <span className={cn('numeric-tabular font-mono text-sm', valueClass)}>
-        {formatSigned(value)}
+      {/* Magnitude track: 1px tall hairline rule under the value. Width
+          fixed at the natural chip width via min-w; the inner fill scales
+          horizontally. */}
+      <span
+        aria-hidden="true"
+        className="block h-px w-full overflow-hidden rounded-full bg-border/40"
+      >
+        <span
+          className={cn('block h-full', barColorClass)}
+          style={{ width: `${barWidthPct}%` }}
+        />
       </span>
     </button>
   );

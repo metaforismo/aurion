@@ -60,11 +60,16 @@ export function VictoryToast() {
       role="status"
       aria-live="polite"
       aria-atomic="true"
-      style={{ boxShadow: 'var(--shadow-lg)' }}
+      style={{
+        boxShadow: 'var(--shadow-lg)',
+        // Normalised to the shared toast-slide-in keyframe used by the
+        // action toast stack and the achievement toast. Reduced-motion
+        // users get an instant cut via the global override in globals.css.
+        animation: 'toast-slide-in 200ms cubic-bezier(0, 0, 0.2, 1) both',
+      }}
       className={cn(
         'fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)]',
         'rounded-md border border-border border-l-2 border-l-accent bg-bg',
-        'animate-in fade-in slide-in-from-bottom-2 duration-200',
       )}
     >
       <div className="flex items-start gap-3 px-4 py-3">

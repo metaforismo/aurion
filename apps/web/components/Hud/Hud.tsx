@@ -21,6 +21,7 @@ import { selectIronMan, useGameStore } from '../../lib/store';
 
 import { AudioVolumeButton } from './AudioVolumeButton';
 import { DateBadge } from './DateBadge';
+import { EraBadge } from './EraBadge';
 import { IronManBadge } from './IronManBadge';
 import { MenuButton } from './MenuButton';
 import { PopularityBadge } from './PopularityBadge';
@@ -73,6 +74,10 @@ export function Hud({ onNotify }: HudProps) {
       <span aria-hidden="true" className="text-fg-faint">
         ·
       </span>
+      {/* Era pill — sits between the brand and the date so the player gets
+          an immediate sense of "what era are we in" before reading the
+          tick. Hides itself for scenarios without an `eras[]` schedule. */}
+      <EraBadge />
       <DateBadge />
       {ironMan ? <IronManBadge /> : null}
       <TreasuryBadge />

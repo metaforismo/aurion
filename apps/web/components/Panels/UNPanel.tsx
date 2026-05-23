@@ -29,8 +29,10 @@ import {
   type GameStoreState,
 } from '../../lib/store';
 import { ScenarioId } from '../../lib/scenarios';
+import { ActionButton } from './shared/ActionButton';
 import { EmptyState } from './shared/EmptyState';
 import { Section } from './shared/Section';
+import { StickyFooter } from './shared/StickyFooter';
 import { useScenarioMessages } from './shared/useScenarioMessages';
 import { UNProposeForm } from './UNProposeForm';
 import { UNResolutionCard } from './UNResolutionCard';
@@ -258,6 +260,36 @@ export function UNPanel({
           />
         )}
       </Section>
+
+      {/* Sticky primary action — "Propose resolution" pinned at the bottom.
+          Enabled only for council members (the spec scopes propose to the
+          council); fires a humanitarian resolution (the only kind that
+          requires no target), keeping the click a one-tap commitment. The
+          dedicated propose form above remains the rich path. */}
+      <StickyFooter
+        hint={
+          !onuAvailable
+            ? tShared('stickyAction.unUnavailable')
+            : !playerIsCouncil
+              ? tShared('stickyAction.unNotCouncil')
+              : null
+        }
+      >
+        <ActionButton
+          tone="primary"
+          disabledReason={
+            !onuAvailable
+              ? t('unavailable')
+              : !playerIsCouncil
+                ? t('propose.notCouncil')
+                : null
+          }
+          onClick={async () => handlePropose({ kind: 'humanitarian' })}
+          onErrors={onErrors}
+        >
+          {t('propose.title')}
+        </ActionButton>
+      </StickyFooter>
     </div>
   );
 }

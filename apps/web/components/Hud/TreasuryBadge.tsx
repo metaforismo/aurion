@@ -12,11 +12,18 @@
 // the row. The delta uses ▲ / ▼ glyphs coloured by `success` / `danger`; the
 // treasury value itself turns `danger` only when actually negative, so the
 // player isn't yelled at for a tight-but-positive budget.
+//
+// Animation: the main treasury value tweens between successive ticks using a
+// ~600ms ease-out (see `useCountUp` in `../../lib/animations`). This gives
+// the value some perceived weight when income / spending events land,
+// without disturbing the surrounding row (the delta and the currency unit
+// don't tween — only the integer). Honours `prefers-reduced-motion`.
 
 'use client';
 
 import { useFormatter, useTranslations } from 'next-intl';
 
+import { useCountUp } from '../../lib/animations';
 import { cn } from '../../lib/cn';
 import { selectPlayerCountry, useGameStore } from '../../lib/store';
 
@@ -27,11 +34,15 @@ export function TreasuryBadge() {
 
   const treasury = player?.economy.treasury ?? 0;
   const weekly = player?.economy.weeklyIncome ?? 0;
-  const isNegative = treasury < 0;
+  // Tween the displayed integer between successive engine ticks. The hook
+  // returns the final value instantly when `prefers-reduced-motion: reduce`
+  // is set, so screen reader / a11y users see no animation.
+  const displayedTreasury = useCountUp(Math.round(treasury));
+  const isNegative = displayedTreasury < 0;
 
   // Main treasury: thousands-separated EUR, no compact notation. We keep the
   // currency style here so the value is self-identifying without a label.
-  const treasuryFormatted = format.number(Math.round(treasury), {
+  const treasuryFormatted = format.number(displayedTreasury, {
     style: 'currency',
     currency: 'EUR',
     maximumFractionDigits: 0,

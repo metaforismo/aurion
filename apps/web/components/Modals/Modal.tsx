@@ -12,12 +12,18 @@ import {
   useId,
   useMemo,
   useRef,
+  useState,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
 } from 'react';
 
 import { cn } from '../../lib/cn';
+
+// Total exit duration: backdrop 180ms (longest) wins the race. Used to delay
+// the actual dismissal callback until the exit animation has finished playing
+// so the modal stays mounted long enough for the transition to read.
+const EXIT_DURATION_MS = 180;
 
 export type ModalProps = {
   /** Visible heading. Wrapped in an h2; consumer may pass any node. */
@@ -79,10 +85,30 @@ export function Modal({
   const cardRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
+  // Animation lifecycle. `state` switches to "closed" the moment the user
+  // (or ESC / backdrop) requests dismissal — that triggers the CSS
+  // exit animation via [data-state="closed"]. We then defer the real onClose
+  // call by EXIT_DURATION_MS so the parent unmounts the modal AFTER the
+  // animation has finished. Without this delay React would tear the node
+  // down on the same frame the user clicked, and no exit transition would
+  // be visible.
+  const [state, setState] = useState<'open' | 'closed'>('open');
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
   const handleClose = useCallback(() => {
     if (!dismissable) return;
-    onClose?.();
-  }, [dismissable, onClose]);
+    if (state === 'closed') return; // exit already in flight; ignore re-fire
+    setState('closed');
+    closeTimerRef.current = setTimeout(() => {
+      onClose?.();
+    }, EXIT_DURATION_MS);
+  }, [dismissable, onClose, state]);
 
   // ESC handler. Bound to the window so it works regardless of focus.
   useEffect(() => {
@@ -95,12 +121,12 @@ export function Modal({
           return;
         }
         e.preventDefault();
-        onClose?.();
+        handleClose();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [dismissable, onClose]);
+  }, [dismissable, handleClose]);
 
   // Focus trap: remember the previously-focused element on mount, focus the
   // first focusable inside the card, and restore focus on unmount.
@@ -152,10 +178,31 @@ export function Modal({
 
   const sizeClass = useMemo(() => SIZE_CLASS[size], [size]);
 
+  // Animation styles for backdrop + card. We use inline `animation` so the
+  // duration/easing/delay tokens stay localised to this primitive — and so the
+  // exit animation can be retriggered by flipping data-state without a
+  // CSS-Module / Tailwind variant. The `@media (prefers-reduced-motion:
+  // reduce)` block at the top of globals.css collapses animation-duration to
+  // 0.01ms, giving us the spec-mandated instant cut for reduced-motion users
+  // (opacity 0 → 1 with no perceptible transform).
+  const backdropAnimation =
+    state === 'open'
+      ? 'modal-backdrop-enter 180ms cubic-bezier(0, 0, 0.2, 1) both'
+      : 'modal-backdrop-exit 180ms cubic-bezier(0.4, 0, 1, 1) both';
+  const cardAnimation =
+    state === 'open'
+      ? 'modal-enter 200ms cubic-bezier(0, 0, 0.2, 1) 60ms both'
+      : 'modal-exit 140ms cubic-bezier(0.4, 0, 1, 1) both';
+
   return (
     <div
+      data-state={state}
       className="fixed inset-0 z-40 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'color-mix(in oklch, var(--color-bg) 70%, transparent)' }}
+      style={{
+        backgroundColor:
+          'color-mix(in oklch, var(--color-bg) 70%, transparent)',
+        animation: backdropAnimation,
+      }}
       onMouseDown={onBackdropClick}
       role="presentation"
     >
@@ -166,8 +213,13 @@ export function Modal({
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         tabIndex={-1}
+        data-state={state}
         onKeyDown={handleKeyDown}
-        style={{ boxShadow: 'var(--shadow-lg)' }}
+        style={{
+          boxShadow: 'var(--shadow-lg)',
+          animation: cardAnimation,
+          transformOrigin: 'center',
+        }}
         className={cn(
           'relative flex w-full flex-col rounded-md border border-border bg-bg text-fg outline-none',
           sizeClass,

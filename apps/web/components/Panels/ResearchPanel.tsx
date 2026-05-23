@@ -31,6 +31,7 @@ import { ActionButton } from './shared/ActionButton';
 import { EmptyState } from './shared/EmptyState';
 import { Section } from './shared/Section';
 import { StatBar } from './shared/StatBar';
+import { StickyFooter } from './shared/StickyFooter';
 import { useScenarioMessages } from './shared/useScenarioMessages';
 import { SpaceRacePanel } from './SpaceRacePanel';
 
@@ -93,6 +94,21 @@ export function ResearchPanel({
     );
   }
 
+  // Pre-compute the first available tech so the sticky footer can offer it
+  // as the primary action ("Avvia ricerca") even when the user is deep in
+  // the panel. We share the computation with TechTreeView via prop drilling
+  // rather than recomputing inside the footer to avoid drift.
+  const completedSet = new Set(player.science.completedTechs);
+  const activeTechId = player.science.activeResearch;
+  const firstAvailableTech =
+    activeTechId === null
+      ? techTree.find(
+          (tech) =>
+            !completedSet.has(tech.id) &&
+            tech.prereqs.every((p) => completedSet.has(p)),
+        ) ?? null
+      : null;
+
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Sub-tabs: tech tree | space race */}
@@ -151,6 +167,46 @@ export function ResearchPanel({
           />
         </div>
       )}
+
+      {/* Sticky primary action — only meaningful when the user is on the
+          tech tree tab (the space race tab has no actionable primary), so
+          we hide the footer otherwise. Disabled with a helper hint when no
+          tech is selected / available. */}
+      {activeTab === 'techTree' ? (
+        <StickyFooter
+          hint={
+            activeTechId !== null
+              ? tShared('stickyAction.researchInProgress')
+              : firstAvailableTech === null
+                ? tShared('stickyAction.researchHint')
+                : null
+          }
+        >
+          <ActionButton
+            tone="primary"
+            disabledReason={
+              activeTechId !== null
+                ? t('disabled.otherActive')
+                : firstAvailableTech === null
+                  ? tShared('stickyAction.selectFirst')
+                  : null
+            }
+            onClick={async () =>
+              firstAvailableTech
+                ? applyAction({
+                    type: 'startResearch',
+                    techId: firstAvailableTech.id,
+                  })
+                : []
+            }
+            onErrors={onErrors}
+          >
+            {firstAvailableTech
+              ? `${t('start')}: ${tScenario(firstAvailableTech.nameKey)}`
+              : t('start')}
+          </ActionButton>
+        </StickyFooter>
+      ) : null}
     </div>
   );
 }

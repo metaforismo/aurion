@@ -117,6 +117,11 @@ export function NotificationStream() {
             // on resolve), but be defensive.
             const isActionable =
               event.resolvedChoiceIndex === null && idx === 0;
+            // Slide-down animation only on the freshest entry. We compare
+            // firedAtTick to the most-recent fired event so resolving an
+            // existing entry (which mutates resolvedChoiceIndex without
+            // adding a new event) does NOT re-trigger the drop-in.
+            const isNew = idx === 0 && event.firedAtTick === lastFired;
             const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
             return (
               <li key={`${event.definitionId}-${event.firedAtTick}-${idx}`}>
@@ -125,6 +130,7 @@ export function NotificationStream() {
                   definition={definition}
                   scenarioId={scenarioId}
                   currentTick={tick}
+                  isNew={isNew}
                   // Selecting just sets isAutoPaused via the existing
                   // `selectHasOpenEvent` path; the EventModal is already
                   // mounted by ModalRoot. We pass a no-op handler so the

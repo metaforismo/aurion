@@ -315,3 +315,140 @@ code, kbd, samp, pre,
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
+
+/* ===========================================================================
+ * Map atmosphere animations
+ * ---------------------------------------------------------------------------
+ * Subtle, editorial motion baked into the WorldMap. Each keyframe is namespaced
+ * with `map-` so it can't clash with future component-level animations. All
+ * animations are short-loop and respect `prefers-reduced-motion` via the
+ * blanket override at the top of this file (which forces animation-duration
+ * to 0.01ms — effectively disabling them).
+ * =========================================================================== */
+
+/* Slow heartbeat on the player's capital dot. Scale 1.0 → 1.15 → 1.0, with a
+ * synchronous opacity wobble so the pulse reads on dark and light biome fills
+ * alike. */
+@keyframes map-capital-pulse {
+  0%   { transform: scale(1);    opacity: 0.9; }
+  50%  { transform: scale(1.15); opacity: 0.6; }
+  100% { transform: scale(1);    opacity: 0.9; }
+}
+
+/* Brief lift when the user hovers a country — independent of selection state.
+ * Applied to the inner dot via a class on the <g>; transform-box keeps the
+ * scale origin centred on the dot rather than the SVG origin. */
+@keyframes map-capital-hover-ripple {
+  from { transform: scale(1); }
+  to   { transform: scale(1.2); }
+}
+
+/* Marching dash on the selected-country ring. Keeps the dashed pattern
+ * (4 3) intact — only strokeDashoffset animates — so the e2e selector
+ * `circle[stroke-dasharray="4 3"]` still matches. */
+@keyframes map-dash-march {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -14; }
+}
+
+/* Slow fade-in for region labels on map mount / scenario change. Each label
+ * gets a different animation-delay (set inline) so the labels arrive in
+ * sequence rather than all at once. */
+@keyframes map-label-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ===========================================================================
+ * Surface motion: modals, toasts, notifications, panels
+ * ---------------------------------------------------------------------------
+ * Subtle, editorial animations applied to the chrome surfaces. Each keyframe
+ * is referenced from a component-side className that ALSO contains a
+ * `motion-reduce:animate-none` modifier (or wraps the rule in the
+ * `prefers-reduced-motion: no-preference` query at the call site) so the
+ * "instant" fallback for reduced-motion users is the same opacity 0→1 cut
+ * with no transform — exactly per spec.
+ *
+ * The blanket override at the top of this file
+ * (`@media (prefers-reduced-motion: reduce)`) ALREADY collapses
+ * `animation-duration` and `transition-duration` to 0.01ms, so any animation
+ * defined below degrades gracefully even when a component forgets the
+ * modifier. The component-side modifier is belt-and-braces.
+ * =========================================================================== */
+
+/* Modal — backdrop fade + card scale-up. The card has a 60ms delay (applied
+ * inline via animation-delay) so the backdrop appears first. */
+@keyframes modal-backdrop-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes modal-backdrop-exit {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes modal-enter {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes modal-exit {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.96); }
+}
+
+/* Toast — slides in from the right and fades. */
+@keyframes toast-slide-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes toast-slide-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(16px); }
+}
+
+/* Notification stream — newest entry drops in from above the list. */
+@keyframes notification-drop {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Panel tab content fade-in on tab switch. */
+@keyframes tab-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Speed control flash — brief accent pulse on selection. */
+@keyframes speed-flash {
+  0%   { color: var(--color-accent); }
+  45%  { color: var(--color-accent-strong); }
+  100% { color: var(--color-accent); }
+}
+
+/* ===========================================================================
+ * HUD micro-animations
+ * ---------------------------------------------------------------------------
+ * Two short loops used by the top bar to add game-feel without breaking the
+ * editorial / terminal aesthetic. Both honour `prefers-reduced-motion: reduce`
+ * via the blanket override above (animation-duration collapses to 0.01ms,
+ * iteration-count to 1), so we don't need media queries here.
+ * =========================================================================== */
+
+/* Active-speed pulse — applied to the 2× / 4× speed button when the game is
+ * running above 1×. Opacity wobble 1.0 → 0.6 → 1.0 over 1.6s, slow enough to
+ * read as "live" rather than "alarming". 1× gets no pulse (calm baseline),
+ * pause gets no pulse (definitively still). */
+@keyframes hud-speed-pulse {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* Auto-pause indicator — a small dot before the AUTO-PAUSE caps tag pulses
+ * so the player can't miss that the engine is holding the clock for them.
+ * Faster than the speed pulse (1.1s) and pulls opacity lower at the trough
+ * (0.4) so it reads as an alert rather than a heartbeat. */
+@keyframes hud-auto-pause-pulse {
+  0%   { opacity: 1;   transform: scale(1); }
+  50%  { opacity: 0.4; transform: scale(0.85); }
+  100% { opacity: 1;   transform: scale(1); }
+}

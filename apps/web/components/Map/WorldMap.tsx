@@ -546,19 +546,90 @@ export default function WorldMap() {
           setHoveredId(null);
         }}
       >
+        {/* Editorial-map atmosphere: a sparse sea-dot pattern + a very faint
+            linear wash painted across PLAY_BOUNDS. Both sit *under* the
+            click-capture rect (which itself is fully transparent so it
+            doesn't hide the pattern). Opacities are kept ≤ 0.04 so the
+            texture reads as "paper grain", never noise. The pattern is
+            authored inline (no asset) so it ships with the SVG and doesn't
+            need a separate fetch. */}
+        <defs>
+          <pattern
+            id="map-sea-grain"
+            x={0}
+            y={0}
+            width={32}
+            height={32}
+            patternUnits="userSpaceOnUse"
+          >
+            <circle cx={6} cy={9} r={0.6} fill="var(--color-fg)" fillOpacity={0.04} />
+            <circle cx={22} cy={4} r={0.5} fill="var(--color-fg)" fillOpacity={0.035} />
+            <circle cx={14} cy={20} r={0.5} fill="var(--color-fg)" fillOpacity={0.03} />
+            <circle cx={28} cy={26} r={0.4} fill="var(--color-fg)" fillOpacity={0.035} />
+          </pattern>
+          <linearGradient id="map-sea-wash" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-fg)" stopOpacity={0.02} />
+            <stop offset="100%" stopColor="var(--color-fg)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+
         {/* Background — captures clicks to clear selection. Solid page bg,
             no gradient or grid; the map reads ink-on-paper. The hand-authored
             continent now reads as a coherent silhouette on its own, so the
             previous ocean-tint wash + dashed Oriana grouping rect + framed
-            map chrome have all been removed in favour of an unframed canvas. */}
+            map chrome have all been removed in favour of an unframed canvas.
+            Atmosphere layers (paper grain + faint linear wash) live ABOVE
+            this solid bg but below the regions; the click-capture rect sits
+            on top so background-clicks still clear the selection. */}
         <rect
           x={MAP_VIEWBOX.x - 200}
           y={MAP_VIEWBOX.y - 200}
           width={MAP_VIEWBOX.width + 400}
           height={MAP_VIEWBOX.height + 400}
           fill="var(--color-bg)"
+        />
+        <rect
+          x={PLAY_BOUNDS.x}
+          y={PLAY_BOUNDS.y}
+          width={PLAY_BOUNDS.width}
+          height={PLAY_BOUNDS.height}
+          fill="url(#map-sea-wash)"
+          pointerEvents="none"
+        />
+        <rect
+          x={PLAY_BOUNDS.x}
+          y={PLAY_BOUNDS.y}
+          width={PLAY_BOUNDS.width}
+          height={PLAY_BOUNDS.height}
+          fill="url(#map-sea-grain)"
+          pointerEvents="none"
+        />
+        <rect
+          x={MAP_VIEWBOX.x - 200}
+          y={MAP_VIEWBOX.y - 200}
+          width={MAP_VIEWBOX.width + 400}
+          height={MAP_VIEWBOX.height + 400}
+          fill="transparent"
           onClick={handleBackgroundClick}
         />
+
+        {/* Strait indicator — 1-2 faint dashed lines between Meridia (east
+            coast around x≈1130-1170) and the Oriana archipelago (starts at
+            x≈1170). Purely decorative; reads as "open water / shipping
+            lane". Sits below the regions so a region overlapping the line
+            would cleanly mask it. */}
+        <g
+          aria-hidden
+          pointerEvents="none"
+          stroke="var(--color-fg)"
+          strokeOpacity={0.15}
+          strokeWidth={1}
+          strokeDasharray="6 5"
+          fill="none"
+        >
+          <path d="M 1180 360 C 1175 470, 1185 560, 1190 690" />
+          <path d="M 1205 400 C 1200 500, 1210 580, 1215 660" />
+        </g>
 
         {/* Region silhouettes — flat single-colour fills, hairline borders.
             Overlays mutate the fill (tension heat, bloc tint); they don't
@@ -822,7 +893,7 @@ function Regions({
 }: RegionsProps) {
   return (
     <g aria-hidden>
-      {order.map((id) => {
+      {order.map((id, idx) => {
         const r = regions[id];
         if (!r) return null;
         const tension = overlay === 'tension' ? regionTension.get(id) ?? 0 : 0;
@@ -855,7 +926,7 @@ function Regions({
               strokeWidth={1}
               fillOpacity={fillOpacity}
             />
-            <RegionLabel region={r} label={translate(r.nameKey)} />
+            <RegionLabel region={r} label={translate(r.nameKey)} index={idx} />
           </g>
         );
       })}
@@ -863,7 +934,19 @@ function Regions({
   );
 }
 
-function RegionLabel({ region, label }: { region: RegionDef; label: string }) {
+function RegionLabel({
+  region,
+  label,
+  index,
+}: {
+  region: RegionDef;
+  label: string;
+  index: number;
+}) {
+  // Each label fades in over 600ms, staggered by region order. The animation
+  // uses `forwards` so the final opacity sticks. Reduced-motion users see
+  // labels appear immediately (the global override forces animation-duration
+  // to ~0).
   return (
     <text
       x={region.bounds.x + 12}
@@ -880,6 +963,8 @@ function RegionLabel({ region, label }: { region: RegionDef; label: string }) {
         fontFamily: 'var(--font-mono)',
         pointerEvents: 'none',
         userSelect: 'none',
+        opacity: 0,
+        animation: `map-label-fade 600ms ease-out ${index * 90}ms forwards`,
       }}
     >
       {label}

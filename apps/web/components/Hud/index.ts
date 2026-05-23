@@ -1,6 +1,7 @@
 export { Hud, default } from './Hud';
 export type { HudProps } from './Hud';
 export { DateBadge } from './DateBadge';
+export { EraBadge } from './EraBadge';
 export { TreasuryBadge } from './TreasuryBadge';
 export { PopularityBadge } from './PopularityBadge';
 export { ReputationBadges } from './ReputationBadges';

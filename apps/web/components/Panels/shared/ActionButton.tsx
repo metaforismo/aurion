@@ -99,6 +99,16 @@ export function ActionButton({
     }
   };
 
+  // Subtle press ripple: only on primary tone, only while enabled. The
+  // `active:scale-97` modifier compresses the button for the duration of the
+  // press. CSS transition lasts 120ms (var(--motion-fast)) — short enough
+  // that holding the button doesn't feel laggy on the release. Honours
+  // reduced-motion via the global transition-duration override.
+  const pressClass =
+    tone === 'primary' && !isDisabled
+      ? 'transition-transform duration-[120ms] ease-out motion-reduce:transform-none active:scale-[0.97]'
+      : null;
+
   return (
     <button
       type="button"
@@ -113,6 +123,7 @@ export function ActionButton({
           ? 'cursor-not-allowed border-border bg-transparent text-fg-faint'
           : TONE_STYLES[tone].enabled,
         busy ? TONE_STYLES[tone].pressed : null,
+        pressClass,
         className,
       )}
     >

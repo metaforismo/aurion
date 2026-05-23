@@ -27,6 +27,7 @@ import { ActionButton } from './shared/ActionButton';
 import { EmptyState } from './shared/EmptyState';
 import { Section } from './shared/Section';
 import { StatBar } from './shared/StatBar';
+import { StickyFooter } from './shared/StickyFooter';
 import { useScenarioMessages } from './shared/useScenarioMessages';
 
 const FACTION_IDS: readonly FactionId[] = [
@@ -232,6 +233,40 @@ export function PoliticsPanel({
           </ul>
         )}
       </Section>
+
+      {/* Sticky primary action — placate the *least* satisfied faction. This
+          is the most common political action and the one most likely to keep
+          popularity from cratering, so it's the right pin. We compute the
+          target every render — the underlying map is tiny (5 entries). */}
+      {(() => {
+        const cantAfford = treasury < PLACATE_COST;
+        let weakestId: FactionId = FACTION_IDS[0]!;
+        let weakestSat = Infinity;
+        for (const fid of FACTION_IDS) {
+          const sat = politics.factions[fid]?.satisfaction ?? 100;
+          if (sat < weakestSat) {
+            weakestSat = sat;
+            weakestId = fid;
+          }
+        }
+        return (
+          <StickyFooter
+            hint={
+              cantAfford ? tShared('insufficientTreasury') : null
+            }
+          >
+            <ActionButton
+              tone="primary"
+              cost={fmt.number(PLACATE_COST)}
+              disabledReason={cantAfford ? tShared('insufficientTreasury') : null}
+              onClick={handlePlacate(weakestId)}
+              onErrors={onErrors}
+            >
+              {`${t('factions.placate')}: ${t(`faction.${weakestId}`)}`}
+            </ActionButton>
+          </StickyFooter>
+        );
+      })()}
     </div>
   );
 }

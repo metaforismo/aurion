@@ -20,6 +20,7 @@ import { ActionButton } from './shared/ActionButton';
 import { EmptyState } from './shared/EmptyState';
 import { Section } from './shared/Section';
 import { StatBar } from './shared/StatBar';
+import { StickyFooter } from './shared/StickyFooter';
 
 const SECTOR_KEYS: readonly (keyof EconomySectors)[] = [
   'agriculture',
@@ -286,6 +287,33 @@ export function EconomyPanel({
           {t('history.note')}
         </p>
       </Section>
+
+      {/* Sticky primary action — duplicates the "Invest in economy" button
+          above so it's always reachable without scrolling. Disabled until the
+          player has entered a valid amount; the helper hint explains why. */}
+      <StickyFooter
+        hint={
+          investAmountInvalid
+            ? tShared('stickyAction.economyHint')
+            : null
+        }
+      >
+        <ActionButton
+          tone="primary"
+          cost={investAmount ? fmt.number(investAmountNum) : null}
+          disabledReason={
+            investAmountInvalid
+              ? tShared('enterAmount')
+              : investAmountTooHigh
+                ? tShared('insufficientTreasury')
+                : null
+          }
+          onClick={handleInvest('economy')}
+          onErrors={onErrors}
+        >
+          {t('invest.economy')}
+        </ActionButton>
+      </StickyFooter>
     </div>
   );
 }

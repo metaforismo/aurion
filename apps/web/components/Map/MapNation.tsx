@@ -136,7 +136,10 @@ export default function MapNation(props: MapNationProps) {
 
       {/* Selected ring — thin dashed hairline. We keep stroke-dasharray="4 3"
           to preserve the existing e2e selector; the underline beneath the
-          label is the primary visual cue for selection. */}
+          label is the primary visual cue for selection. The dashes march
+          slowly via the `map-dash-march` keyframe (animates strokeDashoffset)
+          so a selected nation has a quiet "active" feel. Reduced-motion
+          users get the static ring thanks to the global override. */}
       {props.isSelected ? (
         <circle
           cx={props.cx}
@@ -148,12 +151,22 @@ export default function MapNation(props: MapNationProps) {
           strokeWidth={1}
           strokeDasharray="4 3"
           pointerEvents="none"
+          style={{
+            animation: 'map-dash-march 2s linear infinite',
+          }}
         />
       ) : null}
 
       {/* The capital marker — filled dot. Player nation gets a thicker
           accent border so the "yours" identity reads beyond just hue
-          (colour-blind accessibility + non-coloured intel-mask states). */}
+          (colour-blind accessibility + non-coloured intel-mask states).
+          Two motion behaviours layered onto the same node:
+            - Player: slow heartbeat pulse (`map-capital-pulse`, 1.6s).
+            - Anyone hovered (and not selected, to avoid double motion):
+              brief lift via `map-capital-hover-ripple` (120ms ease-out).
+          Both honour `prefers-reduced-motion` via the globals.css override.
+          We use `transformBox: 'fill-box'` so transforms scale around the
+          dot's own centre rather than the SVG origin. */}
       <circle
         cx={props.cx}
         cy={props.cy}
@@ -163,6 +176,15 @@ export default function MapNation(props: MapNationProps) {
         strokeWidth={props.isPlayer ? 1.5 : 0.5}
         strokeOpacity={props.isPlayer ? 1 : 0.6}
         pointerEvents="none"
+        style={{
+          transformBox: 'fill-box',
+          transformOrigin: 'center',
+          animation: props.isPlayer
+            ? 'map-capital-pulse 1.6s ease-in-out infinite'
+            : props.isHovered && !props.isSelected
+              ? 'map-capital-hover-ripple 120ms ease-out forwards'
+              : undefined,
+        }}
       />
 
       {/* Country label — uppercase tracked mono, centred under the dot. */}

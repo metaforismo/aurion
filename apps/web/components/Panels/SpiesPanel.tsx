@@ -31,6 +31,7 @@ import { ActionButton } from './shared/ActionButton';
 import { EmptyState } from './shared/EmptyState';
 import { Section } from './shared/Section';
 import { StatBar } from './shared/StatBar';
+import { StickyFooter } from './shared/StickyFooter';
 import { useScenarioMessages } from './shared/useScenarioMessages';
 
 // ---------------------------------------------------------------------------
@@ -277,6 +278,25 @@ export function SpiesPanel({
           })}
         </ul>
       </Section>
+
+      {/* Sticky primary action — pinned "Lancia operazione" so the player
+          always has a single click to start a spy op even with the panel
+          scrolled to the intel summary. When the composer is already open
+          we hide the pin to avoid having two CTAs fighting. */}
+      {!composerOpen ? (
+        <StickyFooter>
+          <ActionButton
+            tone="primary"
+            onClick={async () => {
+              setComposerOpen(true);
+              return [];
+            }}
+            onErrors={onErrors}
+          >
+            {t('composer.open')}
+          </ActionButton>
+        </StickyFooter>
+      ) : null}
     </div>
   );
 }

@@ -195,8 +195,29 @@
     "victory": {
       "counter": "{unlocked}/{total} vittorie",
       "unlocked": "vittorie",
-      "popoverTitle": "Vittorie sbloccate"
-    }
+      "popoverTitle": "Vittorie sbloccate",
+      "progressLabel": "Progresso verso la prossima vittoria"
+    },
+    "era": {
+      "label": "Era",
+      "tooltip": "Era corrente: {name}"
+    },
+    "dateCompact": "S{week} · {month} {year}",
+    "months": {
+      "jan": "Gen",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "Mag",
+      "jun": "Giu",
+      "jul": "Lug",
+      "aug": "Ago",
+      "sep": "Set",
+      "oct": "Ott",
+      "nov": "Nov",
+      "dec": "Dic"
+    },
+    "autoPausedDotLabel": "Indicatore pausa automatica"
   },
   "notifications": {
     "title": "Notifiche",
@@ -362,14 +383,37 @@
   },
   "panelRail": {
     "label": "Pannelli di sistema",
-    "tablistLabel": "Sistemi di gioco"
+    "tablistLabel": "Sistemi di gioco",
+    "shortcutHint": "Premi {key} per aprire",
+    "badge": {
+      "actionRequired": "{count, plural, =1 {# azione richiesta} other {# azioni richieste}}",
+      "unvotedResolution": "Risoluzione ONU in attesa del tuo voto",
+      "researchIdle": "Nessuna ricerca attiva — scegli una tecnologia",
+      "diplomacyPending": "Evento diplomatico in sospeso",
+      "warNoDeployment": "Guerra in corso, nessun esercito schierato",
+      "lowPopularity": "Popolarità a livello critico",
+      "newIntel": "Nuova intelligence disponibile"
+    }
   },
   "panelShared": {
     "noPlayer": "Nessun paese giocatore selezionato.",
     "insufficientTreasury": "Tesoreria insufficiente.",
     "enterAmount": "Inserisci un importo valido.",
     "prereqsMissing": "Prerequisiti mancanti.",
-    "cancel": "Annulla"
+    "cancel": "Annulla",
+    "stickyAction": {
+      "selectFirst": "Seleziona prima…",
+      "economyHint": "Inserisci un importo sopra",
+      "researchHint": "Scegli una tecnologia sopra",
+      "researchInProgress": "Ricerca già in corso",
+      "militaryHint": "Scegli regione e unità sopra",
+      "intelHint": "Apri il modulo di lancio sopra",
+      "diplomacyHint": "Scegli un paese con attitudine ≥ 30",
+      "politicsHint": "Seleziona una fazione da placare",
+      "unNotCouncil": "Solo i membri del consiglio possono proporre",
+      "unUnavailable": "ONU non disponibile in questo scenario",
+      "openComposer": "Apri modulo di lancio"
+    }
   },
   "panelEconomy": {
     "treasury": "Tesoreria",

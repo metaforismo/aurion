@@ -5,6 +5,12 @@
 // hide it because their notion of "the game ends" makes a running counter
 // misleading.
 //
+// Progress bar: a 3px-tall, ~60px-wide track sits next to the counter and
+// fills proportionally to `unlocked / total`. The bar is hidden when there's
+// nothing useful to show — i.e. when no conditions are defined or when 0 of
+// 0 is the only available reading — so the chip never decorates an empty
+// state with a meaningless rule.
+//
 // Click → small popover listing the conditions and which ones are
 // unlocked. We don't have per-condition unlock timestamps in Phase 3 yet
 // (the engine state only carries the id list), so the popover degrades
@@ -88,9 +94,15 @@ export function VictoryCounter() {
   const total = conditionList.length;
   const accent = count > 0;
   const popoverDisabled = total === 0;
+  // Bar shows progress toward "all victories cleared" — the most natural
+  // reading in Eternal mode. We hide it when there's no condition to
+  // measure (`total === 0`) so the chip never grows a rule under "0/0".
+  const showProgress = total > 0;
+  const progressPct =
+    total > 0 ? Math.min(100, Math.max(0, (count / total) * 100)) : 0;
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative flex items-center gap-2">
       <button
         type="button"
         data-testid="victory-counter"
@@ -119,6 +131,22 @@ export function VictoryCounter() {
           {count}/{total}
         </span>
       </button>
+      {showProgress ? (
+        <span
+          role="progressbar"
+          aria-label={t('progressLabel')}
+          aria-valuenow={count}
+          aria-valuemin={0}
+          aria-valuemax={total}
+          className="block h-[3px] w-[60px] overflow-hidden rounded-sm bg-accent-soft"
+        >
+          <span
+            aria-hidden="true"
+            className="block h-full bg-accent transition-[width] duration-300 ease-out"
+            style={{ width: `${progressPct}%` }}
+          />
+        </span>
+      ) : null}
       {open && !popoverDisabled ? (
         <VictoryPopover
           conditions={conditionList}

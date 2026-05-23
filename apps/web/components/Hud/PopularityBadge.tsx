@@ -1,5 +1,10 @@
-// Popularity display. 0..100 scale with a coloured value:
-//   < 30 → red (danger)   30..60 → amber (warning)   > 60 → green (healthy).
+// Popularity display. 0..100 scale with a coloured value driven by the
+// player's standing:
+//
+//   < 30  → red    (danger)
+//   30-49 → amber  (warning)
+//   50-69 → fg     (neutral / "in the safe zone")
+//   ≥ 70  → green  (success)
 //
 // Visual: muted star icon + percentage. The verbose "POPOLARITÀ" caps label
 // is replaced by a `Star` glyph so the chip occupies less horizontal space
@@ -20,12 +25,18 @@ export function PopularityBadge() {
   const t = useTranslations('hud');
 
   const popularity = Math.round(player?.politics.popularity ?? 0);
+  // Four-band scale: a single mid-zone ("fg") between the warning band and
+  // the success band so the player has visible headroom before "safe" turns
+  // into "thriving". The star icon stays muted regardless of value — it's a
+  // glyph anchor, not part of the signal.
   const tone =
     popularity < 30
       ? 'text-danger'
-      : popularity <= 60
+      : popularity < 50
         ? 'text-warning'
-        : 'text-success';
+        : popularity < 70
+          ? 'text-fg'
+          : 'text-success';
 
   return (
     <div className="flex items-baseline gap-2" title={t('popularity')}>

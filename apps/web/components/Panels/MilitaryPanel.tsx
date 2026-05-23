@@ -33,6 +33,7 @@ import { ActionButton } from './shared/ActionButton';
 import { EmptyState } from './shared/EmptyState';
 import { Section } from './shared/Section';
 import { StatBar } from './shared/StatBar';
+import { StickyFooter } from './shared/StickyFooter';
 import { useScenarioMessages } from './shared/useScenarioMessages';
 
 /** Build a lex-sorted relation key matching the engine's `relationKey()`. */
@@ -505,6 +506,35 @@ export function MilitaryPanel({
           onCancel={cancelLaunch}
         />
       ) : null}
+
+      {/* Sticky primary action — pinned "Schiera esercito" so a player who
+          enters the panel mid-war can deploy without scrolling past the
+          stats / training section. Disabled with a contextual helper when
+          region / units aren't set yet. */}
+      <StickyFooter
+        hint={
+          deployNoRegion || deployInvalidUnits
+            ? tShared('stickyAction.militaryHint')
+            : null
+        }
+      >
+        <ActionButton
+          tone="primary"
+          disabledReason={
+            deployNoRegion
+              ? tShared('stickyAction.selectFirst')
+              : deployInvalidUnits
+                ? tShared('enterAmount')
+                : deployTooMany
+                  ? t('deploy.notEnough')
+                  : null
+          }
+          onClick={handleDeploy}
+          onErrors={onErrors}
+        >
+          {t('deploy.cta')}
+        </ActionButton>
+      </StickyFooter>
     </div>
   );
 }

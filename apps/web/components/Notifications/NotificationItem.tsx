@@ -23,6 +23,9 @@ export type NotificationItemProps = {
   currentTick: number;
   /** Click handler. Only meaningful for unresolved events. */
   onSelect?: () => void;
+  /** When true, the item plays its slide-down entry animation. Set by the
+   *  parent stream for the most-recently-arrived event only. */
+  isNew?: boolean;
 };
 
 export function NotificationItem({
@@ -31,6 +34,7 @@ export function NotificationItem({
   scenarioId,
   currentTick,
   onSelect,
+  isNew,
 }: NotificationItemProps) {
   const t = useTranslations('notifications');
   // Event nameKey/descriptionKey/labelKey live in the scenario side-car
@@ -54,10 +58,22 @@ export function NotificationItem({
 
   const Wrapper = onSelect ? 'button' : 'div';
 
+  // Slide-down + fade entry animation for the freshly-arrived event. The
+  // global `prefers-reduced-motion: reduce` rule in globals.css flattens
+  // animation-duration to 0.01ms, so reduced-motion users see an instant
+  // opacity cut with no transform — exactly per spec.
+  const animationStyle = isNew
+    ? {
+        animation:
+          'notification-drop 220ms cubic-bezier(0, 0, 0.2, 1) both',
+      }
+    : undefined;
+
   return (
     <Wrapper
       type={onSelect ? 'button' : undefined}
       onClick={onSelect}
+      style={animationStyle}
       className={cn(
         'group flex w-full flex-col gap-1 bg-transparent py-2 text-left text-xs transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
         resolved ? 'opacity-70' : null,

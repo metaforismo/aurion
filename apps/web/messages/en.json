@@ -195,8 +195,29 @@
     "victory": {
       "counter": "{unlocked}/{total} victories",
       "unlocked": "victories",
-      "popoverTitle": "Unlocked victories"
-    }
+      "popoverTitle": "Unlocked victories",
+      "progressLabel": "Progress to next victory"
+    },
+    "era": {
+      "label": "Era",
+      "tooltip": "Current era: {name}"
+    },
+    "dateCompact": "W{week} · {month} {year}",
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "autoPausedDotLabel": "Auto-pause indicator"
   },
   "notifications": {
     "title": "Notifications",
@@ -362,14 +383,37 @@
   },
   "panelRail": {
     "label": "System panels",
-    "tablistLabel": "Game systems"
+    "tablistLabel": "Game systems",
+    "shortcutHint": "Press {key} to open",
+    "badge": {
+      "actionRequired": "{count, plural, =1 {# action required} other {# actions required}}",
+      "unvotedResolution": "UN resolution awaiting your vote",
+      "researchIdle": "Research idle — pick a technology",
+      "diplomacyPending": "Pending diplomatic event",
+      "warNoDeployment": "War active, no army deployed",
+      "lowPopularity": "Popularity critically low",
+      "newIntel": "New intelligence available"
+    }
   },
   "panelShared": {
     "noPlayer": "No player country selected.",
     "insufficientTreasury": "Insufficient treasury.",
     "enterAmount": "Enter a valid amount.",
     "prereqsMissing": "Prerequisites missing.",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "stickyAction": {
+      "selectFirst": "Select first…",
+      "economyHint": "Enter an amount above",
+      "researchHint": "Pick a technology above",
+      "researchInProgress": "Research already in progress",
+      "militaryHint": "Pick a region and units above",
+      "intelHint": "Open the launch composer above",
+      "diplomacyHint": "Pick a country with attitude ≥ 30",
+      "politicsHint": "Select a faction to placate",
+      "unNotCouncil": "Only council members may propose",
+      "unUnavailable": "UN not available in this scenario",
+      "openComposer": "Open launch composer"
+    }
   },
   "panelEconomy": {
     "treasury": "Treasury",

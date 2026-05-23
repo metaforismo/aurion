@@ -40,6 +40,12 @@ export function Section({
         className="flex w-full items-center justify-between gap-2 px-0 py-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
       >
         <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+          {/* Editorial 1px accent rule next to the header — gives the rail a
+              sense of vertical structure. Sized to ~1.5em of the label. */}
+          <span
+            aria-hidden
+            className="inline-block h-[1.05em] w-px bg-accent"
+          />
           <span
             aria-hidden
             className={cn(

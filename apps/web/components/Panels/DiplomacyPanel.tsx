@@ -28,6 +28,7 @@ import { ScenarioId } from '../../lib/scenarios';
 import { toneChip } from '../../lib/theme';
 import { ActionButton } from './shared/ActionButton';
 import { EmptyState } from './shared/EmptyState';
+import { StickyFooter } from './shared/StickyFooter';
 import { useScenarioMessages } from './shared/useScenarioMessages';
 
 type SortMode = 'alpha' | 'attitude' | 'treaties';
@@ -104,6 +105,23 @@ export function DiplomacyPanel({
     );
   }
 
+  // Resolve the currently-expanded row, if any, so the sticky footer can offer
+  // "Propose alliance" against that target. We only enable it when the row's
+  // relation passes the engine-side preconditions (attitude ≥ 30, no war, not
+  // already allied) — same gates the inline button uses inside CountryRow.
+  const expandedRow = expanded ? rows.find((r) => r.country.id === expanded) : null;
+  const expandedAttitude = expandedRow?.relation?.attitude ?? 0;
+  const expandedAtWar = expandedRow?.relation?.atWar === true;
+  const expandedAllied =
+    expandedRow?.relation?.treaties.includes('alliance') === true;
+  const allianceDisabledReason = (() => {
+    if (!expandedRow) return tShared('stickyAction.selectFirst');
+    if (expandedAtWar) return t('atWar');
+    if (expandedAllied) return t('action.breakAlliance');
+    if (expandedAttitude < 30) return t('reason.attitudeTooLow');
+    return null;
+  })();
+
   return (
     <div className="flex flex-col gap-3 p-4">
       {/* Sort toolbar */}
@@ -173,6 +191,36 @@ export function DiplomacyPanel({
           );
         })}
       </ul>
+
+      {/* Sticky primary action — "Propose alliance" against whichever country
+          is currently expanded. The expectation is the player clicks a row to
+          inspect, then taps the pinned action without having to scroll back
+          to the row's inline buttons. */}
+      <StickyFooter
+        hint={
+          !expandedRow
+            ? tShared('stickyAction.diplomacyHint')
+            : null
+        }
+      >
+        <ActionButton
+          tone="primary"
+          disabledReason={allianceDisabledReason}
+          onClick={async () => {
+            if (!expandedRow) return [];
+            return applyAction({
+              type: 'diplomacy',
+              target: expandedRow.country.id,
+              kind: 'proposeAlliance',
+            });
+          }}
+          onErrors={onErrors}
+        >
+          {expandedRow
+            ? `${t('action.proposeAlliance')} → ${tScenario(expandedRow.country.nameKey)}`
+            : t('action.proposeAlliance')}
+        </ActionButton>
+      </StickyFooter>
     </div>
   );
 }

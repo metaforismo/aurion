@@ -80,11 +80,16 @@ export function AchievementToast() {
       aria-live="polite"
       aria-atomic="true"
       data-testid="achievement-toast"
-      style={{ boxShadow: 'var(--shadow-lg)' }}
+      style={{
+        boxShadow: 'var(--shadow-lg)',
+        // Same keyframe as ActionToastStack — slides in from the right and
+        // fades. Reduced-motion users get an instant cut via the global
+        // animation-duration override in globals.css.
+        animation: 'toast-slide-in 200ms cubic-bezier(0, 0, 0.2, 1) both',
+      }}
       className={cn(
         'fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)]',
         'rounded-md border border-border border-l-2 bg-bg',
-        'animate-in fade-in slide-in-from-bottom-2 duration-200',
         TIER_BORDER[def.tier],
       )}
     >
