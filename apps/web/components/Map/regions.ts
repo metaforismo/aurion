@@ -40,6 +40,87 @@ export const PLAY_BOUNDS = {
   height: 850,
 } as const;
 
+// ---------------------------------------------------------------------------
+// Terrain layer types — all OPTIONAL. The renderer skips any region that
+// omits these fields. The Aurion-world and Mondo Contemporaneo regions
+// supply terrain data; the Guerra Fredda bloc silhouettes intentionally do
+// not (blocs are political, terrain would confuse the messaging).
+// ---------------------------------------------------------------------------
+
+export type BiomeKind =
+  | 'tundra'
+  | 'forest'
+  | 'grassland'
+  | 'desert'
+  | 'savanna'
+  | 'oasis'
+  | 'highland'
+  | 'fertile'
+  | 'coastal'
+  | 'volcanic';
+
+/**
+ * A blob of biome sub-fill drawn on top of the region's base fill. The
+ * renderer clips the blob to the region's own `pathD` so authoring blobs
+ * that bleed outside the silhouette is safe.
+ *
+ * Either supply a `pathD` (custom shape) OR a `cx`/`cy`/`rx`/`ry` ellipse —
+ * the renderer picks whichever is provided.
+ */
+export type BiomeLayer = {
+  kind: BiomeKind;
+  /** Custom path (closed cubic-Bezier blob). */
+  pathD?: string;
+  /** Ellipse centre + radii (in viewBox units). */
+  cx?: number;
+  cy?: number;
+  rx?: number;
+  ry?: number;
+  /**
+   * Optional fill override. Default: a `color-mix()` of the region fill
+   * with a biome-appropriate hue (see BIOME_DEFAULT_TINT in WorldMap).
+   */
+  fill?: string;
+  /** Optional opacity. Default 0.35. */
+  opacity?: number;
+};
+
+/**
+ * A stylised mountain range — a row of small triangle peaks along a spine.
+ * Authored as raw triangle vertices for full control (a procedural
+ * placement helper would be overkill at this scale).
+ */
+export type MountainPeak = {
+  /** Triangle base-left vertex. */
+  x: number;
+  /** Triangle base y (peaks point up — apex is at `y - height`). */
+  y: number;
+  /** Base width in viewBox units. */
+  width: number;
+  /** Peak height in viewBox units. */
+  height: number;
+};
+
+export type MountainRange = {
+  peaks: MountainPeak[];
+  /** Optional fill override. Default: darkened region fill. */
+  fill?: string;
+};
+
+/**
+ * A river drawn as a smooth multi-segment path. The renderer applies the
+ * info colour at low alpha and a round line-cap so the line reads as a
+ * meandering watercourse.
+ */
+export type River = {
+  /** Full SVG path d-attribute (Mx,y followed by 1+ cubic segments). */
+  pathD: string;
+  /** Optional stroke width. Default 1.5. */
+  width?: number;
+  /** Optional opacity. Default 0.45. */
+  opacity?: number;
+};
+
 export type RegionDef = {
   id: RegionId;
   /** i18n key under the `map.regions.*` namespace. */
@@ -52,6 +133,12 @@ export type RegionDef = {
   fill: string;
   /** Stroke colour — slightly lighter than the fill. */
   stroke: string;
+  /** Optional terrain sub-fills clipped to the region silhouette. */
+  biomes?: BiomeLayer[];
+  /** Optional mountain ranges (triangle clusters). */
+  mountains?: MountainRange[];
+  /** Optional river paths. */
+  rivers?: River[];
 };
 
 // ---------------------------------------------------------------------------
@@ -139,6 +226,45 @@ export const REGIONS: Record<string, RegionDef> = {
       'Z',
     ].join(' '),
     bounds: { x: 40, y: 60, w: 1460, h: 380 },
+    biomes: [
+      // Tundra band along the northern coast — pale cool grey strip.
+      {
+        kind: 'tundra',
+        pathD: [
+          'M 80 90',
+          'C 300 75, 600 80, 900 80',
+          'C 1200 80, 1400 90, 1480 100',
+          'C 1450 150, 1100 145, 800 140',
+          'C 500 140, 200 145, 70 160',
+          'C 70 130, 75 110, 80 90 Z',
+        ].join(' '),
+        opacity: 0.32,
+      },
+      // Forest patch — dense boreal woodland inland (west).
+      { kind: 'forest', cx: 360, cy: 230, rx: 130, ry: 70, opacity: 0.4 },
+      // Forest patch — eastern boreal block.
+      { kind: 'forest', cx: 1100, cy: 240, rx: 140, ry: 75, opacity: 0.4 },
+    ],
+    mountains: [
+      {
+        // East-west spine across the central north.
+        peaks: [
+          { x: 550, y: 235, width: 12, height: 9 },
+          { x: 600, y: 230, width: 14, height: 11 },
+          { x: 655, y: 240, width: 11, height: 8 },
+          { x: 720, y: 232, width: 13, height: 10 },
+          { x: 800, y: 245, width: 12, height: 9 },
+          { x: 870, y: 238, width: 14, height: 10 },
+          { x: 945, y: 248, width: 11, height: 8 },
+        ],
+      },
+    ],
+    rivers: [
+      // From the central mountain spine north to the coast.
+      {
+        pathD: 'M 720 240 C 740 200, 700 170, 730 140 C 760 110, 720 95, 750 85',
+      },
+    ],
   },
   auriana: {
     id: 'auriana',
@@ -174,6 +300,32 @@ export const REGIONS: Record<string, RegionDef> = {
       'Z',
     ].join(' '),
     bounds: { x: 50, y: 290, w: 660, h: 380 },
+    biomes: [
+      // Coastal plain along the west — lighter sage.
+      { kind: 'coastal', cx: 130, cy: 470, rx: 75, ry: 110, opacity: 0.34 },
+      // Central forested heartland — darker sage.
+      { kind: 'forest', cx: 360, cy: 480, rx: 170, ry: 95, opacity: 0.42 },
+      // Small grassland pocket in the SE.
+      { kind: 'grassland', cx: 560, cy: 600, rx: 70, ry: 45, opacity: 0.3 },
+    ],
+    mountains: [
+      {
+        // Diagonal ridge separating heartland from coastal plain.
+        peaks: [
+          { x: 220, y: 380, width: 12, height: 9 },
+          { x: 260, y: 410, width: 14, height: 10 },
+          { x: 300, y: 440, width: 12, height: 9 },
+          { x: 340, y: 470, width: 13, height: 10 },
+          { x: 380, y: 500, width: 11, height: 8 },
+        ],
+      },
+    ],
+    rivers: [
+      // From the central ridge SE to the coast.
+      {
+        pathD: 'M 340 470 C 400 510, 450 540, 500 570 C 540 590, 580 615, 620 660',
+      },
+    ],
   },
   oriana: {
     id: 'oriana',
@@ -243,6 +395,30 @@ export const REGIONS: Record<string, RegionDef> = {
       'Z',
     ].join(' '),
     bounds: { x: 1170, y: 300, w: 400, h: 450 },
+    biomes: [
+      // Volcanic peaks on the major islands — darker centres.
+      { kind: 'volcanic', cx: 1330, cy: 380, rx: 50, ry: 22, opacity: 0.45 },
+      { kind: 'volcanic', cx: 1230, cy: 545, rx: 32, ry: 22, opacity: 0.42 },
+      { kind: 'volcanic', cx: 1415, cy: 558, rx: 30, ry: 14, opacity: 0.42 },
+      // Coastal rings — lighter ringed edges.
+      { kind: 'coastal', cx: 1500, cy: 420, rx: 36, ry: 22, opacity: 0.3 },
+      { kind: 'coastal', cx: 1495, cy: 695, rx: 28, ry: 20, opacity: 0.3 },
+    ],
+    mountains: [
+      {
+        // Tenshido volcanic ridge.
+        peaks: [
+          { x: 1290, y: 388, width: 12, height: 10 },
+          { x: 1320, y: 380, width: 14, height: 12 },
+          { x: 1355, y: 388, width: 12, height: 10 },
+        ],
+      },
+      {
+        // Aolan single peak.
+        peaks: [{ x: 1220, y: 552, width: 13, height: 11 }],
+      },
+    ],
+    // No major rivers — small volcanic islands.
   },
   meridia: {
     id: 'meridia',
@@ -282,6 +458,32 @@ export const REGIONS: Record<string, RegionDef> = {
       'Z',
     ].join(' '),
     bounds: { x: 600, y: 340, w: 590, h: 500 },
+    biomes: [
+      // Mediterranean coastal tint along the eastern coast.
+      { kind: 'coastal', cx: 1100, cy: 540, rx: 65, ry: 130, opacity: 0.32 },
+      // Inland highland — darker, slightly bluer.
+      { kind: 'highland', cx: 800, cy: 580, rx: 110, ry: 90, opacity: 0.38 },
+      // Fertile plain in the south — lighter, warmer.
+      { kind: 'fertile', cx: 940, cy: 760, rx: 130, ry: 50, opacity: 0.34 },
+    ],
+    mountains: [
+      {
+        // NE-SW interior spine.
+        peaks: [
+          { x: 770, y: 540, width: 13, height: 10 },
+          { x: 810, y: 555, width: 14, height: 11 },
+          { x: 850, y: 575, width: 12, height: 9 },
+          { x: 890, y: 595, width: 13, height: 10 },
+          { x: 925, y: 620, width: 11, height: 8 },
+        ],
+      },
+    ],
+    rivers: [
+      // From the highland spine south to the coast.
+      {
+        pathD: 'M 830 575 C 880 640, 920 700, 950 740 C 980 770, 980 800, 1000 820',
+      },
+    ],
   },
   'sahel-karoun': {
     id: 'sahel-karoun',
@@ -318,6 +520,41 @@ export const REGIONS: Record<string, RegionDef> = {
       'Z',
     ].join(' '),
     bounds: { x: 80, y: 660, w: 700, h: 230 },
+    biomes: [
+      // Mixed savanna across the northern strip (greener).
+      { kind: 'savanna', cx: 380, cy: 700, rx: 250, ry: 35, opacity: 0.32 },
+      // Desert across the southern two-thirds — paler sand.
+      {
+        kind: 'desert',
+        pathD: [
+          'M 160 770',
+          'C 280 760, 420 765, 560 770',
+          'C 660 775, 720 790, 730 810',
+          'C 700 845, 540 855, 400 860',
+          'C 280 855, 180 830, 150 810',
+          'C 150 790, 155 778, 160 770 Z',
+        ].join(' '),
+        opacity: 0.38,
+      },
+      // Oasis cluster — small fertile pocket near the eastern edge.
+      { kind: 'oasis', cx: 620, cy: 770, rx: 22, ry: 14, opacity: 0.45 },
+    ],
+    mountains: [
+      {
+        // Small range along the western edge.
+        peaks: [
+          { x: 175, y: 720, width: 11, height: 9 },
+          { x: 200, y: 735, width: 12, height: 10 },
+          { x: 225, y: 745, width: 11, height: 9 },
+        ],
+      },
+    ],
+    rivers: [
+      // From west mountains east through the oasis to the coast.
+      {
+        pathD: 'M 200 735 C 320 770, 460 760, 560 775 C 620 780, 660 800, 700 830',
+      },
+    ],
   },
 };
 

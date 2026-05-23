@@ -1,11 +1,13 @@
 // United Nations system panel (Phase 3 — System 2).
 //
-// Three sections:
-//   - Active resolutions: every resolution with status === 'voting'.
-//   - History: last ~10 resolved resolutions (passed / failed / vetoed),
-//     collapsed by default to keep the rail tidy.
-//   - Propose form: rendered only when the player country sits on the
-//     scenario's `unCouncilMembers` list.
+// Progressive-disclosure layout:
+//   - PanelHero: active resolutions count + "Council member: Yes/No" pill,
+//     proposed-count quick-stat when the player is on the council.
+//   - Primary action: sticky "Propose resolution" footer (humanitarian, no
+//     target needed) — disabled with a tooltip when the player isn't on
+//     the council.
+//   - Collapsed: full active list, history, and the rich propose form. All
+//     live inside a single <Disclosure> so the rail isn't a wall of cards.
 //
 // All visible strings go through `useTranslations`. Engine errors surface
 // through the standard panel `onErrors` callback so the play-screen toast
@@ -30,8 +32,9 @@ import {
 } from '../../lib/store';
 import { ScenarioId } from '../../lib/scenarios';
 import { ActionButton } from './shared/ActionButton';
+import { Disclosure } from './shared/Disclosure';
 import { EmptyState } from './shared/EmptyState';
-import { Section } from './shared/Section';
+import { PanelHero } from './shared/PanelHero';
 import { StickyFooter } from './shared/StickyFooter';
 import { useScenarioMessages } from './shared/useScenarioMessages';
 import { UNProposeForm } from './UNProposeForm';
@@ -91,18 +94,20 @@ export function UNPanel({
   }, [state, player, tScenario]);
 
   // Active vs historical buckets — defensive against missing field.
-  const { active, history } = useMemo(() => {
+  const { active, history, proposedByMe } = useMemo(() => {
     const all: UNResolution[] = state?.unResolutions ?? [];
     const a: UNResolution[] = [];
     const h: UNResolution[] = [];
+    let proposed = 0;
     for (const r of all) {
       if (r.status === 'voting') a.push(r);
       else h.push(r);
+      if (player && r.proposerCountryId === player.id) proposed += 1;
     }
     // History: most recent first, cap at HISTORY_CAP.
     h.sort((x, y) => y.votingClosesAtTick - x.votingClosesAtTick);
-    return { active: a, history: h.slice(0, HISTORY_CAP) };
-  }, [state]);
+    return { active: a, history: h.slice(0, HISTORY_CAP), proposedByMe: proposed };
+  }, [state, player]);
 
   // ---------- early returns ----------
 
@@ -168,98 +173,127 @@ export function UNPanel({
     return errors;
   };
 
+  // Count of yes/no votes the player has cast in history (a rough "votes won"
+  // proxy: passed resolutions the player voted yes on, plus failed ones the
+  // player voted no on). We surface only the count, not the breakdown, to
+  // keep the hero quick-stat minimal.
+  const votesWon = history.reduce((acc, r) => {
+    const myVote = r.votes?.[player.id];
+    if (!myVote) return acc;
+    if (r.status === 'passed' && myVote === 'yes') return acc + 1;
+    if ((r.status === 'failed' || r.status === 'vetoed') && myVote === 'no') {
+      return acc + 1;
+    }
+    return acc;
+  }, 0);
+
   return (
     <div className="flex flex-col gap-4 p-4">
-      {/* Header strip */}
-      <header className="flex items-center justify-between gap-2 border-b border-border pb-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-          {t('title')}
-        </h2>
-        <span
-          className={
-            playerIsCouncil
-              ? 'font-mono text-[10px] uppercase tracking-[0.14em] text-success'
-              : 'font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint'
-          }
+      {/* Hero — active resolutions count + council membership pill. */}
+      <PanelHero
+        title={t('title')}
+        value={active.length}
+        valueTone={active.length > 0 ? 'info' : 'muted'}
+        quickStats={[
+          {
+            label: t('councilMember'),
+            value: playerIsCouncil ? t('councilYes') : t('councilNo'),
+          },
+          { label: t('heroVotesWon'), value: votesWon },
+          { label: t('heroProposed'), value: proposedByMe },
+        ]}
+      />
+
+      {/* Collapsed details — active list, history, propose form. */}
+      <Disclosure summary={tShared('moreDetails')} trailing={t('details')}>
+        {/* Active resolutions */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+              {t('active')}
+            </div>
+            <span className="text-[11px] font-mono text-fg-faint">
+              {active.length}
+            </span>
+          </div>
+          {!onuAvailable ? (
+            <EmptyState>{t('unavailable')}</EmptyState>
+          ) : active.length === 0 ? (
+            <EmptyState>{t('empty')}</EmptyState>
+          ) : (
+            <ul className="flex flex-col divide-y divide-border">
+              {active.map((r) => (
+                <li key={r.id}>
+                  <UNResolutionCard
+                    resolution={r}
+                    currentTick={state.tick}
+                    playerCountryId={player.id}
+                    councilMemberIds={councilMembers}
+                    countryName={countryName}
+                    regionName={regionName}
+                    tScenario={tScenario}
+                    onErrors={onErrors}
+                    onVote={handleVote}
+                    onVeto={playerIsCouncil ? handleVeto : undefined}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* History (nested disclosure — even within "Più dettagli" the
+            history is supplementary). */}
+        <Disclosure
+          summary={t('history')}
+          trailing={`${history.length}`}
+          className="border-t border-border"
         >
-          {playerIsCouncil ? t('councilMember') : t('notCouncilMember')}
-        </span>
-      </header>
+          {history.length === 0 ? (
+            <EmptyState>{t('historyEmpty')}</EmptyState>
+          ) : (
+            <ul className="flex flex-col divide-y divide-border">
+              {history.map((r) => (
+                <li key={r.id}>
+                  <UNResolutionCard
+                    resolution={r}
+                    currentTick={state.tick}
+                    playerCountryId={player.id}
+                    councilMemberIds={councilMembers}
+                    countryName={countryName}
+                    regionName={regionName}
+                    tScenario={tScenario}
+                    onErrors={onErrors}
+                    onVote={handleVote}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Disclosure>
 
-      {/* Active resolutions */}
-      <Section title={t('active')} trailing={`${active.length}`}>
-        {!onuAvailable ? (
-          <EmptyState>{t('unavailable')}</EmptyState>
-        ) : active.length === 0 ? (
-          <EmptyState>{t('empty')}</EmptyState>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border">
-            {active.map((r) => (
-              <li key={r.id}>
-                <UNResolutionCard
-                  resolution={r}
-                  currentTick={state.tick}
-                  playerCountryId={player.id}
-                  councilMemberIds={councilMembers}
-                  countryName={countryName}
-                  regionName={regionName}
-                  tScenario={tScenario}
-                  onErrors={onErrors}
-                  onVote={handleVote}
-                  onVeto={playerIsCouncil ? handleVeto : undefined}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
-
-      {/* History */}
-      <Section
-        title={t('history')}
-        trailing={`${history.length}`}
-        defaultOpen={false}
-      >
-        {history.length === 0 ? (
-          <EmptyState>{t('historyEmpty')}</EmptyState>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border">
-            {history.map((r) => (
-              <li key={r.id}>
-                <UNResolutionCard
-                  resolution={r}
-                  currentTick={state.tick}
-                  playerCountryId={player.id}
-                  councilMemberIds={councilMembers}
-                  countryName={countryName}
-                  regionName={regionName}
-                  tScenario={tScenario}
-                  onErrors={onErrors}
-                  onVote={handleVote}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
-
-      {/* Propose */}
-      <Section title={t('propose.title')} defaultOpen={false}>
-        {!onuAvailable ? (
-          <EmptyState>{t('unavailable')}</EmptyState>
-        ) : !playerIsCouncil ? (
-          <EmptyState>{t('propose.notCouncil')}</EmptyState>
-        ) : (
-          <UNProposeForm
-            countries={countryOptions}
-            regions={regions}
-            countryName={countryName}
-            regionName={regionName}
-            onSubmit={handlePropose}
-            onErrors={onErrors}
-          />
-        )}
-      </Section>
+        {/* Propose form (nested disclosure — closed by default; the sticky
+            footer offers the one-tap humanitarian path). */}
+        <Disclosure
+          summary={t('propose.title')}
+          className="border-t border-border"
+        >
+          {!onuAvailable ? (
+            <EmptyState>{t('unavailable')}</EmptyState>
+          ) : !playerIsCouncil ? (
+            <EmptyState>{t('propose.notCouncil')}</EmptyState>
+          ) : (
+            <UNProposeForm
+              countries={countryOptions}
+              regions={regions}
+              countryName={countryName}
+              regionName={regionName}
+              onSubmit={handlePropose}
+              onErrors={onErrors}
+            />
+          )}
+        </Disclosure>
+      </Disclosure>
 
       {/* Sticky primary action — "Propose resolution" pinned at the bottom.
           Enabled only for council members (the spec scopes propose to the

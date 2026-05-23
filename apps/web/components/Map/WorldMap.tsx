@@ -65,8 +65,12 @@ import {
   PLAY_BOUNDS,
   REGIONS,
   validateGeometry,
+  type BiomeKind,
+  type BiomeLayer,
+  type MountainRange,
   type NationPosition,
   type RegionDef,
+  type River,
 } from './regions';
 import { MC_NATION_POSITIONS, MC_REGIONS } from './regions-mc';
 import { GF_NATION_POSITIONS, GF_REGIONS } from './regions-gf';
@@ -571,6 +575,14 @@ export default function WorldMap() {
             <stop offset="0%" stopColor="var(--color-fg)" stopOpacity={0.02} />
             <stop offset="100%" stopColor="var(--color-fg)" stopOpacity={0} />
           </linearGradient>
+          {/* Sea depth gradient — faint blueish gradient that gives the
+              "ocean" a sense of depth: lighter at the top, deeper at the
+              bottom. Painted across the whole PLAY_BOUNDS, sits above the
+              base bg and below the regions. */}
+          <linearGradient id="map-sea-depth" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="oklch(0.15 0.04 240)" stopOpacity={1} />
+            <stop offset="100%" stopColor="oklch(0.09 0.04 240)" stopOpacity={1} />
+          </linearGradient>
         </defs>
 
         {/* Background — captures clicks to clear selection. Solid page bg,
@@ -587,6 +599,19 @@ export default function WorldMap() {
           width={MAP_VIEWBOX.width + 400}
           height={MAP_VIEWBOX.height + 400}
           fill="var(--color-bg)"
+        />
+        {/* Sea depth gradient — gives the ocean a sense of depth so the
+            map no longer reads as "coloured puddles floating on flat bg".
+            Painted only inside PLAY_BOUNDS so the area outside (used for
+            overscan) keeps the solid bg colour. */}
+        <rect
+          x={PLAY_BOUNDS.x}
+          y={PLAY_BOUNDS.y}
+          width={PLAY_BOUNDS.width}
+          height={PLAY_BOUNDS.height}
+          fill="url(#map-sea-depth)"
+          fillOpacity={0.55}
+          pointerEvents="none"
         />
         <rect
           x={PLAY_BOUNDS.x}
@@ -883,6 +908,38 @@ type RegionsProps = {
   translate: (key: string) => string;
 };
 
+// Biome → fill colour. Uses CSS `color-mix()` against the parent region
+// fill so biome tints stay in the same hue family but read as variation
+// (tundra = lighter & cooler, forest = darker & greener, desert = paler &
+// warmer, etc.). Falls back to a literal token if the region doesn't carry
+// a recognisable CSS variable.
+function biomeFillFor(kind: BiomeKind, regionFill: string): string {
+  switch (kind) {
+    case 'tundra':
+      return `color-mix(in oklch, ${regionFill}, white 35%)`;
+    case 'forest':
+      return `color-mix(in oklch, ${regionFill}, oklch(0.30 0.06 145) 55%)`;
+    case 'grassland':
+      return `color-mix(in oklch, ${regionFill}, oklch(0.65 0.07 130) 35%)`;
+    case 'desert':
+      return `color-mix(in oklch, ${regionFill}, oklch(0.80 0.06 85) 45%)`;
+    case 'savanna':
+      return `color-mix(in oklch, ${regionFill}, oklch(0.60 0.08 100) 40%)`;
+    case 'oasis':
+      return `color-mix(in oklch, ${regionFill}, oklch(0.55 0.10 160) 60%)`;
+    case 'highland':
+      return `color-mix(in oklch, ${regionFill}, oklch(0.32 0.04 250) 45%)`;
+    case 'fertile':
+      return `color-mix(in oklch, ${regionFill}, oklch(0.65 0.10 135) 40%)`;
+    case 'coastal':
+      return `color-mix(in oklch, ${regionFill}, white 22%)`;
+    case 'volcanic':
+      return `color-mix(in oklch, ${regionFill}, black 45%)`;
+    default:
+      return regionFill;
+  }
+}
+
 function Regions({
   regions,
   order,
@@ -916,8 +973,39 @@ function Regions({
             : overlay === 'blocs' && blocTintKey
               ? 0.5
               : 0.82;
+        // Only paint terrain (biomes / mountains / rivers / relief / coast
+        // glow) for the base "ink" view. The tension / bloc overlays carry
+        // their own meaning and the terrain detail would muddy the read.
+        const showTerrain = overlay === 'none' || overlay === 'alliances' || overlay === 'intel';
+        const hasBiomes = showTerrain && r.biomes && r.biomes.length > 0;
+        const clipId = `region-clip-${id}`;
         return (
           <g key={id}>
+            {/* Clip-path scoped to this region — biome blobs that overhang
+                the silhouette get cleanly trimmed at the coastline. */}
+            {hasBiomes ? (
+              <defs>
+                <clipPath id={clipId}>
+                  <path d={r.pathD} />
+                </clipPath>
+              </defs>
+            ) : null}
+
+            {/* Coastline glow — a wider, lighter stroke sitting *under* the
+                region fill to suggest a beach / shoreline rim around the
+                landmass. Only painted in terrain-friendly overlay modes. */}
+            {showTerrain ? (
+              <path
+                d={r.pathD}
+                fill="none"
+                stroke={`color-mix(in oklch, ${r.fill}, white 35%)`}
+                strokeWidth={3}
+                strokeOpacity={0.5}
+                pointerEvents="none"
+              />
+            ) : null}
+
+            {/* Region base fill. */}
             <path
               d={r.pathD}
               fill={fill}
@@ -926,11 +1014,148 @@ function Regions({
               strokeWidth={1}
               fillOpacity={fillOpacity}
             />
+
+            {/* Relief light — NW highlight + SE shadow as duplicated path
+                strokes nudged in opposite directions. Opacity kept low so
+                the effect reads as "lit by a low sun" rather than a frame.
+                Painted above the base fill so it modulates the silhouette
+                directly. Only in terrain-friendly modes. */}
+            {showTerrain ? (
+              <>
+                <path
+                  d={r.pathD}
+                  fill="none"
+                  stroke="white"
+                  strokeOpacity={0.1}
+                  strokeWidth={1}
+                  pointerEvents="none"
+                  transform="translate(-1, -1)"
+                />
+                <path
+                  d={r.pathD}
+                  fill="none"
+                  stroke="black"
+                  strokeOpacity={0.14}
+                  strokeWidth={1}
+                  pointerEvents="none"
+                  transform="translate(1, 1)"
+                />
+              </>
+            ) : null}
+
+            {/* Biome sub-fills — clipped to the region silhouette so any
+                ellipse / blob authored slightly outside is trimmed cleanly. */}
+            {hasBiomes ? (
+              <g clipPath={`url(#${clipId})`} pointerEvents="none">
+                {r.biomes!.map((b, bIdx) => (
+                  <BiomeShape key={`biome-${id}-${bIdx}`} biome={b} regionFill={r.fill} />
+                ))}
+              </g>
+            ) : null}
+
+            {/* Mountain ranges — triangle clusters. Painted above biomes so
+                the ridge reads as relief on top of the underlying terrain. */}
+            {showTerrain && r.mountains
+              ? r.mountains.map((range, mIdx) => (
+                  <MountainRangeShape
+                    key={`mtn-${id}-${mIdx}`}
+                    range={range}
+                    regionFill={r.fill}
+                  />
+                ))
+              : null}
+
+            {/* Rivers — thin meandering lines from mountains to coast. */}
+            {showTerrain && r.rivers
+              ? r.rivers.map((river, rIdx) => (
+                  <RiverShape key={`riv-${id}-${rIdx}`} river={river} />
+                ))
+              : null}
+
             <RegionLabel region={r} label={translate(r.nameKey)} index={idx} />
           </g>
         );
       })}
     </g>
+  );
+}
+
+function BiomeShape({
+  biome,
+  regionFill,
+}: {
+  biome: BiomeLayer;
+  regionFill: string;
+}) {
+  const fill = biome.fill ?? biomeFillFor(biome.kind, regionFill);
+  const opacity = biome.opacity ?? 0.35;
+  if (biome.pathD) {
+    return <path d={biome.pathD} fill={fill} fillOpacity={opacity} />;
+  }
+  if (
+    biome.cx !== undefined &&
+    biome.cy !== undefined &&
+    biome.rx !== undefined &&
+    biome.ry !== undefined
+  ) {
+    return (
+      <ellipse
+        cx={biome.cx}
+        cy={biome.cy}
+        rx={biome.rx}
+        ry={biome.ry}
+        fill={fill}
+        fillOpacity={opacity}
+      />
+    );
+  }
+  return null;
+}
+
+function MountainRangeShape({
+  range,
+  regionFill,
+}: {
+  range: MountainRange;
+  regionFill: string;
+}) {
+  const fill =
+    range.fill ?? `color-mix(in oklch, ${regionFill}, black 35%)`;
+  return (
+    <g pointerEvents="none">
+      {range.peaks.map((p, i) => {
+        const apex = `${p.x + p.width / 2},${p.y - p.height}`;
+        const baseL = `${p.x},${p.y}`;
+        const baseR = `${p.x + p.width},${p.y}`;
+        return (
+          <polygon
+            key={`peak-${i}`}
+            points={`${baseL} ${apex} ${baseR}`}
+            fill={fill}
+            fillOpacity={0.75}
+            stroke="var(--color-fg-muted)"
+            strokeOpacity={0.3}
+            strokeWidth={0.5}
+            strokeLinejoin="round"
+          />
+        );
+      })}
+    </g>
+  );
+}
+
+function RiverShape({ river }: { river: River }) {
+  return (
+    <path
+      d={river.pathD}
+      fill="none"
+      stroke="var(--color-info)"
+      strokeOpacity={river.opacity ?? 0.45}
+      strokeWidth={river.width ?? 1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      pointerEvents="none"
+    />
   );
 }
 

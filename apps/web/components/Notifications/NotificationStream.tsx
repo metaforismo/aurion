@@ -5,17 +5,27 @@
 // auto-pause path the engine uses (the EventModal will be on screen because
 // `selectHasOpenEvent` is true).
 //
-// Collapse behaviour: when there are zero events, the rail collapses to a
-// 32px-wide bar with a single bell icon (no wasted whitespace). The user can
-// click the bar to expand it back to the full width — and as soon as the
-// engine pushes a new event, the rail auto-expands. The width transition is
-// animated (200ms) so the change reads as deliberate rather than jumpy.
+// Width behaviour (no friction — the rail never hides itself unprompted):
+//   - Default (zero events): MEDIUM rail (~14rem) showing title + empty line.
+//   - Notifications arrive   : auto-expands to FULL (~20rem), animated 200ms.
+//   - User clicks "Riduci"   : collapses to a slim 4rem rail with the
+//                              stacked count badge (the only collapsed state,
+//                              entered only via explicit user action).
+//   - Persistence            : the "I prefer collapsed" choice is stored in
+//                              localStorage under `aurion.notificationsRail.collapsed`
+//                              so it survives reloads, but a new notification
+//                              still forces the slim rail to surface its count
+//                              without flipping the preference.
+//
+// The parent (play page) drives the column width via the `--rail-w` CSS
+// variable on the grid container. We compute the desired width here and
+// publish it through the `onWidthChange` callback so the page stays a dumb
+// host.
 
 'use client';
 
-import { Bell } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GameEvent } from '@aurion/engine';
 
 import { cn } from '../../lib/cn';
@@ -26,7 +36,24 @@ import { NotificationItem } from './NotificationItem';
 
 const MAX_VISIBLE = 15;
 
-export function NotificationStream() {
+/** localStorage key for the user's "I prefer the slim rail" preference. */
+const COLLAPSED_PREF_KEY = 'aurion.notificationsRail.collapsed';
+
+/** Tailwind widths — kept in sync with the CSS var values published below. */
+const RAIL_W = {
+  collapsed: '4rem',
+  medium: '14rem',
+  full: '20rem',
+} as const;
+
+export type NotificationStreamProps = {
+  /** Receives the desired column width (e.g. "20rem") whenever the rail
+   * decides to grow or shrink. The parent forwards it into the grid's
+   * `--rail-w` CSS variable. */
+  onWidthChange?: (width: string) => void;
+};
+
+export function NotificationStream({ onWidthChange }: NotificationStreamProps = {}) {
   const events = useGameStore((s) => s.state?.events ?? EMPTY_EVENTS);
   const tick = useGameStore((s) => s.state?.tick ?? 0);
   const scenario = useGameStore((s) => s.scenario);
@@ -34,11 +61,43 @@ export function NotificationStream() {
 
   const listRef = useRef<HTMLOListElement | null>(null);
 
-  // User-driven expand flag — only consulted while the queue is empty. Once a
-  // notification arrives we force-expand so the player never misses an
-  // incoming event. Defaults to collapsed: a fresh game has zero events and
-  // there's no reason to claim the full width.
-  const [userExpanded, setUserExpanded] = useState(false);
+  // User preference — only meaningful for the slim collapsed state. Hydrated
+  // from localStorage on mount; null until then so the first paint matches
+  // the server output (no flash). Defaults to `false` (rail visible).
+  const [collapsedPref, setCollapsedPref] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(COLLAPSED_PREF_KEY);
+      // External system synchronisation (localStorage → React state) — the
+      // codebase uses this same exception in `lib/ticker.ts` and
+      // `components/Tutorial/TutorialOverlay.tsx`.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCollapsedPref(stored === 'true');
+    } catch {
+      // localStorage unavailable (private mode, quota, etc.) — fall back to
+      // the visible default.
+      setCollapsedPref(false);
+    }
+  }, []);
+
+  const persistCollapsed = useCallback((value: boolean) => {
+    try {
+      window.localStorage.setItem(COLLAPSED_PREF_KEY, value ? 'true' : 'false');
+    } catch {
+      // Best-effort — silently degrade.
+    }
+  }, []);
+
+  const collapse = useCallback(() => {
+    setCollapsedPref(true);
+    persistCollapsed(true);
+  }, [persistCollapsed]);
+
+  const expand = useCallback(() => {
+    setCollapsedPref(false);
+    persistCollapsed(false);
+  }, [persistCollapsed]);
 
   // Newest-first slice for display.
   const visible = useMemo(() => {
@@ -57,25 +116,51 @@ export function NotificationStream() {
     el.scrollTop = 0;
   }, [lastFired]);
 
-  // A non-empty queue forces the expanded layout. Otherwise honour the user
-  // toggle (defaults to collapsed).
-  const isCollapsed = events.length === 0 && !userExpanded;
+  // Resolve the rail's mode. Three states:
+  //   collapsed → user opted in (and the queue starts empty). New events
+  //               surface the count but DO NOT flip the preference.
+  //   medium    → queue empty, user hasn't collapsed.
+  //   full      → queue non-empty AND user hasn't collapsed.
+  const isCollapsed = collapsedPref === true;
+  const mode: 'collapsed' | 'medium' | 'full' = isCollapsed
+    ? 'collapsed'
+    : events.length === 0
+      ? 'medium'
+      : 'full';
 
-  if (isCollapsed) {
+  // Publish the column width to the parent. Skipped while we're still
+  // hydrating the preference (collapsedPref === null) so the parent keeps
+  // its initial default.
+  useEffect(() => {
+    if (collapsedPref === null) return;
+    onWidthChange?.(RAIL_W[mode]);
+  }, [mode, collapsedPref, onWidthChange]);
+
+  if (mode === 'collapsed') {
+    // Slim rail. Stacks "N NOT" vertically and exposes an expand affordance.
+    // The label switches to the i18n-friendly abbreviation; we keep "NOT" in
+    // both locales because it's a short, language-neutral cap.
+    const count = events.length;
     return (
       <aside
-        className="flex h-full min-h-0 w-8 flex-col items-center border border-border bg-bg py-3 transition-[width] duration-200 ease-out"
+        className="flex h-full min-h-0 w-16 flex-col items-center justify-start gap-2 border border-border bg-bg py-3 transition-[width] duration-200 ease-out"
         aria-label={t('title')}
+        data-rail-mode="collapsed"
       >
         <button
           type="button"
-          onClick={() => setUserExpanded(true)}
+          onClick={expand}
           aria-expanded={false}
-          aria-label={t('title')}
-          title={t('title')}
-          className="flex h-6 w-6 items-center justify-center text-fg-faint transition-colors hover:text-fg"
+          aria-label={t('expand')}
+          title={t('expand')}
+          className="flex w-full flex-col items-center gap-1 px-1 text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         >
-          <Bell aria-hidden="true" className="h-3.5 w-3.5" />
+          <span className="numeric-tabular font-mono text-sm leading-none">
+            {count}
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] leading-none text-fg-faint">
+            {t('countAbbr')}
+          </span>
         </button>
       </aside>
     );
@@ -83,25 +168,39 @@ export function NotificationStream() {
 
   return (
     <aside
-      className="flex h-full min-h-0 w-full flex-col gap-2 border border-border bg-bg p-3 transition-[width] duration-200 ease-out"
+      className={cn(
+        'flex h-full min-h-0 w-full flex-col gap-2 border border-border bg-bg p-3 transition-[width] duration-200 ease-out',
+      )}
       aria-label={t('title')}
+      data-rail-mode={mode}
     >
-      <header className="flex items-baseline justify-between border-b border-border pb-2">
+      <header className="flex items-baseline justify-between gap-2 border-b border-border pb-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
           {t('title')}
         </h2>
-        <span
-          className={cn(
-            'numeric-tabular font-mono text-[10px] text-fg-faint',
-            events.length === 0 && 'sr-only',
-          )}
-        >
-          {visible.length}/{events.length}
-        </span>
+        <div className="flex items-baseline gap-2">
+          <span
+            className={cn(
+              'numeric-tabular font-mono text-[10px] text-fg-faint',
+              events.length === 0 && 'sr-only',
+            )}
+          >
+            {visible.length}/{events.length}
+          </span>
+          <button
+            type="button"
+            onClick={collapse}
+            aria-label={t('collapse')}
+            title={t('collapse')}
+            className="rounded-sm px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-fg-faint transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          >
+            {t('collapseShort')}
+          </button>
+        </div>
       </header>
       {visible.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-1 py-4 text-center text-xs italic text-fg-faint">
-          {t('empty')}
+        <div className="flex flex-1 items-center justify-center px-2 py-4 text-center text-xs italic leading-relaxed text-fg-faint">
+          {t('emptyDetailed')}
         </div>
       ) : (
         <ol

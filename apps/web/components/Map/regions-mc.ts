@@ -49,6 +49,31 @@ export const MC_REGIONS: Record<string, RegionDef> = {
       'C 75 140, 75 120, 90 110 Z',
     ].join(' '),
     bounds: { x: 60, y: 90, w: 380, h: 740 },
+    biomes: [
+      // Amazon forest in central South America.
+      { kind: 'forest', cx: 230, cy: 650, rx: 80, ry: 90, opacity: 0.4 },
+      // Great Plains / midwest.
+      { kind: 'grassland', cx: 230, cy: 250, rx: 75, ry: 70, opacity: 0.3 },
+    ],
+    mountains: [
+      {
+        // Rockies + Andes — a single long N-S spine on the west.
+        peaks: [
+          { x: 130, y: 200, width: 12, height: 10 },
+          { x: 130, y: 250, width: 13, height: 11 },
+          { x: 140, y: 310, width: 12, height: 10 },
+          { x: 160, y: 380, width: 11, height: 9 },
+          { x: 175, y: 450, width: 12, height: 10 },
+          { x: 180, y: 560, width: 12, height: 10 },
+          { x: 195, y: 650, width: 13, height: 11 },
+          { x: 200, y: 740, width: 11, height: 9 },
+        ],
+      },
+    ],
+    rivers: [
+      // Amazon east-flowing.
+      { pathD: 'M 200 660 C 250 670, 290 660, 320 690 C 330 705, 325 720, 320 720' },
+    ],
   },
 
   'mc-europe': {
@@ -83,6 +108,26 @@ export const MC_REGIONS: Record<string, RegionDef> = {
       'C 528 202, 527 200, 525 200 Z',
     ].join(' '),
     bounds: { x: 510, y: 140, w: 300, h: 210 },
+    biomes: [
+      // Mediterranean coastal south.
+      { kind: 'coastal', cx: 690, cy: 305, rx: 80, ry: 30, opacity: 0.32 },
+      // Central forested heartland.
+      { kind: 'forest', cx: 680, cy: 230, rx: 70, ry: 50, opacity: 0.38 },
+    ],
+    mountains: [
+      {
+        // Alps — a small east-west cluster across central Europe.
+        peaks: [
+          { x: 650, y: 270, width: 12, height: 10 },
+          { x: 685, y: 265, width: 14, height: 12 },
+          { x: 720, y: 275, width: 12, height: 10 },
+        ],
+      },
+    ],
+    rivers: [
+      // Danube-ish, west to east.
+      { pathD: 'M 650 270 C 690 280, 720 285, 760 300' },
+    ],
   },
 
   'mc-africa': {
@@ -107,6 +152,28 @@ export const MC_REGIONS: Record<string, RegionDef> = {
       'C 600 372, 600 368, 600 365 Z',
     ].join(' '),
     bounds: { x: 580, y: 345, w: 295, h: 480 },
+    biomes: [
+      // Sahara across the north.
+      { kind: 'desert', cx: 720, cy: 420, rx: 130, ry: 55, opacity: 0.4 },
+      // Congo basin forest.
+      { kind: 'forest', cx: 690, cy: 620, rx: 70, ry: 70, opacity: 0.4 },
+      // Southern savanna.
+      { kind: 'savanna', cx: 680, cy: 760, rx: 70, ry: 40, opacity: 0.3 },
+    ],
+    mountains: [
+      {
+        // Ethiopian highlands — small east-side cluster.
+        peaks: [
+          { x: 820, y: 500, width: 11, height: 9 },
+          { x: 845, y: 510, width: 13, height: 11 },
+          { x: 830, y: 535, width: 11, height: 9 },
+        ],
+      },
+    ],
+    rivers: [
+      // Nile-ish, north flowing.
+      { pathD: 'M 760 700 C 770 600, 760 500, 770 410' },
+    ],
   },
 
   'mc-middle-east': {
@@ -127,6 +194,26 @@ export const MC_REGIONS: Record<string, RegionDef> = {
       'C 825 320, 823 305, 830 290 Z',
     ].join(' '),
     bounds: { x: 815, y: 280, w: 185, h: 175 },
+    biomes: [
+      // Arabian desert.
+      { kind: 'desert', cx: 905, cy: 380, rx: 70, ry: 50, opacity: 0.4 },
+      // Fertile crescent strip.
+      { kind: 'fertile', cx: 880, cy: 320, rx: 60, ry: 20, opacity: 0.35 },
+    ],
+    mountains: [
+      {
+        // Zagros — east cluster.
+        peaks: [
+          { x: 950, y: 350, width: 11, height: 9 },
+          { x: 975, y: 360, width: 13, height: 11 },
+          { x: 965, y: 380, width: 11, height: 9 },
+        ],
+      },
+    ],
+    rivers: [
+      // Tigris-Euphrates-ish.
+      { pathD: 'M 950 320 C 920 360, 900 400, 905 440' },
+    ],
   },
 
   'mc-asia-pacific': {
@@ -185,6 +272,30 @@ export const MC_REGIONS: Record<string, RegionDef> = {
       'C 1303 561, 1302 560, 1300 560 Z',
     ].join(' '),
     bounds: { x: 1010, y: 105, w: 540, h: 470 },
+    biomes: [
+      // Siberian forest north.
+      { kind: 'forest', cx: 1300, cy: 180, rx: 160, ry: 50, opacity: 0.4 },
+      // Gobi / steppe central.
+      { kind: 'grassland', cx: 1310, cy: 260, rx: 130, ry: 35, opacity: 0.3 },
+      // SE Asia tropical.
+      { kind: 'forest', cx: 1110, cy: 430, rx: 50, ry: 40, opacity: 0.4 },
+    ],
+    mountains: [
+      {
+        // Himalayas — a strong east-west spine.
+        peaks: [
+          { x: 1080, y: 340, width: 13, height: 11 },
+          { x: 1130, y: 335, width: 15, height: 13 },
+          { x: 1180, y: 340, width: 14, height: 12 },
+          { x: 1235, y: 345, width: 13, height: 11 },
+          { x: 1290, y: 350, width: 12, height: 10 },
+        ],
+      },
+    ],
+    rivers: [
+      // Ganges-ish, south flowing from Himalayas.
+      { pathD: 'M 1130 345 C 1100 400, 1080 460, 1060 500' },
+    ],
   },
 
   'mc-oceania': {
@@ -213,6 +324,26 @@ export const MC_REGIONS: Record<string, RegionDef> = {
       'C 1513 851, 1512 850, 1510 850 Z',
     ].join(' '),
     bounds: { x: 1210, y: 695, w: 310, h: 165 },
+    biomes: [
+      // Outback desert centre.
+      { kind: 'desert', cx: 1355, cy: 760, rx: 100, ry: 40, opacity: 0.4 },
+      // Eastern coastal greenery.
+      { kind: 'coastal', cx: 1450, cy: 760, rx: 25, ry: 45, opacity: 0.3 },
+    ],
+    mountains: [
+      {
+        // Great Dividing Range — east coast.
+        peaks: [
+          { x: 1440, y: 740, width: 11, height: 9 },
+          { x: 1450, y: 760, width: 12, height: 10 },
+          { x: 1445, y: 785, width: 11, height: 9 },
+        ],
+      },
+    ],
+    rivers: [
+      // Murray river-ish.
+      { pathD: 'M 1450 760 C 1400 780, 1340 790, 1290 785' },
+    ],
   },
 };
 

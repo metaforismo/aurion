@@ -1,8 +1,12 @@
 // Politics system panel.
-// - Big popularity dial
-// - 5 faction rows with satisfaction + influence + "placate" action
-// - Government type display
-// - Recent political events list (filtered by EventTag taxonomy)
+//
+// Progressive-disclosure layout:
+//   - PanelHero: popularity as the BIG number, semantic colour band (success
+//     ≥ 60, warning ≥ 30, danger below). Quick-stats: faction count + avg
+//     satisfaction.
+//   - Primary action: "Placate weakest faction" pinned in the sticky footer.
+//   - Collapsed: popularity dial, government type, full faction breakdown
+//     with per-row placate buttons, and the recent-events log.
 
 'use client';
 
@@ -24,8 +28,9 @@ import {
 } from '../../lib/store';
 import { ScenarioId } from '../../lib/scenarios';
 import { ActionButton } from './shared/ActionButton';
+import { Disclosure } from './shared/Disclosure';
 import { EmptyState } from './shared/EmptyState';
-import { Section } from './shared/Section';
+import { PanelHero } from './shared/PanelHero';
 import { StatBar } from './shared/StatBar';
 import { StickyFooter } from './shared/StickyFooter';
 import { useScenarioMessages } from './shared/useScenarioMessages';
@@ -125,148 +130,177 @@ export function PoliticsPanel({
   // accent token unconditionally so the gauge stays visually anchored.
   const popularityTone =
     politics.popularity >= 60
-      ? 'text-success'
+      ? 'success'
       : politics.popularity >= 30
-        ? 'text-warning'
-        : 'text-danger';
+        ? 'warning'
+        : 'danger';
+
+  // Find the weakest faction so the sticky CTA can target it directly.
+  let weakestId: FactionId = FACTION_IDS[0]!;
+  let weakestSat = Infinity;
+  let satTotal = 0;
+  for (const fid of FACTION_IDS) {
+    const sat = politics.factions[fid]?.satisfaction ?? 100;
+    satTotal += sat;
+    if (sat < weakestSat) {
+      weakestSat = sat;
+      weakestId = fid;
+    }
+  }
+  const avgSat = satTotal / FACTION_IDS.length;
+  const cantAfford = treasury < PLACATE_COST;
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      {/* Popularity dial */}
-      <div className="flex flex-col items-center gap-2 border-b border-border pb-4">
-        <PopularityDial value={politics.popularity} />
-        <div className="text-center">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('popularity')}
-          </div>
-          <div
-            className={cn(
-              'numeric-tabular font-mono text-2xl',
-              popularityTone,
-            )}
-          >
-            {Math.round(politics.popularity)}%
+      {/* Hero — popularity as the BIG number with semantic colour. */}
+      <PanelHero
+        title={t('title')}
+        value={`${Math.round(politics.popularity)}%`}
+        valueTone={popularityTone}
+        quickStats={[
+          { label: t('heroFactions'), value: FACTION_IDS.length },
+          {
+            label: t('heroAvgSatisfaction'),
+            value: `${Math.round(avgSat)}%`,
+          },
+        ]}
+      />
+
+      {/* Collapsed details — popularity dial, government type, factions,
+          political events. */}
+      <Disclosure summary={tShared('moreDetails')} trailing={t('details')}>
+        {/* Popularity dial */}
+        <div className="flex flex-col items-center gap-2 pb-3">
+          <PopularityDial value={politics.popularity} />
+          <div className="text-center">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+              {t('popularity')}
+            </div>
+            <div
+              className={cn(
+                'numeric-tabular font-mono text-2xl',
+                popularityTone === 'success'
+                  ? 'text-success'
+                  : popularityTone === 'warning'
+                    ? 'text-warning'
+                    : 'text-danger',
+              )}
+            >
+              {Math.round(politics.popularity)}%
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Government type */}
-      <div className="flex items-center justify-between border-b border-border pb-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-          {t('governmentType')}
-        </span>
-        <span className="font-mono text-xs text-fg">
-          {tRoot(GOVERNMENT_LABEL[politics.governmentType])}
-        </span>
-      </div>
+        {/* Government type */}
+        <div className="flex items-center justify-between border-t border-border pt-3">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {t('governmentType')}
+          </span>
+          <span className="font-mono text-xs text-fg">
+            {tRoot(GOVERNMENT_LABEL[politics.governmentType])}
+          </span>
+        </div>
 
-      {/* Factions */}
-      <Section title={t('factions.title')}>
-        <ul className="flex flex-col divide-y divide-border">
-          {FACTION_IDS.map((fid) => {
-            const f = politics.factions[fid];
-            const cantAfford = treasury < PLACATE_COST;
-            return (
-              <li
-                key={fid}
-                className="flex flex-col gap-2 py-3"
-              >
-                <div className="flex items-baseline justify-between">
-                  <span className="text-xs font-medium text-fg">
-                    {t(`faction.${fid}`)}
-                  </span>
-                  <span className="numeric-tabular font-mono text-[11px] text-fg-faint">
-                    {t('factions.influence', { n: Math.round(f.influence) })}
-                  </span>
-                </div>
-                <StatBar
-                  label={t('factions.satisfaction')}
-                  value={f.satisfaction}
-                  valueLabel={`${Math.round(f.satisfaction)}%`}
-                  tone={
-                    f.satisfaction >= 60
-                      ? 'positive'
-                      : f.satisfaction >= 30
-                        ? 'warning'
-                        : 'danger'
-                  }
-                />
-                <ActionButton
-                  tone="primary"
-                  cost={fmt.number(PLACATE_COST)}
-                  disabledReason={
-                    cantAfford ? tShared('insufficientTreasury') : null
-                  }
-                  onClick={handlePlacate(fid)}
-                  onErrors={onErrors}
+        {/* Factions */}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {t('factions.title')}
+          </div>
+          <ul className="flex flex-col divide-y divide-border">
+            {FACTION_IDS.map((fid) => {
+              const f = politics.factions[fid];
+              return (
+                <li
+                  key={fid}
+                  className="flex flex-col gap-2 py-3"
                 >
-                  {t('factions.placate')}
-                </ActionButton>
-              </li>
-            );
-          })}
-        </ul>
-      </Section>
-
-      {/* Recent political events */}
-      <Section
-        title={t('events.title')}
-        trailing={`${politicalEvents.length}`}
-      >
-        {politicalEvents.length === 0 ? (
-          <EmptyState>{t('events.empty')}</EmptyState>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border text-xs">
-            {politicalEvents.map((ev, i) => (
-              <li
-                key={`${ev.definitionId}-${ev.firedAtTick}-${i}`}
-                className="flex items-baseline justify-between gap-2 py-1.5"
-              >
-                <span className="truncate text-fg">
-                  {tScenario(`event.${ev.definitionId}.name`) || ev.definitionId}
-                </span>
-                <span className="numeric-tabular font-mono text-[10px] text-fg-faint">
-                  {t('events.atTick', { tick: ev.firedAtTick })}
-                </span>
-              </li>
-            ))}
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xs font-medium text-fg">
+                      {t(`faction.${fid}`)}
+                    </span>
+                    <span className="numeric-tabular font-mono text-[11px] text-fg-faint">
+                      {t('factions.influence', { n: Math.round(f.influence) })}
+                    </span>
+                  </div>
+                  <StatBar
+                    label={t('factions.satisfaction')}
+                    value={f.satisfaction}
+                    valueLabel={`${Math.round(f.satisfaction)}%`}
+                    tone={
+                      f.satisfaction >= 60
+                        ? 'positive'
+                        : f.satisfaction >= 30
+                          ? 'warning'
+                          : 'danger'
+                    }
+                  />
+                  <ActionButton
+                    tone="primary"
+                    cost={fmt.number(PLACATE_COST)}
+                    disabledReason={
+                      cantAfford ? tShared('insufficientTreasury') : null
+                    }
+                    onClick={handlePlacate(fid)}
+                    onErrors={onErrors}
+                  >
+                    {t('factions.placate')}
+                  </ActionButton>
+                </li>
+              );
+            })}
           </ul>
-        )}
-      </Section>
+        </div>
+
+        {/* Recent political events */}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <div className="flex items-baseline justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+              {t('events.title')}
+            </div>
+            <span className="text-[11px] font-mono text-fg-faint">
+              {politicalEvents.length}
+            </span>
+          </div>
+          {politicalEvents.length === 0 ? (
+            <EmptyState>{t('events.empty')}</EmptyState>
+          ) : (
+            <ul className="flex flex-col divide-y divide-border text-xs">
+              {politicalEvents.map((ev, i) => (
+                <li
+                  key={`${ev.definitionId}-${ev.firedAtTick}-${i}`}
+                  className="flex items-baseline justify-between gap-2 py-1.5"
+                >
+                  <span className="truncate text-fg">
+                    {tScenario(`event.${ev.definitionId}.name`) || ev.definitionId}
+                  </span>
+                  <span className="numeric-tabular font-mono text-[10px] text-fg-faint">
+                    {t('events.atTick', { tick: ev.firedAtTick })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Disclosure>
 
       {/* Sticky primary action — placate the *least* satisfied faction. This
           is the most common political action and the one most likely to keep
-          popularity from cratering, so it's the right pin. We compute the
-          target every render — the underlying map is tiny (5 entries). */}
-      {(() => {
-        const cantAfford = treasury < PLACATE_COST;
-        let weakestId: FactionId = FACTION_IDS[0]!;
-        let weakestSat = Infinity;
-        for (const fid of FACTION_IDS) {
-          const sat = politics.factions[fid]?.satisfaction ?? 100;
-          if (sat < weakestSat) {
-            weakestSat = sat;
-            weakestId = fid;
-          }
+          popularity from cratering, so it's the right pin. */}
+      <StickyFooter
+        hint={
+          cantAfford ? tShared('insufficientTreasury') : null
         }
-        return (
-          <StickyFooter
-            hint={
-              cantAfford ? tShared('insufficientTreasury') : null
-            }
-          >
-            <ActionButton
-              tone="primary"
-              cost={fmt.number(PLACATE_COST)}
-              disabledReason={cantAfford ? tShared('insufficientTreasury') : null}
-              onClick={handlePlacate(weakestId)}
-              onErrors={onErrors}
-            >
-              {`${t('factions.placate')}: ${t(`faction.${weakestId}`)}`}
-            </ActionButton>
-          </StickyFooter>
-        );
-      })()}
+      >
+        <ActionButton
+          tone="primary"
+          cost={fmt.number(PLACATE_COST)}
+          disabledReason={cantAfford ? tShared('insufficientTreasury') : null}
+          onClick={handlePlacate(weakestId)}
+          onErrors={onErrors}
+        >
+          {`${t('factions.placate')}: ${t(`faction.${weakestId}`)}`}
+        </ActionButton>
+      </StickyFooter>
     </div>
   );
 }

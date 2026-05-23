@@ -222,6 +222,11 @@
   "notifications": {
     "title": "Notifications",
     "empty": "No recent notifications",
+    "emptyDetailed": "All quiet. Notifications will appear here.",
+    "collapse": "Collapse the notifications rail",
+    "collapseShort": "← Collapse",
+    "expand": "Expand the notifications rail",
+    "countAbbr": "NOT",
     "actionRequired": "Decision required",
     "chose": "Chose: {label}",
     "justNow": "now",
@@ -401,6 +406,7 @@
     "enterAmount": "Enter a valid amount.",
     "prereqsMissing": "Prerequisites missing.",
     "cancel": "Cancel",
+    "moreDetails": "More details",
     "stickyAction": {
       "selectFirst": "Select first…",
       "economyHint": "Enter an amount above",
@@ -416,10 +422,13 @@
     }
   },
   "panelEconomy": {
+    "title": "Economy",
     "treasury": "Treasury",
     "weeklyIncome": "Weekly income",
+    "weeklyDelta": "{value}/wk",
     "gdp": "GDP",
     "taxRate": "Tax rate",
+    "details": "Sectors, fiscal policy & investments",
     "sectors": {
       "title": "GDP composition",
       "agriculture": "Agriculture",
@@ -446,6 +455,11 @@
     }
   },
   "panelResearch": {
+    "title": "Research",
+    "heroActive": "Active research",
+    "heroIdle": "No active research",
+    "heroAvailable": "{n} available",
+    "details": "Browse full tech tree by branch",
     "tab": {
       "label": "Research section",
       "techTree": "Tech tree",
@@ -486,7 +500,10 @@
     "cost": "Cost: {n}",
     "noPrereqs": "No prerequisites",
     "start": "Start research",
-    "emptyBranch": "No technology in this branch."
+    "emptyBranch": "No technology in this branch.",
+    "completed": "Completed",
+    "pointsPerWeek": "{n} pts/wk",
+    "pointsPerWeekLabel": "pts/wk"
   },
   "panelSpaceRace": {
     "title": "Space race",
@@ -504,6 +521,11 @@
     }
   },
   "panelMilitary": {
+    "title": "Military",
+    "heroAtPeace": "At peace",
+    "heroAtWar": "At war with {name}",
+    "heroAtWarMany": "At war ({count})",
+    "details": "Forces, deployments & war history",
     "armySize": "Army",
     "navy": "Navy",
     "airforce": "Air force",
@@ -569,6 +591,10 @@
     }
   },
   "panelSpies": {
+    "title": "Intelligence",
+    "heroActiveOps": "Active operations",
+    "heroAvgIntel": "Avg intel",
+    "details": "Operations history, intel by country & spy roster",
     "spyCount": "Available spies",
     "counterIntel": "Counter-intelligence",
     "composer": {
@@ -632,6 +658,11 @@
     }
   },
   "panelDiplomacy": {
+    "title": "Diplomacy",
+    "heroAllies": "Allies",
+    "heroOpenRequests": "Open requests",
+    "heroTensionsHigh": "{n} tense",
+    "details": "Browse every nation, treaties & trade flows",
     "countries": {
       "title": "Nations"
     },
@@ -676,6 +707,11 @@
     }
   },
   "panelPolitics": {
+    "title": "Internal politics",
+    "heroFactions": "Factions",
+    "heroAvgSatisfaction": "Avg satisfaction",
+    "details": "Factions, government type & political timeline",
+    "callElections": "Call elections",
     "popularity": "Popularity",
     "governmentType": "Government type",
     "government": {
@@ -706,6 +742,12 @@
   },
   "panelUN": {
     "title": "UN council",
+    "heroActiveResolutions": "Active resolutions",
+    "heroVotesWon": "Votes won",
+    "heroProposed": "Proposed",
+    "councilYes": "Yes",
+    "councilNo": "No",
+    "details": "Resolution history & bloc voting record",
     "active": "Resolutions in voting",
     "history": "Recent history",
     "empty": "No resolution currently in voting.",
@@ -1197,6 +1239,15 @@
       "early-cold-war": { "name": "Early Cold War" },
       "detente": { "name": "Détente" },
       "end-of-history": { "name": "End of History" }
+    }
+  },
+  "onboarding": {
+    "dismiss": "Got it",
+    "hints": {
+      "speed": "Space to pause · Click 1×/2×/4× to change speed",
+      "panels": "Strategy tabs · 1-7 from the keyboard",
+      "map": "Your map · Click a nation for details",
+      "notifications": "Important events will appear here"
     }
   }
 }

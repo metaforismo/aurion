@@ -1,8 +1,11 @@
 // Intelligence / Spies system panel.
-// - Stats: spyCount, counterIntelLevel
-// - Active operations with progress bars
-// - "Launch operation" inline composer (no modal — Modals agent handles those)
-// - Intel summary
+//
+// Progressive-disclosure layout:
+//   - PanelHero: count of active operations + a "X spies" quick-stat.
+//   - Primary action ("Lancia operazione") opens the composer inline; the
+//     sticky footer mirrors the CTA.
+//   - Collapsed details: full intel summary (by country), composer once
+//     open, active ops list — all live inside a single <Disclosure>.
 
 'use client';
 
@@ -26,10 +29,10 @@ import {
   type GameStoreState,
 } from '../../lib/store';
 import { ScenarioId } from '../../lib/scenarios';
-import { tone, type Tone } from '../../lib/theme';
 import { ActionButton } from './shared/ActionButton';
+import { Disclosure } from './shared/Disclosure';
 import { EmptyState } from './shared/EmptyState';
-import { Section } from './shared/Section';
+import { PanelHero } from './shared/PanelHero';
 import { StatBar } from './shared/StatBar';
 import { StickyFooter } from './shared/StickyFooter';
 import { useScenarioMessages } from './shared/useScenarioMessages';
@@ -101,6 +104,14 @@ const INTEL_TONE: Record<IntelLevel, string> = {
   full: 'text-success border-success',
 };
 
+// Map intel level to a numeric score for "average intel" hero summary.
+const INTEL_SCORE: Record<IntelLevel, number> = {
+  none: 0,
+  rumors: 1,
+  partial: 2,
+  full: 3,
+};
+
 function clampProb(p: number): number {
   if (!Number.isFinite(p)) return 0;
   if (p < 0.01) return 0.01;
@@ -169,39 +180,56 @@ export function SpiesPanel({
     (c) => c.id !== player.id,
   );
 
+  // Average intel score across observed countries (0..3 scale), rendered as a
+  // qualitative level — "rumors", "partial", etc. Defaults to "none" when no
+  // countries are tracked yet.
+  const observedCountries = otherCountries.filter(
+    (c) => (intel.knownIntel[c.id] ?? 'none') !== 'none',
+  );
+  const avgIntelScore =
+    observedCountries.length > 0
+      ? observedCountries.reduce(
+          (acc, c) => acc + INTEL_SCORE[intel.knownIntel[c.id] ?? 'none'],
+          0,
+        ) / observedCountries.length
+      : 0;
+  const avgIntelLevel: IntelLevel =
+    avgIntelScore >= 2.5
+      ? 'full'
+      : avgIntelScore >= 1.5
+        ? 'partial'
+        : avgIntelScore >= 0.5
+          ? 'rumors'
+          : 'none';
+
   return (
     <div className="flex flex-col gap-4 p-4">
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-2">
-        <Stat label={t('spyCount')} value={fmt.number(intel.spyCount)} t="warning" />
-        <Stat
-          label={t('counterIntel')}
-          value={fmt.number(intel.counterIntelLevel, {
-            style: 'percent',
-            maximumFractionDigits: 0,
-          })}
-          t="info"
-        />
-      </div>
-
-      <StatBar
-        label={t('counterIntel')}
-        value={intel.counterIntelLevel * 100}
-        max={100}
-        valueLabel={fmt.number(intel.counterIntelLevel, {
-          style: 'percent',
-          maximumFractionDigits: 0,
-        })}
-        tone="info"
+      {/* Hero — active operations as the BIG number. */}
+      <PanelHero
+        title={t('title')}
+        value={fmt.number(activeOps.length)}
+        valueTone={activeOps.length > 0 ? 'warning' : 'muted'}
+        quickStats={[
+          { label: t('spyCount'), value: fmt.number(intel.spyCount) },
+          { label: t('heroAvgIntel'), value: t(`intel.${avgIntelLevel}`) },
+        ]}
       />
 
-      {/* Composer */}
-      <Section title={t('composer.title')}>
-        {composerOpen ? (
+      {/* Composer is treated as a top-level surface when open — it's the
+          actionable primary path the hero promised. When closed, the sticky
+          footer at the bottom is the only "Launch operation" affordance. */}
+      {composerOpen ? (
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {t('composer.title')}
+          </div>
           <SpyComposer
             ownerId={player.id}
             counterIntelByCountry={Object.fromEntries(
-              Object.values(state.countries).map((c) => [c.id, c.intelligence.counterIntelLevel]),
+              Object.values(state.countries).map((c) => [
+                c.id,
+                c.intelligence.counterIntelLevel,
+              ]),
             )}
             knownIntel={intel.knownIntel}
             otherCountries={otherCountries.map((c) => ({
@@ -212,72 +240,95 @@ export function SpiesPanel({
             playerCompletedTechs={player.science.completedTechs}
             tScenario={tScenario}
             onSubmit={async (payload) => {
-              const errors = await applyAction({ type: 'deploySpy', op: payload });
+              const errors = await applyAction({
+                type: 'deploySpy',
+                op: payload,
+              });
               if (errors.length === 0) setComposerOpen(false);
               return errors;
             }}
             onCancel={() => setComposerOpen(false)}
             onErrors={onErrors}
           />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setComposerOpen(true)}
-            className="w-full rounded-sm border border-accent bg-accent px-3 py-2 text-xs font-medium text-bg transition hover:border-accent-strong hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-          >
-            {t('composer.open')}
-          </button>
-        )}
-      </Section>
+        </div>
+      ) : null}
 
-      {/* Active ops */}
-      <Section
-        title={t('active.title')}
-        trailing={`${activeOps.length}`}
-      >
-        {activeOps.length === 0 ? (
-          <EmptyState>{t('active.empty')}</EmptyState>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border">
-            {activeOps.map((op) => (
-              <li key={op.id}>
-                <SpyOpCard
-                  op={op}
-                  targetName={tScenario(state.countries[op.targetCountryId]?.nameKey ?? null)}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
-
-      {/* Intel summary */}
-      <Section title={t('intelSummary.title')}>
-        <ul className="grid grid-cols-1 divide-y divide-border text-xs">
-          {otherCountries.map((c) => {
-            const lvl = (intel.knownIntel[c.id] ?? 'none') as IntelLevel;
-            return (
-              <li
-                key={c.id}
-                className="flex items-center justify-between gap-2 py-1.5"
-              >
-                <span className="text-fg">{tScenario(c.nameKey)}</span>
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em]',
-                    INTEL_TONE[lvl].split(' ').filter((c) => c.startsWith('text-')).join(' '),
-                  )}
-                  aria-label={t(`intel.${lvl}`)}
-                  title={t(`intel.${lvl}`)}
-                >
-                  <span aria-hidden>{INTEL_ICON[lvl]}</span>
-                  <span>{t(`intel.${lvl}`)}</span>
-                </span>
-              </li>
-            );
+      {/* Collapsed details — counter-intel meter, active ops list, full
+          country-by-country intel summary. */}
+      <Disclosure summary={tShared('moreDetails')} trailing={t('details')}>
+        <StatBar
+          label={t('counterIntel')}
+          value={intel.counterIntelLevel * 100}
+          max={100}
+          valueLabel={fmt.number(intel.counterIntelLevel, {
+            style: 'percent',
+            maximumFractionDigits: 0,
           })}
-        </ul>
-      </Section>
+          tone="info"
+        />
+
+        {/* Active ops list */}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <div className="flex items-baseline justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+              {t('active.title')}
+            </div>
+            <span className="text-[11px] font-mono text-fg-faint">
+              {activeOps.length}
+            </span>
+          </div>
+          {activeOps.length === 0 ? (
+            <EmptyState>{t('active.empty')}</EmptyState>
+          ) : (
+            <ul className="flex flex-col divide-y divide-border">
+              {activeOps.map((op) => (
+                <li key={op.id}>
+                  <SpyOpCard
+                    op={op}
+                    targetName={tScenario(
+                      state.countries[op.targetCountryId]?.nameKey ?? null,
+                    )}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Intel summary by country */}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {t('intelSummary.title')}
+          </div>
+          <ul className="grid grid-cols-1 divide-y divide-border text-xs">
+            {otherCountries.map((c) => {
+              const lvl = (intel.knownIntel[c.id] ?? 'none') as IntelLevel;
+              return (
+                <li
+                  key={c.id}
+                  className="flex items-center justify-between gap-2 py-1.5"
+                >
+                  <span className="text-fg">{tScenario(c.nameKey)}</span>
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em]',
+                      INTEL_TONE[lvl]
+                        .split(' ')
+                        .filter((c) => c.startsWith('text-'))
+                        .join(' '),
+                    )}
+                    aria-label={t(`intel.${lvl}`)}
+                    title={t(`intel.${lvl}`)}
+                  >
+                    <span aria-hidden>{INTEL_ICON[lvl]}</span>
+                    <span>{t(`intel.${lvl}`)}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </Disclosure>
 
       {/* Sticky primary action — pinned "Lancia operazione" so the player
           always has a single click to start a spy op even with the panel
@@ -637,27 +688,6 @@ function SpyOpCard({
       </div>
       {/* unused-variable guard for `ratio` (kept for future visualizations). */}
       <span className="hidden" data-ratio={ratio.toFixed(2)} />
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  t,
-}: {
-  label: string;
-  value: string;
-  t: Tone;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5 border-t border-border pt-2">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-        {label}
-      </div>
-      <div className={cn('font-mono text-sm numeric-tabular', tone(t))}>
-        {value}
-      </div>
     </div>
   );
 }

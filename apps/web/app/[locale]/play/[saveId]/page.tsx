@@ -6,9 +6,10 @@
 //   right  — narrative event stream
 // HUD sticks to the top, ModalRoot lives at the document root.
 
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { use } from 'react';
 import { useTranslations } from 'next-intl';
+import type { CSSProperties } from 'react';
 import type { SaveId } from '@aurion/engine';
 
 import { AchievementToast } from '../../../../components/Achievements';
@@ -25,10 +26,16 @@ import NotificationStream, {
   ActionToastStack,
   VictoryToast,
 } from '../../../../components/Notifications';
+import { FirstGameHints } from '../../../../components/Onboarding';
 import PanelTabs from '../../../../components/Panels';
 import TutorialOverlay from '../../../../components/Tutorial';
 import { useGameStore } from '../../../../lib/store';
 import { useTicker } from '../../../../lib/ticker';
+
+// Initial value for the right-rail grid track. The NotificationStream pushes
+// updates via `onWidthChange` once mounted; this matches the previous static
+// width so the first paint is unchanged.
+const DEFAULT_RAIL_W = '20rem';
 
 export default function PlayPage({
   params,
@@ -56,6 +63,16 @@ export default function PlayPage({
   // whole game session.
   useTicker();
 
+  // Right rail width — driven by NotificationStream via `onWidthChange`. We
+  // publish it as a CSS custom property on the grid container so the third
+  // track resizes smoothly (the rail itself transitions its own internal
+  // width over 200ms, this keeps the grid in lock-step).
+  const [railWidth, setRailWidth] = useState<string>(DEFAULT_RAIL_W);
+  const handleRailWidth = useCallback((w: string) => setRailWidth(w), []);
+  // CSSProperties doesn't type custom properties; the cast is the standard
+  // workaround when publishing variables inline.
+  const gridStyle = { '--rail-w': railWidth } as CSSProperties;
+
   if (isLoading || !state) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
@@ -78,11 +95,18 @@ export default function PlayPage({
             push the SVG's preserveAspectRatio off-screen). Each column owns
             its own overflow: the left rail and the right notification stream
             scroll independently; the centre map stays pinned and resizes via
-            preserveAspectRatio. */}
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden p-2 lg:grid-cols-[18rem_minmax(0,1fr)_20rem]">
+            preserveAspectRatio.
+
+            The right column's width comes from `--rail-w` (defaulting to
+            20rem) so the NotificationStream can shrink itself to its slim
+            collapsed state without leaving a gap. */}
+        <div
+          className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden p-2 lg:grid-cols-[18rem_minmax(0,1fr)_var(--rail-w,20rem)]"
+          style={gridStyle}
+        >
           <PanelTabs />
           <WorldMap />
-          <NotificationStream />
+          <NotificationStream onWidthChange={handleRailWidth} />
         </div>
         <ModalRoot />
         {/* Cross-game achievement toast — self-managed: reads
@@ -100,6 +124,10 @@ export default function PlayPage({
         {/* First-time tutorial — self-bootstraps from the persisted dismissed
             flag. Renders nothing once the player has seen / skipped it. */}
         <TutorialOverlay />
+        {/* Light-touch hint annotations for the very first game. Suppresses
+            itself when the tutorial is active or once the player has
+            dismissed (see FirstGameHints for the localStorage key). */}
+        <FirstGameHints />
       </main>
     </AudioProvider>
   );

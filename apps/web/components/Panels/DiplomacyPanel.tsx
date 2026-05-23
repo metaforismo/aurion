@@ -1,9 +1,12 @@
 // Diplomacy system panel.
-// - Lists every other country with attitude, treaties, atWar.
-// - Click a country to expand and see contextual diplomatic actions.
-// - Sort by name / attitude / treaty count.
-// - "Declare war" routes through store.confirm() so the Modals agent can render
-//   a confirmation modal.
+//
+// Progressive-disclosure layout:
+//   - PanelHero: ally count as the BIG number, "tense" relations count chip,
+//     quick-stats for at-war count.
+//   - Primary action: "Propose alliance" pinned in the sticky footer (it
+//     targets whichever country the player drills into below).
+//   - Collapsed: the full nation list with sort toolbar and per-row
+//     expanders. Default closed so the rail isn't a wall of country rows.
 
 'use client';
 
@@ -27,7 +30,9 @@ import {
 import { ScenarioId } from '../../lib/scenarios';
 import { toneChip } from '../../lib/theme';
 import { ActionButton } from './shared/ActionButton';
+import { Disclosure } from './shared/Disclosure';
 import { EmptyState } from './shared/EmptyState';
+import { PanelHero } from './shared/PanelHero';
 import { StickyFooter } from './shared/StickyFooter';
 import { useScenarioMessages } from './shared/useScenarioMessages';
 
@@ -122,75 +127,106 @@ export function DiplomacyPanel({
     return null;
   })();
 
+  // Hero counts — allies, tense relations (attitude < -30), at-war.
+  const allyCount = rows.filter((r) =>
+    r.relation?.treaties.includes('alliance'),
+  ).length;
+  const tenseCount = rows.filter((r) => (r.relation?.attitude ?? 0) <= -30)
+    .length;
+  const warCount = rows.filter((r) => r.relation?.atWar === true).length;
+
   return (
     <div className="flex flex-col gap-3 p-4">
-      {/* Sort toolbar */}
-      <div className="flex items-center justify-between gap-2 border-b border-border pb-2">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-          {t('countries.title')} ({rows.length})
-        </span>
-        <div className="flex gap-3" role="group" aria-label={t('sort.label')}>
-          {(['alpha', 'attitude', 'treaties'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setSortMode(m)}
-              aria-pressed={sortMode === m}
-              className={cn(
-                'border-b-2 px-0.5 py-0.5 text-[11px] font-medium uppercase tracking-wider transition focus-visible:outline-none',
-                sortMode === m
-                  ? 'border-accent text-fg'
-                  : 'border-transparent text-fg-muted hover:text-fg',
-              )}
-            >
-              {t(`sort.${m}`)}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Hero — ally count, plus open-tensions + at-war quick stats. */}
+      <PanelHero
+        title={t('title')}
+        value={fmt.number(allyCount)}
+        valueTone={allyCount > 0 ? 'success' : 'muted'}
+        quickStats={[
+          {
+            label: t('heroOpenRequests'),
+            value: t('heroTensionsHigh', { n: fmt.number(tenseCount) }),
+          },
+          { label: t('atWar'), value: fmt.number(warCount) },
+        ]}
+      />
 
-      <ul className="flex flex-col divide-y divide-border">
-        {rows.map(({ country, relation }) => {
-          const expandedNow = expanded === country.id;
-          return (
-            <li key={country.id}>
-              <CountryRow
-                country={country}
-                relation={relation}
-                expanded={expandedNow}
-                playerName={tScenario(player.nameKey)}
-                otherName={tScenario(country.nameKey)}
-                onToggle={() =>
-                  setExpanded((prev) => (prev === country.id ? null : country.id))
-                }
-                onAction={async (kind) => {
-                  return applyAction({ type: 'diplomacy', target: country.id, kind });
-                }}
-                onConfirmAction={(kind, titleKey, descriptionKey, tone) => {
-                  confirm({
-                    titleKey,
-                    descriptionKey,
-                    tone,
-                    confirmKey: 'common.confirm',
-                    cancelKey: 'common.cancel',
-                    onConfirm: async () => {
-                      const errors = await applyAction({
-                        type: 'diplomacy',
-                        target: country.id,
-                        kind,
-                      });
-                      if (errors.length > 0) onErrors?.(errors);
-                    },
-                  });
-                }}
-                onErrors={onErrors}
-                fmt={fmt}
-                tCommon={tCommon}
-              />
-            </li>
-          );
-        })}
-      </ul>
+      {/* Collapsed nations list — sort toolbar + per-row expanders. */}
+      <Disclosure summary={tShared('moreDetails')} trailing={t('details')}>
+        {/* Sort toolbar */}
+        <div className="flex items-center justify-between gap-2 border-b border-border pb-2">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {t('countries.title')} ({rows.length})
+          </span>
+          <div className="flex gap-3" role="group" aria-label={t('sort.label')}>
+            {(['alpha', 'attitude', 'treaties'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setSortMode(m)}
+                aria-pressed={sortMode === m}
+                className={cn(
+                  'border-b-2 px-0.5 py-0.5 text-[11px] font-medium uppercase tracking-wider transition focus-visible:outline-none',
+                  sortMode === m
+                    ? 'border-accent text-fg'
+                    : 'border-transparent text-fg-muted hover:text-fg',
+                )}
+              >
+                {t(`sort.${m}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <ul className="flex flex-col divide-y divide-border">
+          {rows.map(({ country, relation }) => {
+            const expandedNow = expanded === country.id;
+            return (
+              <li key={country.id}>
+                <CountryRow
+                  country={country}
+                  relation={relation}
+                  expanded={expandedNow}
+                  playerName={tScenario(player.nameKey)}
+                  otherName={tScenario(country.nameKey)}
+                  onToggle={() =>
+                    setExpanded((prev) =>
+                      prev === country.id ? null : country.id,
+                    )
+                  }
+                  onAction={async (kind) => {
+                    return applyAction({
+                      type: 'diplomacy',
+                      target: country.id,
+                      kind,
+                    });
+                  }}
+                  onConfirmAction={(kind, titleKey, descriptionKey, tone) => {
+                    confirm({
+                      titleKey,
+                      descriptionKey,
+                      tone,
+                      confirmKey: 'common.confirm',
+                      cancelKey: 'common.cancel',
+                      onConfirm: async () => {
+                        const errors = await applyAction({
+                          type: 'diplomacy',
+                          target: country.id,
+                          kind,
+                        });
+                        if (errors.length > 0) onErrors?.(errors);
+                      },
+                    });
+                  }}
+                  onErrors={onErrors}
+                  fmt={fmt}
+                  tCommon={tCommon}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      </Disclosure>
 
       {/* Sticky primary action — "Propose alliance" against whichever country
           is currently expanded. The expectation is the player clicks a row to

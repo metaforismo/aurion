@@ -157,9 +157,14 @@ export default function MapNation(props: MapNationProps) {
         />
       ) : null}
 
-      {/* The capital marker — filled dot. Player nation gets a thicker
-          accent border so the "yours" identity reads beyond just hue
-          (colour-blind accessibility + non-coloured intel-mask states).
+      {/* The capital marker — filled dot with a thin contrast halo so it
+          reads as a CAPITAL CITY over the now-terrained region fills
+          (forests, deserts, mountains can all sit directly under the dot).
+          The halo is a slightly larger ring filled with the page bg so the
+          dot lifts off any biome / mountain it lands on.
+          Player nation gets a thicker accent border so the "yours" identity
+          reads beyond just hue (colour-blind accessibility + non-coloured
+          intel-mask states).
           Two motion behaviours layered onto the same node:
             - Player: slow heartbeat pulse (`map-capital-pulse`, 1.6s).
             - Anyone hovered (and not selected, to avoid double motion):
@@ -167,6 +172,17 @@ export default function MapNation(props: MapNationProps) {
           Both honour `prefers-reduced-motion` via the globals.css override.
           We use `transformBox: 'fill-box'` so transforms scale around the
           dot's own centre rather than the SVG origin. */}
+      {/* Contrast halo — a small bg-coloured disc behind the capital dot
+          so the marker reads cleanly over forested / mountainous terrain.
+          Painted just below the dot so any stroke colour still wins. */}
+      <circle
+        cx={props.cx}
+        cy={props.cy}
+        r={r + 2}
+        fill="var(--color-bg)"
+        fillOpacity={0.7}
+        pointerEvents="none"
+      />
       <circle
         cx={props.cx}
         cy={props.cy}

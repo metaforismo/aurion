@@ -452,3 +452,22 @@ code, kbd, samp, pre,
   50%  { opacity: 0.4; transform: scale(0.85); }
   100% { opacity: 1;   transform: scale(1); }
 }
+
+/* First-game hint callouts — gentle opacity / outline wobble so the floating
+ * notes read as "look at me" without being noisy. 1.6s matches the speed
+ * pulse to keep the overall HUD tempo consistent. The
+ * `prefers-reduced-motion: reduce` override at the top of this file already
+ * collapses the duration to 0.01ms. */
+@keyframes onboarding-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.6),
+      0 0 0 1px var(--color-accent);
+  }
+  50% {
+    opacity: 0.88;
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.6),
+      0 0 0 2px var(--color-accent);
+  }
+}

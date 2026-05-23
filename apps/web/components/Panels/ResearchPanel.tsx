@@ -1,12 +1,14 @@
 // Research system panel.
-// - Shows the player's active research with a progress bar.
-// - Lists all techs grouped by branch as cards (cost, prereqs, effects, status).
-// - Lets the player start research on an available tech.
+// - Hero shows the current active research (or "no research" + count of
+//   available techs) with a thin progress bar.
+// - Quick stats: pt/sett + total completed.
+// - The full tech tree (branches + cards) lives inside a <Disclosure> that
+//   defaults to collapsed — and each branch inside that disclosure is itself
+//   a <Disclosure> ("Civile (11) →", …) so the player drills in by interest
+//   rather than being shown every tech up-front.
+// - The space race sub-tab stays as-is (delegated to SpaceRacePanel).
 //
 // Phase 3 Wave 10: hosts a sub-tab control ("Tech tree" | "Corsa allo Spazio").
-// The space race tab is rendered by `SpaceRacePanel`, which reads
-// `state.spaceMilestones` populated by the engine when scenario techs declare
-// `prestigeFirst` / `prestigeFollow`.
 
 'use client';
 
@@ -28,8 +30,9 @@ import {
 import { ScenarioId } from '../../lib/scenarios';
 import { toneChip } from '../../lib/theme';
 import { ActionButton } from './shared/ActionButton';
+import { Disclosure } from './shared/Disclosure';
 import { EmptyState } from './shared/EmptyState';
-import { Section } from './shared/Section';
+import { PanelHero } from './shared/PanelHero';
 import { StatBar } from './shared/StatBar';
 import { StickyFooter } from './shared/StickyFooter';
 import { useScenarioMessages } from './shared/useScenarioMessages';
@@ -100,6 +103,9 @@ export function ResearchPanel({
   // rather than recomputing inside the footer to avoid drift.
   const completedSet = new Set(player.science.completedTechs);
   const activeTechId = player.science.activeResearch;
+  const activeTech = activeTechId
+    ? techTree.find((tech) => tech.id === activeTechId) ?? null
+    : null;
   const firstAvailableTech =
     activeTechId === null
       ? techTree.find(
@@ -108,6 +114,23 @@ export function ResearchPanel({
             tech.prereqs.every((p) => completedSet.has(p)),
         ) ?? null
       : null;
+
+  // Hero summary — either the active research with progress, or an idle
+  // state showing how many techs are available right now.
+  const availableCount = techTree.filter(
+    (tech) =>
+      !completedSet.has(tech.id) &&
+      tech.prereqs.every((p) => completedSet.has(p)),
+  ).length;
+
+  const accumulatedPoints = stateTechProgress?.accumulatedPoints ?? 0;
+  const researchOutput = player.science.researchOutput;
+  const heroValue = activeTech
+    ? tScenario(activeTech.nameKey)
+    : t('heroIdle');
+  const heroDeltaLabel = activeTech
+    ? `${Math.round(accumulatedPoints)} / ${activeTech.cost}`
+    : t('heroAvailable', { n: availableCount });
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -153,18 +176,72 @@ export function ResearchPanel({
           aria-labelledby="research-tab-techTree"
           className="flex flex-col gap-4"
         >
-          <TechTreeView
-            t={t}
-            tScenario={tScenario}
-            techTree={techTree}
-            filter={filter}
-            setFilter={setFilter}
-            grouped={grouped}
-            stateTechProgress={stateTechProgress}
-            player={player}
-            applyAction={applyAction}
-            onErrors={onErrors}
+          {/* Hero — active research with progress, or idle + availability. */}
+          <PanelHero
+            title={t('title')}
+            value={
+              <span className="text-base font-semibold text-fg">
+                {heroValue}
+              </span>
+            }
+            valueTone={activeTech ? 'accent' : 'muted'}
+            quickStats={[
+              {
+                label: t('pointsPerWeekLabel'),
+                value: researchOutput.toFixed(1),
+              },
+              {
+                label: t('completed'),
+                value: player.science.completedTechs.length,
+              },
+            ]}
           />
+
+          {activeTech ? (
+            <ActiveResearchProgress
+              tech={activeTech}
+              accumulated={accumulatedPoints}
+              output={researchOutput}
+              progressLabel={heroDeltaLabel}
+            />
+          ) : null}
+
+          {/* Filter chips — kept above the disclosure so a player who knows
+              which branch they want can scope before drilling in. */}
+          <div className="flex flex-wrap gap-3" role="tablist" aria-label={t('filter.label')}>
+            {(['all', ...BRANCH_ORDER] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFilter(f)}
+                role="tab"
+                aria-selected={filter === f}
+                className={cn(
+                  'border-b-2 px-0.5 py-0.5 text-[11px] font-medium uppercase tracking-wider transition focus-visible:outline-none',
+                  filter === f
+                    ? 'border-accent text-fg'
+                    : 'border-transparent text-fg-muted hover:text-fg',
+                )}
+              >
+                {t(`filter.${f}`)}
+              </button>
+            ))}
+          </div>
+
+          {/* Full tech tree — collapsed by default. Each branch is itself a
+              nested Disclosure so the user can drill into one branch at a
+              time rather than render all 32 techs at once. */}
+          <Disclosure summary={tShared('moreDetails')} trailing={t('details')}>
+            <TechTreeView
+              t={t}
+              tScenario={tScenario}
+              filter={filter}
+              grouped={grouped}
+              player={player}
+              applyAction={applyAction}
+              onErrors={onErrors}
+            />
+          </Disclosure>
         </div>
       )}
 
@@ -219,99 +296,49 @@ export function ResearchPanel({
 function TechTreeView({
   t,
   tScenario,
-  techTree,
   filter,
-  setFilter,
   grouped,
-  stateTechProgress,
   player,
   applyAction,
   onErrors,
 }: {
   t: ReturnType<typeof useTranslations>;
   tScenario: (key: string | undefined | null) => string;
-  techTree: TechDefinition[];
   filter: BranchFilter;
-  setFilter: (f: BranchFilter) => void;
   grouped: Map<TechBranch, TechDefinition[]>;
-  stateTechProgress: { accumulatedPoints: number } | undefined;
   player: NonNullable<ReturnType<typeof selectPlayerCountry>>;
   applyAction: GameStoreState['applyAction'];
   onErrors?: (errors: string[]) => void;
 }) {
   const completedSet = new Set(player.science.completedTechs);
   const activeTechId = player.science.activeResearch;
-  const activeTech = activeTechId
-    ? techTree.find((tech) => tech.id === activeTechId) ?? null
-    : null;
-  const accumulated = stateTechProgress?.accumulatedPoints ?? 0;
-  const researchOutput = player.science.researchOutput;
 
   const handleStart = (techId: TechId) => async () => {
     return applyAction({ type: 'startResearch', techId });
   };
 
   return (
-    <>
-      {/* Active research */}
-      <Section
-        title={t('active.title')}
-        trailing={
-          <span className="font-mono text-[11px]">
-            {t('active.outputPerTick', {
-              n: researchOutput.toFixed(1),
-            })}
-          </span>
-        }
-      >
-        {activeTech ? (
-          <ActiveResearchView
-            tech={activeTech}
-            accumulated={accumulated}
-            output={researchOutput}
-            techName={tScenario(activeTech.nameKey)}
-          />
-        ) : (
-          <EmptyState>{t('active.empty')}</EmptyState>
-        )}
-      </Section>
-
-      {/* Filter chips */}
-      <div className="flex flex-wrap gap-3" role="tablist" aria-label={t('filter.label')}>
-        {(['all', ...BRANCH_ORDER] as const).map((f) => (
-          <button
-            key={f}
-            type="button"
-            onClick={() => setFilter(f)}
-            role="tab"
-            aria-selected={filter === f}
-            className={cn(
-              'border-b-2 px-0.5 py-0.5 text-[11px] font-medium uppercase tracking-wider transition focus-visible:outline-none',
-              filter === f
-                ? 'border-accent text-fg'
-                : 'border-transparent text-fg-muted hover:text-fg',
-            )}
-          >
-            {t(`filter.${f}`)}
-          </button>
-        ))}
-      </div>
-
-      {/* Branches */}
-      {BRANCH_ORDER.filter((b) => (filter === 'all' || filter === b)).map((branch) => {
+    <div className="flex flex-col">
+      {/* Branches — each is itself a nested Disclosure so the player drills
+          into one branch at a time. Hidden when filter excludes them. */}
+      {BRANCH_ORDER.filter((b) => filter === 'all' || filter === b).map((branch) => {
         const techs = grouped.get(branch) ?? [];
         if (techs.length === 0 && filter !== 'all') {
           return (
-            <Section key={branch} title={t(`branch.${branch}`)}>
+            <Disclosure
+              key={branch}
+              summary={t(`branch.${branch}`)}
+              trailing="0"
+            >
               <EmptyState>{t('emptyBranch')}</EmptyState>
-            </Section>
+            </Disclosure>
           );
         }
         if (techs.length === 0) return null;
         return (
-          <Section
+          <Disclosure
             key={branch}
-            title={t(`branch.${branch}`)}
+            summary={t(`branch.${branch}`)}
             trailing={`${techs.length}`}
           >
             <ul className="flex flex-col divide-y divide-border">
@@ -329,10 +356,10 @@ function TechTreeView({
                 </li>
               ))}
             </ul>
-          </Section>
+          </Disclosure>
         );
       })}
-    </>
+    </div>
   );
 }
 
@@ -340,16 +367,16 @@ function TechTreeView({
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function ActiveResearchView({
+function ActiveResearchProgress({
   tech,
   accumulated,
   output,
-  techName,
+  progressLabel,
 }: {
   tech: TechDefinition;
   accumulated: number;
   output: number;
-  techName: string;
+  progressLabel: string;
 }) {
   const t = useTranslations('panelResearch');
   const ratio = tech.cost > 0 ? Math.min(1, accumulated / tech.cost) : 0;
@@ -357,10 +384,10 @@ function ActiveResearchView({
   const eta = output > 0 ? Math.ceil(remaining / output) : Infinity;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-sm font-semibold text-fg">{techName}</span>
-        <span className="text-[11px] text-fg-faint">
+    <div className="flex flex-col gap-1">
+      <div className="flex items-baseline justify-between text-[11px] text-fg-faint">
+        <span>{t('active.progressPct', { pct: Math.round(ratio * 100) })}</span>
+        <span>
           {Number.isFinite(eta)
             ? t('active.eta', { ticks: eta })
             : t('active.etaUnknown')}
@@ -370,12 +397,9 @@ function ActiveResearchView({
         label={t('active.progressLabel')}
         value={accumulated}
         max={tech.cost}
-        valueLabel={`${Math.round(accumulated)} / ${tech.cost}`}
+        valueLabel={progressLabel}
         tone="info"
       />
-      <p className="text-[11px] text-fg-faint">
-        {t('active.progressPct', { pct: Math.round(ratio * 100) })}
-      </p>
     </div>
   );
 }

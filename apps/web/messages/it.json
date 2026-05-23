@@ -222,6 +222,11 @@
   "notifications": {
     "title": "Notifiche",
     "empty": "Nessuna notifica recente",
+    "emptyDetailed": "Tutto tranquillo. Le notifiche appariranno qui.",
+    "collapse": "Riduci la barra delle notifiche",
+    "collapseShort": "← Riduci",
+    "expand": "Espandi la barra delle notifiche",
+    "countAbbr": "NOT",
     "actionRequired": "Decisione richiesta",
     "chose": "Scelto: {label}",
     "justNow": "ora",
@@ -401,6 +406,7 @@
     "enterAmount": "Inserisci un importo valido.",
     "prereqsMissing": "Prerequisiti mancanti.",
     "cancel": "Annulla",
+    "moreDetails": "Più dettagli",
     "stickyAction": {
       "selectFirst": "Seleziona prima…",
       "economyHint": "Inserisci un importo sopra",
@@ -416,10 +422,13 @@
     }
   },
   "panelEconomy": {
+    "title": "Economia",
     "treasury": "Tesoreria",
     "weeklyIncome": "Entrate settimanali",
+    "weeklyDelta": "{value}/sett",
     "gdp": "PIL",
     "taxRate": "Aliquota fiscale",
+    "details": "Settori, politica fiscale e investimenti",
     "sectors": {
       "title": "Composizione del PIL",
       "agriculture": "Agricoltura",
@@ -446,6 +455,11 @@
     }
   },
   "panelResearch": {
+    "title": "Ricerca",
+    "heroActive": "Ricerca attiva",
+    "heroIdle": "Nessuna ricerca attiva",
+    "heroAvailable": "{n} disponibili",
+    "details": "Sfoglia l'albero tecnologico per ramo",
     "tab": {
       "label": "Sezione di ricerca",
       "techTree": "Albero delle tecnologie",
@@ -486,7 +500,10 @@
     "cost": "Costo: {n}",
     "noPrereqs": "Nessun prerequisito",
     "start": "Avvia ricerca",
-    "emptyBranch": "Nessuna tecnologia in questo ramo."
+    "emptyBranch": "Nessuna tecnologia in questo ramo.",
+    "completed": "Completate",
+    "pointsPerWeek": "{n} pt/sett",
+    "pointsPerWeekLabel": "pt/sett"
   },
   "panelSpaceRace": {
     "title": "Corsa allo Spazio",
@@ -504,6 +521,11 @@
     }
   },
   "panelMilitary": {
+    "title": "Militare",
+    "heroAtPeace": "In pace",
+    "heroAtWar": "In guerra con {name}",
+    "heroAtWarMany": "In guerra ({count})",
+    "details": "Forze, schieramenti e storico guerre",
     "armySize": "Esercito",
     "navy": "Marina",
     "airforce": "Aviazione",
@@ -569,6 +591,10 @@
     }
   },
   "panelSpies": {
+    "title": "Intelligence",
+    "heroActiveOps": "Operazioni attive",
+    "heroAvgIntel": "Intel media",
+    "details": "Storico operazioni, intel per paese e roster spie",
     "spyCount": "Spie disponibili",
     "counterIntel": "Controspionaggio",
     "composer": {
@@ -632,6 +658,11 @@
     }
   },
   "panelDiplomacy": {
+    "title": "Diplomazia",
+    "heroAllies": "Alleati",
+    "heroOpenRequests": "Richieste aperte",
+    "heroTensionsHigh": "{n} tese",
+    "details": "Sfoglia tutte le nazioni, trattati e flussi commerciali",
     "countries": {
       "title": "Nazioni"
     },
@@ -676,6 +707,11 @@
     }
   },
   "panelPolitics": {
+    "title": "Politica interna",
+    "heroFactions": "Fazioni",
+    "heroAvgSatisfaction": "Soddisfazione media",
+    "details": "Fazioni, forma di governo e cronologia politica",
+    "callElections": "Indici elezioni",
     "popularity": "Popolarità",
     "governmentType": "Forma di governo",
     "government": {
@@ -706,6 +742,12 @@
   },
   "panelUN": {
     "title": "Consiglio ONU",
+    "heroActiveResolutions": "Risoluzioni attive",
+    "heroVotesWon": "Voti vinti",
+    "heroProposed": "Proposte",
+    "councilYes": "Sì",
+    "councilNo": "No",
+    "details": "Storico risoluzioni e voto per blocco",
     "active": "Risoluzioni in voto",
     "history": "Storico recente",
     "empty": "Nessuna risoluzione in voto al momento.",
@@ -1197,6 +1239,15 @@
       "early-cold-war": { "name": "Inizio Guerra Fredda" },
       "detente": { "name": "Distensione" },
       "end-of-history": { "name": "Fine della Storia" }
+    }
+  },
+  "onboarding": {
+    "dismiss": "Capito",
+    "hints": {
+      "speed": "Spazio per mettere in pausa · Click 1×/2×/4× per cambiare velocità",
+      "panels": "Tabs strategici · 1-7 da tastiera",
+      "map": "La tua mappa · Click una nazione per dettagli",
+      "notifications": "Eventi importanti appariranno qui"
     }
   }
 }

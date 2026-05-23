@@ -2,6 +2,15 @@
 // Reads the player country's economy slice and dispatches:
 //   - setTaxRate (debounced via slider commit)
 //   - invest (target: 'infra' | 'economy')
+//
+// Layout follows the progressive-disclosure pattern:
+//   - PanelHero shows the BIG treasury value + a weekly-income delta chip
+//     and inline quick-stats (PIL, Aliquota).
+//   - Primary actions ("Investi" + "Cambia aliquota") sit just under the
+//     hero, with the existing sticky footer pinning the most common CTA.
+//   - All secondary surfaces (sector composition bars, tax slider, invest
+//     composer, income sparkline) live inside <Disclosure> blocks that
+//     default to collapsed.
 
 'use client';
 
@@ -15,10 +24,10 @@ import {
   useGameStore,
   type GameStoreState,
 } from '../../lib/store';
-import { tone, type Tone } from '../../lib/theme';
 import { ActionButton } from './shared/ActionButton';
+import { Disclosure } from './shared/Disclosure';
 import { EmptyState } from './shared/EmptyState';
-import { Section } from './shared/Section';
+import { PanelHero } from './shared/PanelHero';
 import { StatBar } from './shared/StatBar';
 import { StickyFooter } from './shared/StickyFooter';
 
@@ -137,57 +146,69 @@ export function EconomyPanel({
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      {/* Headline stats */}
-      <div className="grid grid-cols-2 gap-2">
-        <StatLabel label={t('treasury')} value={fmt.number(treasury)} t="success" />
-        <StatLabel
-          label={t('weeklyIncome')}
-          value={fmt.number(economy.weeklyIncome)}
-          t={economy.weeklyIncome >= 0 ? 'success' : 'danger'}
-        />
-        <StatLabel label={t('gdp')} value={fmt.number(economy.gdp)} t="info" />
-        <StatLabel
-          label={t('taxRate')}
-          value={`${Math.round(economy.taxRate)}%`}
-          t="neutral"
-        />
-      </div>
+      {/* Progressive-disclosure hero: BIG treasury value, weekly-income delta
+          chip, quick-stats (PIL + aliquota). The 4 sector bars, tax slider
+          and sparkline live below in a collapsed <Disclosure>. */}
+      <PanelHero
+        title={t('title')}
+        value={fmt.number(treasury)}
+        valueTone="success"
+        delta={{
+          value: economy.weeklyIncome,
+          label: t('weeklyDelta', {
+            value: fmt.number(economy.weeklyIncome, {
+              maximumFractionDigits: 0,
+            }),
+          }),
+        }}
+        quickStats={[
+          { label: t('gdp'), value: fmt.number(economy.gdp) },
+          { label: t('taxRate'), value: `${Math.round(economy.taxRate)}%` },
+        ]}
+      />
 
-      {/* Sectors. We highlight the dominant share with `text-fg`; the
-          smaller shares fade to `text-fg-muted` so the eye snaps to the
-          economy's centre of gravity at a glance. The inner span sets its
-          own colour, overriding StatBar's default `text-fg` wrapper. */}
-      <Section title={t('sectors.title')}>
-        <ul className="flex flex-col gap-2">
-          {(() => {
-            const dominant = SECTOR_KEYS.reduce<keyof EconomySectors>(
-              (best, k) =>
-                economy.sectors[k] > economy.sectors[best] ? k : best,
-              SECTOR_KEYS[0]!,
-            );
-            return SECTOR_KEYS.map((s) => (
-              <li key={s}>
-                <StatBar
-                  label={
-                    <span className={s === dominant ? 'text-fg' : 'text-fg-muted'}>
-                      {t(`sectors.${s}`)}
-                    </span>
-                  }
-                  value={economy.sectors[s] * 100}
-                  max={100}
-                  valueLabel={fmt.number(economy.sectors[s], { style: 'percent', maximumFractionDigits: 1 })}
-                  tone={SECTOR_TONES[s]}
-                  ariaLabel={t(`sectors.${s}`)}
-                />
-              </li>
-            ));
-          })()}
-        </ul>
-      </Section>
-
-      {/* Tax rate slider */}
-      <Section title={t('tax.title')}>
+      {/* Collapsed secondary content — sectors, fiscal policy, investments,
+          income trend. Keeps the rail tidy on first open. */}
+      <Disclosure summary={tShared('moreDetails')} trailing={t('details')}>
+        {/* Sectors. We highlight the dominant share with `text-fg`; the
+            smaller shares fade to `text-fg-muted` so the eye snaps to the
+            economy's centre of gravity at a glance. */}
         <div className="flex flex-col gap-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {t('sectors.title')}
+          </div>
+          <ul className="flex flex-col gap-2">
+            {(() => {
+              const dominant = SECTOR_KEYS.reduce<keyof EconomySectors>(
+                (best, k) =>
+                  economy.sectors[k] > economy.sectors[best] ? k : best,
+                SECTOR_KEYS[0]!,
+              );
+              return SECTOR_KEYS.map((s) => (
+                <li key={s}>
+                  <StatBar
+                    label={
+                      <span className={s === dominant ? 'text-fg' : 'text-fg-muted'}>
+                        {t(`sectors.${s}`)}
+                      </span>
+                    }
+                    value={economy.sectors[s] * 100}
+                    max={100}
+                    valueLabel={fmt.number(economy.sectors[s], { style: 'percent', maximumFractionDigits: 1 })}
+                    tone={SECTOR_TONES[s]}
+                    ariaLabel={t(`sectors.${s}`)}
+                  />
+                </li>
+              ));
+            })()}
+          </ul>
+        </div>
+
+        {/* Fiscal policy — tax rate slider */}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {t('tax.title')}
+          </div>
           <div className="flex items-center justify-between text-xs text-fg">
             <label htmlFor="economy-tax-rate" className="font-medium">
               {t('tax.label')}
@@ -212,11 +233,12 @@ export function EconomyPanel({
             })}
           </p>
         </div>
-      </Section>
 
-      {/* Investments */}
-      <Section title={t('invest.title')}>
-        <div className="flex flex-col gap-2">
+        {/* Investments — amount input + 2 invest buttons. */}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {t('invest.title')}
+          </div>
           <label htmlFor="economy-invest-amount" className="text-xs text-fg">
             {t('invest.amountLabel')}
           </label>
@@ -278,15 +300,16 @@ export function EconomyPanel({
             </ActionButton>
           </div>
         </div>
-      </Section>
 
-      {/* Income trend (recent weekly income — derived from rolling history) */}
-      <Section title={t('history.title')}>
-        <IncomeSparkline weeklyIncome={economy.weeklyIncome} />
-        <p className="mt-1 text-[11px] text-fg-faint">
-          {t('history.note')}
-        </p>
-      </Section>
+        {/* Income trend (recent weekly income — derived from rolling history) */}
+        <div className="flex flex-col gap-1 border-t border-border pt-3">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {t('history.title')}
+          </div>
+          <IncomeSparkline weeklyIncome={economy.weeklyIncome} />
+          <p className="text-[11px] text-fg-faint">{t('history.note')}</p>
+        </div>
+      </Disclosure>
 
       {/* Sticky primary action — duplicates the "Invest in economy" button
           above so it's always reachable without scrolling. Disabled until the
@@ -321,27 +344,6 @@ export function EconomyPanel({
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-function StatLabel({
-  label,
-  value,
-  t,
-}: {
-  label: string;
-  value: string;
-  t: Tone;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5 border-t border-border pt-2">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-        {label}
-      </div>
-      <div className={cn('font-mono text-sm numeric-tabular', tone(t))}>
-        {value}
-      </div>
-    </div>
-  );
-}
 
 /**
  * Inline sparkline — keeps a small ring buffer in component state of recent

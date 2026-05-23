@@ -16,6 +16,8 @@ export { UNResolutionCard } from './UNResolutionCard';
 export { UNProposeForm } from './UNProposeForm';
 
 export { ActionButton } from './shared/ActionButton';
+export { Disclosure } from './shared/Disclosure';
 export { EmptyState } from './shared/EmptyState';
+export { PanelHero } from './shared/PanelHero';
 export { Section } from './shared/Section';
 export { StatBar } from './shared/StatBar';

@@ -1,9 +1,12 @@
 // Military system panel.
-// - Stats: armySize, navy, airforce, doctrineLevel
-// - Deployments list with region + units + age
-// - Train troops (invest in 'military')
-// - Deploy army to a region (regions player has intel on or borders)
-// - Wars list
+//
+// Progressive-disclosure layout:
+//   - PanelHero: war status (or "at peace") with army-size delta chip.
+//   - Quick stats: warheads (if any), deployed units.
+//   - Primary actions inline: "Schiera" / "Allena" / (nuclear actions remain
+//     in their own dedicated section).
+//   - Collapsed: full deployment list, training composer, wars list, and
+//     the whole nuclear arsenal section.
 
 'use client';
 
@@ -30,8 +33,9 @@ import {
   type NuclearLaunchConfirmRequest,
 } from '../Modals/NuclearLaunchConfirm';
 import { ActionButton } from './shared/ActionButton';
+import { Disclosure } from './shared/Disclosure';
 import { EmptyState } from './shared/EmptyState';
-import { Section } from './shared/Section';
+import { PanelHero } from './shared/PanelHero';
 import { StatBar } from './shared/StatBar';
 import { StickyFooter } from './shared/StickyFooter';
 import { useScenarioMessages } from './shared/useScenarioMessages';
@@ -297,37 +301,89 @@ export function MilitaryPanel({
     });
   };
 
+  // Hero summary — at war (single enemy → enemy name, multiple → count),
+  // otherwise army-size with "at peace" caption.
+  const atWar = wars.length > 0;
+  const heroValue = atWar
+    ? wars.length === 1
+      ? t('heroAtWar', { name: wars[0]!.name })
+      : t('heroAtWarMany', { count: wars.length })
+    : fmt.number(military.armySize);
+  const heroValueTone: Tone = atWar ? 'danger' : 'neutral';
+
+  const quickStats: { label: string; value: string }[] = [];
+  if (military.deployedUnits.length > 0) {
+    quickStats.push({
+      label: t('deployed.title'),
+      value: fmt.number(military.deployedUnits.length),
+    });
+  }
+  if (hasArsenal) {
+    quickStats.push({
+      label: t('nuclear.arsenal.count'),
+      value: fmt.number(warheadCount),
+    });
+  }
+  if (quickStats.length === 0) {
+    quickStats.push({
+      label: t('doctrineLevel'),
+      value: fmt.number(military.doctrineLevel, {
+        style: 'percent',
+        maximumFractionDigits: 0,
+      }),
+    });
+  }
+
   return (
     <div className="flex flex-col gap-4 p-4">
-      {/* Stat headline */}
-      <div className="grid grid-cols-2 gap-2">
-        <Stat label={t('armySize')} value={fmt.number(military.armySize)} t="neutral" />
-        <Stat label={t('navy')} value={fmt.number(military.navy)} t="info" />
-        <Stat label={t('airforce')} value={fmt.number(military.airforce)} t="info" />
-        <Stat
+      {/* Hero — war status or peacetime army size. */}
+      <PanelHero
+        title={t('title')}
+        value={
+          atWar ? (
+            <span className="text-base font-semibold">{heroValue}</span>
+          ) : (
+            heroValue
+          )
+        }
+        valueTone={heroValueTone}
+        quickStats={quickStats}
+      />
+
+      {/* Collapsed details — training composer, deployment composer, wars,
+          deployment list. Default closed. */}
+      <Disclosure summary={tShared('moreDetails')} trailing={t('details')}>
+        {/* Stat headline */}
+        <div className="grid grid-cols-2 gap-2">
+          <Stat label={t('armySize')} value={fmt.number(military.armySize)} t="neutral" />
+          <Stat label={t('navy')} value={fmt.number(military.navy)} t="info" />
+          <Stat label={t('airforce')} value={fmt.number(military.airforce)} t="info" />
+          <Stat
+            label={t('doctrineLevel')}
+            value={fmt.number(military.doctrineLevel, {
+              style: 'percent',
+              maximumFractionDigits: 0,
+            })}
+            t="success"
+          />
+        </div>
+
+        <StatBar
           label={t('doctrineLevel')}
-          value={fmt.number(military.doctrineLevel, {
+          value={military.doctrineLevel * 100}
+          max={100}
+          valueLabel={fmt.number(military.doctrineLevel, {
             style: 'percent',
             maximumFractionDigits: 0,
           })}
-          t="success"
+          tone="info"
         />
-      </div>
 
-      <StatBar
-        label={t('doctrineLevel')}
-        value={military.doctrineLevel * 100}
-        max={100}
-        valueLabel={fmt.number(military.doctrineLevel, {
-          style: 'percent',
-          maximumFractionDigits: 0,
-        })}
-        tone="info"
-      />
-
-      {/* Train */}
-      <Section title={t('train.title')}>
-        <div className="flex flex-col gap-2">
+        {/* Train */}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {t('train.title')}
+          </div>
           <label htmlFor="military-train" className="text-xs text-fg">
             {t('train.amountLabel')}
           </label>
@@ -362,11 +418,12 @@ export function MilitaryPanel({
           </ActionButton>
           <p className="text-[11px] text-fg-faint">{t('train.hint')}</p>
         </div>
-      </Section>
 
-      {/* Deploy */}
-      <Section title={t('deploy.title')}>
-        <div className="flex flex-col gap-2">
+        {/* Deploy */}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {t('deploy.title')}
+          </div>
           <label htmlFor="military-deploy-region" className="text-xs text-fg">
             {t('deploy.regionLabel')}
           </label>
@@ -417,81 +474,94 @@ export function MilitaryPanel({
             {t('deploy.cta')}
           </ActionButton>
         </div>
-      </Section>
 
-      {/* Active deployments */}
-      <Section
-        title={t('deployed.title')}
-        trailing={`${military.deployedUnits.length}`}
-      >
-        {military.deployedUnits.length === 0 ? (
-          <EmptyState>{t('deployed.empty')}</EmptyState>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border">
-            {military.deployedUnits.map((dep) => {
-              const age = Math.max(0, state.tick - dep.issuedAtTick);
-              return (
-                <li key={dep.id} className="py-2">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-xs font-medium text-fg">
-                      {regionLabel(dep.regionId)}
-                    </span>
-                    <span className="font-mono numeric-tabular text-[11px] text-fg-muted">
-                      {fmt.number(dep.units)} {t('deployed.units')}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-fg-faint">
-                    {t('deployed.age', { weeks: age })}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Section>
+        {/* Active deployments */}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <div className="flex items-baseline justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+              {t('deployed.title')}
+            </div>
+            <span className="text-[11px] font-mono text-fg-faint">
+              {military.deployedUnits.length}
+            </span>
+          </div>
+          {military.deployedUnits.length === 0 ? (
+            <EmptyState>{t('deployed.empty')}</EmptyState>
+          ) : (
+            <ul className="flex flex-col divide-y divide-border">
+              {military.deployedUnits.map((dep) => {
+                const age = Math.max(0, state.tick - dep.issuedAtTick);
+                return (
+                  <li key={dep.id} className="py-2">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xs font-medium text-fg">
+                        {regionLabel(dep.regionId)}
+                      </span>
+                      <span className="font-mono numeric-tabular text-[11px] text-fg-muted">
+                        {fmt.number(dep.units)} {t('deployed.units')}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-fg-faint">
+                      {t('deployed.age', { weeks: age })}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
 
-      {/* Wars */}
-      <Section title={t('wars.title')} trailing={`${wars.length}`}>
-        {wars.length === 0 ? (
-          <EmptyState>{t('wars.empty')}</EmptyState>
-        ) : (
-          <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-mono uppercase tracking-wider text-danger">
-            {wars.map((w) => (
-              <li key={w.with}>{w.name}</li>
-            ))}
-          </ul>
-        )}
-      </Section>
+        {/* Wars */}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <div className="flex items-baseline justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+              {t('wars.title')}
+            </div>
+            <span className="text-[11px] font-mono text-fg-faint">
+              {wars.length}
+            </span>
+          </div>
+          {wars.length === 0 ? (
+            <EmptyState>{t('wars.empty')}</EmptyState>
+          ) : (
+            <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-mono uppercase tracking-wider text-danger">
+              {wars.map((w) => (
+                <li key={w.with}>{w.name}</li>
+              ))}
+            </ul>
+          )}
+        </div>
 
-      {/*
-        Nuclear arsenal — buried at the bottom on purpose. Render only when
-        the player country has a nuclear field (i.e. has researched the
-        arsenal tech). The whole section is wrapped in a danger-toned
-        container with a permanent visual warning so the player never opens
-        the panel by reflex and clicks the wrong button.
-      */}
-      {hasArsenal ? (
-        <NuclearArsenalSection
-          warheadCount={warheadCount}
-          deliveryLevel={deliveryLevel}
-          noWarheads={noWarheads}
-          treatyActive={treatyActive}
-          dismantleBoost={dismantleBoost}
-          dismantleFullBoost={dismantleFullBoost}
-          dismantleHalvedBoost={dismantleHalvedBoost}
-          regions={regions}
-          regionLabel={regionLabel}
-          enemyCountries={enemyCountries}
-          nukeRegion={nukeRegion}
-          setNukeRegion={setNukeRegion}
-          nukeCountry={nukeCountry}
-          setNukeCountry={setNukeCountry}
-          openTacticalConfirm={openTacticalConfirm}
-          openStrategicConfirm={openStrategicConfirm}
-          handleDismantle={handleDismantle}
-          fmt={fmt}
-        />
-      ) : null}
+        {/*
+          Nuclear arsenal — buried at the bottom on purpose. Render only when
+          the player country has a nuclear field (i.e. has researched the
+          arsenal tech). The whole section is wrapped in a danger-toned
+          container with a permanent visual warning so the player never opens
+          the panel by reflex and clicks the wrong button.
+        */}
+        {hasArsenal ? (
+          <NuclearArsenalSection
+            warheadCount={warheadCount}
+            deliveryLevel={deliveryLevel}
+            noWarheads={noWarheads}
+            treatyActive={treatyActive}
+            dismantleBoost={dismantleBoost}
+            dismantleFullBoost={dismantleFullBoost}
+            dismantleHalvedBoost={dismantleHalvedBoost}
+            regions={regions}
+            regionLabel={regionLabel}
+            enemyCountries={enemyCountries}
+            nukeRegion={nukeRegion}
+            setNukeRegion={setNukeRegion}
+            nukeCountry={nukeCountry}
+            setNukeCountry={setNukeCountry}
+            openTacticalConfirm={openTacticalConfirm}
+            openStrategicConfirm={openStrategicConfirm}
+            handleDismantle={handleDismantle}
+            fmt={fmt}
+          />
+        ) : null}
+      </Disclosure>
 
       {/*
         Inline two-step launch confirm. Owned by the panel — it would be
