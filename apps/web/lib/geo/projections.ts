@@ -62,3 +62,42 @@ export function regionProjection(
   );
   return proj;
 }
+
+/**
+ * Fit-by-size variants. Identical to the `*Projection` helpers above but
+ * driven by a (width, height) pair instead of an extent rectangle. Useful for
+ * renderers that drive the SVG viewBox off a ResizeObserver: the projection
+ * adapts to whatever aspect ratio the container currently has, so
+ * `preserveAspectRatio="xMidYMid meet"` never letterboxes the canvas.
+ *
+ * A small symmetric inset is applied so coastal labels at the projection rim
+ * don't get clipped by the viewBox.
+ */
+export function worldProjectionFit(
+  fitObject: GeoPermissibleObjects,
+  width: number,
+  height: number,
+): GeoProjection {
+  const proj = geoEqualEarth();
+  proj.fitSize([Math.max(1, width - 16), Math.max(1, height - 16)], fitObject);
+  // Re-centre the inset around the canvas — fitSize anchors at (0,0).
+  proj.translate([
+    proj.translate()[0] + 8,
+    proj.translate()[1] + 8,
+  ]);
+  return proj;
+}
+
+export function regionProjectionFit(
+  fitObject: GeoPermissibleObjects,
+  width: number,
+  height: number,
+): GeoProjection {
+  const proj = geoEquirectangular();
+  proj.fitSize([Math.max(1, width - 16), Math.max(1, height - 16)], fitObject);
+  proj.translate([
+    proj.translate()[0] + 8,
+    proj.translate()[1] + 8,
+  ]);
+  return proj;
+}

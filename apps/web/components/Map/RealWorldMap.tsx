@@ -53,9 +53,8 @@ import {
   type WorldCollection,
 } from '../../lib/geo/world';
 import {
-  regionProjection,
-  worldProjection,
-  type Extent,
+  regionProjectionFit,
+  worldProjectionFit,
 } from '../../lib/geo/projections';
 import {
   ASCESA_COUNTRY_BY_ISO,
@@ -87,16 +86,31 @@ import {
 // ---------------------------------------------------------------------------
 // Layout
 // ---------------------------------------------------------------------------
-
-/** SVG viewBox the projection fits into. 16:9 keeps parity with the legacy map. */
-const VIEW = { x: 0, y: 0, w: 1600, h: 900 } as const;
+//
+// The renderer is driven by a ResizeObserver on its container. The SVG's
+// natural viewBox is `0 0 width height` (in CSS pixels) and the projection
+// uses `fitSize([width, height], featureCollection)` so the world always
+// fills the available container — no top/bottom letterboxing regardless of
+// container aspect.
 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 8;
 const DRAG_THRESHOLD_PX = 4;
 const FOCUS_TRANSITION_MS = 300;
+// Bounded fallback size used when the container hasn't yet been measured by
+// the ResizeObserver. Keeps the projection happy for the first render.
+const FALLBACK_W = 1280;
+const FALLBACK_H = 720;
 
 type ViewBox = { x: number; y: number; w: number; h: number };
+type Size = { w: number; h: number };
+
+// Featured countries below this projected pixel² area only render their
+// capital dot — the label is reserved for hover / selection. Empirically
+// tuned so Germany / France / Italy / UK / Spain / Poland keep their labels
+// while Belgium / Netherlands / Switzerland / Austria / Hungary / Czechia
+// fall back to dot-only. Threshold is in projected viewBox units squared.
+const SMALL_COUNTRY_AREA_PX2 = 950;
 
 type SupportedLocale = 'it' | 'en';
 function isSupportedLocale(s: string | undefined): s is SupportedLocale {
@@ -107,13 +121,23 @@ function isSupportedLocale(s: string | undefined): s is SupportedLocale {
 // Per-scenario palettes
 // ---------------------------------------------------------------------------
 
+// Continent → region-token mapping. Adjacency drives the choice: Africa
+// (sand / sahel) borders Middle East along the Red Sea + Egypt-Israel land
+// link, and Middle East (oriana / teal) borders Asia-Pacific via Iran-
+// Pakistan + Iran-Afghanistan. The previous arrangement painted Africa and
+// Middle East both in warm yellow-orange tints which blurred the boundary;
+// the table below swaps Middle East to teal and Asia-Pacific to ochre so
+// every continent pair across a land border carries a high-contrast hue
+// jump. The 6 buckets are covered by 5 tokens because Asia-Pacific and
+// Oceania are oceanically separated and can share `meridia` (only Indonesia
+// neighbours Australia, and that boundary reads as Indonesia / sea / Aus).
 const CONTINENT_FILL: Readonly<Record<McRegion, string>> = {
-  'mc-americas': 'var(--color-region-auriana)',
-  'mc-europe': 'var(--color-region-borealis)',
-  'mc-africa': 'var(--color-region-sahel)',
-  'mc-middle-east': 'var(--color-region-meridia)',
-  'mc-asia-pacific': 'var(--color-region-oriana)',
-  'mc-oceania': 'var(--color-region-meridia)',
+  'mc-americas': 'var(--color-region-auriana)',     // sage
+  'mc-europe': 'var(--color-region-borealis)',      // slate
+  'mc-africa': 'var(--color-region-sahel)',         // sand
+  'mc-middle-east': 'var(--color-region-oriana)',   // teal  (was meridia)
+  'mc-asia-pacific': 'var(--color-region-meridia)', // ochre (was oriana)
+  'mc-oceania': 'var(--color-region-meridia)',      // ochre
 };
 
 const BLOC_FILL: Readonly<Record<GfBloc, string>> = {
@@ -157,15 +181,15 @@ function clientToSvg(
   return { x: vb.x + px * vb.w, y: vb.y + py * vb.h };
 }
 
-function clampViewBoxX(x: number, w: number): number {
-  const min = VIEW.x - w * 0.15;
-  const max = VIEW.x + VIEW.w - w * 0.85;
+function clampViewBoxX(x: number, w: number, natural: Size): number {
+  const min = -w * 0.15;
+  const max = natural.w - w * 0.85;
   return clamp(x, min, max);
 }
 
-function clampViewBoxY(y: number, h: number): number {
-  const min = VIEW.y - h * 0.15;
-  const max = VIEW.y + VIEW.h - h * 0.85;
+function clampViewBoxY(y: number, h: number, natural: Size): number {
+  const min = -h * 0.15;
+  const max = natural.h - h * 0.85;
   return clamp(y, min, max);
 }
 
@@ -379,33 +403,40 @@ export default function RealWorldMap() {
     return filterForMode(world, mode);
   }, [world, mode]);
 
-  // Projection + pathBuilder. Recomputed when the filtered world or mode
-  // changes — both are stable across normal play (scenario doesn't change
-  // mid-game), so this is a one-shot cost.
+  // ----- Container size (ResizeObserver) ----------------------------------
+  // The SVG fills its parent. We measure the parent on mount + on resize so
+  // the projection can adapt to whatever aspect ratio the container
+  // currently has — this is what stops the previous fixed 16:9 viewBox from
+  // letterboxing the top of the canvas when the play page's centre column
+  // is closer to square.
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [size, setSize] = useState<Size>({ w: FALLBACK_W, h: FALLBACK_H });
+
+  // Projection + pathBuilder. Recomputed when the filtered world, mode, or
+  // container size changes — fitSize re-runs every resize so the cartography
+  // always fills the available space without dead bands.
   const projection = useMemo<GeoProjection | null>(() => {
     if (!filteredWorld || !mode) return null;
-    const extent: Extent = [
-      [VIEW.x, VIEW.y],
-      [VIEW.x + VIEW.w, VIEW.y + VIEW.h],
-    ];
     if (mode === 'mondo' || mode === 'fredda') {
-      return worldProjection(filteredWorld, extent);
+      return worldProjectionFit(filteredWorld, size.w, size.h);
     }
-    return regionProjection(filteredWorld, extent);
-  }, [filteredWorld, mode]);
+    return regionProjectionFit(filteredWorld, size.w, size.h);
+  }, [filteredWorld, mode, size.w, size.h]);
 
   const pathBuilder = useMemo(() => {
     if (!projection) return null;
     return geoPath(projection);
   }, [projection]);
 
-  // Per-feature path string + centroid (precomputed; pure derived data).
+  // Per-feature path string + centroid + projected pixel area (used by the
+  // label-collision pass to decide which Europe labels to hide).
   type RenderedFeature = {
     iso: string;
     feature: CountryFeature;
     d: string;
     cx: number;
     cy: number;
+    area: number;
     countryId: string | null;
     fill: string;
   };
@@ -421,12 +452,14 @@ export default function RealWorldMap() {
       const centroid = projection(geoCentroid(feature as unknown as Feature<Geometry>));
       const cx = centroid?.[0] ?? 0;
       const cy = centroid?.[1] ?? 0;
+      const area = pathBuilder.area(feature as unknown as Feature<Geometry>);
       out.push({
         iso,
         feature,
         d,
         cx,
         cy,
+        area,
         countryId: isoTable[iso] ?? null,
         fill: fillForCountry(mode, iso),
       });
@@ -504,12 +537,48 @@ export default function RealWorldMap() {
   }, [state]);
 
   // ----- View box (pan + zoom) --------------------------------------------
+  //
+  // Natural viewBox is `0 0 size.w size.h` — set initially and reset whenever
+  // the container is resized so the cartography keeps the full canvas. The
+  // user's pan + zoom mutations of viewBox are reset on resize (acceptable:
+  // resizing is rare during play).
   const [viewBox, setViewBox] = useState<ViewBox>({
-    x: VIEW.x,
-    y: VIEW.y,
-    w: VIEW.w,
-    h: VIEW.h,
+    x: 0,
+    y: 0,
+    w: FALLBACK_W,
+    h: FALLBACK_H,
   });
+
+  // Resize observer — owns both `size` and the natural-extent viewBox reset.
+  // Owned together so the setState call is in an external-system callback
+  // (the observer), which the `react-hooks/set-state-in-effect` lint rule
+  // permits.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const apply = (w: number, h: number) => {
+      if (w <= 0 || h <= 0) return;
+      const rw = Math.round(w);
+      const rh = Math.round(h);
+      setSize((prev) => (prev.w === rw && prev.h === rh ? prev : { w: rw, h: rh }));
+      setViewBox((prev) =>
+        prev.x === 0 && prev.y === 0 && prev.w === rw && prev.h === rh
+          ? prev
+          : { x: 0, y: 0, w: rw, h: rh },
+      );
+    };
+    // Seed from the current measurement so the first projection is correct.
+    const rect = el.getBoundingClientRect();
+    apply(rect.width, rect.height);
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        apply(entry.contentRect.width, entry.contentRect.height);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const [transitioning, setTransitioning] = useState(false);
   const transitionTimer = useRef<number | null>(null);
 
@@ -524,8 +593,8 @@ export default function RealWorldMap() {
       setViewBox((current) => {
         const w = current.w;
         const h = current.h;
-        const x = clampViewBoxX(pos.x - w / 2, w);
-        const y = clampViewBoxY(pos.y - h / 2, h);
+        const x = clampViewBoxX(pos.x - w / 2, w, size);
+        const y = clampViewBoxY(pos.y - h / 2, h, size);
         return { x, y, w, h };
       });
       setTransitioning(true);
@@ -544,7 +613,7 @@ export default function RealWorldMap() {
         transitionTimer.current = null;
       }
     };
-  }, [centroidByCountry]);
+  }, [centroidByCountry, size]);
 
   // Pointer-driven panning + pinch zoom.
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -609,15 +678,15 @@ export default function RealWorldMap() {
         const newDist = distance(a, b);
         const ratio = pinchStateRef.current.startDistance / Math.max(newDist, 1);
         const start = pinchStateRef.current.startVB;
-        const newW = clamp(start.w * ratio, VIEW.w / MAX_ZOOM, VIEW.w / MIN_ZOOM);
-        const newH = (newW / VIEW.w) * VIEW.h;
+        const newW = clamp(start.w * ratio, size.w / MAX_ZOOM, size.w / MIN_ZOOM);
+        const newH = (newW / size.w) * size.h;
         const centerSvg = clientToSvg(
           pinchStateRef.current.centerClient,
           rect,
           start,
         );
-        const x = clampViewBoxX(centerSvg.x - newW / 2, newW);
-        const y = clampViewBoxY(centerSvg.y - newH / 2, newH);
+        const x = clampViewBoxX(centerSvg.x - newW / 2, newW, size);
+        const y = clampViewBoxY(centerSvg.y - newH / 2, newH, size);
         setViewBox({ x, y, w: newW, h: newH });
         return;
       }
@@ -633,14 +702,14 @@ export default function RealWorldMap() {
         const dy = (totalDy / rect.height) * dragStateRef.current.startVB.h;
         const start = dragStateRef.current.startVB;
         setViewBox({
-          x: clampViewBoxX(start.x - dx, start.w),
-          y: clampViewBoxY(start.y - dy, start.h),
+          x: clampViewBoxX(start.x - dx, start.w, size),
+          y: clampViewBoxY(start.y - dy, start.h, size),
           w: start.w,
           h: start.h,
         });
       }
     },
-    [],
+    [size],
   );
 
   const handleSvgPointerUp = useCallback(
@@ -666,21 +735,21 @@ export default function RealWorldMap() {
       const rect = svg.getBoundingClientRect();
       setViewBox((prev) => {
         const factor = Math.exp(ev.deltaY * 0.001);
-        const newW = clamp(prev.w * factor, VIEW.w / MAX_ZOOM, VIEW.w / MIN_ZOOM);
-        const newH = (newW / VIEW.w) * VIEW.h;
+        const newW = clamp(prev.w * factor, size.w / MAX_ZOOM, size.w / MIN_ZOOM);
+        const newH = (newW / size.w) * size.h;
         const centerSvg = clientToSvg(
           { x: ev.clientX, y: ev.clientY },
           rect,
           prev,
         );
-        const x = clampViewBoxX(centerSvg.x - newW / 2, newW);
-        const y = clampViewBoxY(centerSvg.y - newH / 2, newH);
+        const x = clampViewBoxX(centerSvg.x - newW / 2, newW, size);
+        const y = clampViewBoxY(centerSvg.y - newH / 2, newH, size);
         return { x, y, w: newW, h: newH };
       });
     };
     svg.addEventListener('wheel', onWheel, { passive: false });
     return () => svg.removeEventListener('wheel', onWheel);
-  }, []);
+  }, [size]);
 
   const handleBackgroundClick = useCallback(
     (e: ReactPointerEvent<SVGRectElement>) => {
@@ -750,6 +819,7 @@ export default function RealWorldMap() {
 
   return (
     <div
+      ref={containerRef}
       className={cn('relative h-full min-h-[60vh] w-full overflow-hidden bg-bg')}
       role="region"
       aria-label={t('label')}
@@ -759,7 +829,7 @@ export default function RealWorldMap() {
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
         preserveAspectRatio="xMidYMid meet"
         className={cn(
-          'h-full w-full touch-none select-none',
+          'h-full w-full touch-none select-none rw-map-svg',
           transitioning ? 'transition-[viewBox] duration-300 ease-out' : '',
         )}
         style={{
@@ -776,53 +846,112 @@ export default function RealWorldMap() {
         }}
       >
         <defs>
+          {/* Sea depth gradient — top brighter (atmosphere), bottom deeper
+              (abyss). Mirrors the LegacyWorldMap palette so the two
+              renderers feel like the same product. */}
           <linearGradient id="rw-sea-depth" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="oklch(0.15 0.04 240)" stopOpacity={1} />
-            <stop offset="100%" stopColor="oklch(0.09 0.04 240)" stopOpacity={1} />
+            <stop offset="0%" stopColor="oklch(0.16 0.04 240)" stopOpacity={1} />
+            <stop offset="100%" stopColor="oklch(0.08 0.04 240)" stopOpacity={1} />
           </linearGradient>
+          {/* Subtle fg wash on top of the sea — adds the faintest haze. */}
           <linearGradient id="rw-sea-wash" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--color-fg)" stopOpacity={0.02} />
             <stop offset="100%" stopColor="var(--color-fg)" stopOpacity={0} />
           </linearGradient>
+          {/* Paper-grain dots — ≤0.04 opacity so it reads as grain not noise. */}
+          <pattern
+            id="rw-sea-grain"
+            x={0}
+            y={0}
+            width={32}
+            height={32}
+            patternUnits="userSpaceOnUse"
+          >
+            <circle cx={6} cy={9} r={0.6} fill="var(--color-fg)" fillOpacity={0.04} />
+            <circle cx={22} cy={4} r={0.5} fill="var(--color-fg)" fillOpacity={0.035} />
+            <circle cx={14} cy={20} r={0.5} fill="var(--color-fg)" fillOpacity={0.03} />
+            <circle cx={28} cy={26} r={0.4} fill="var(--color-fg)" fillOpacity={0.035} />
+          </pattern>
         </defs>
 
-        {/* Solid page bg + sea gradient + click-clear capture. */}
+        {/* Inline stylesheet for hover ripple — kept here so the rule
+            travels with the renderer. The pulse / dash / fade keyframes
+            already exist in globals.css. */}
+        <style>{`
+          .rw-map-svg .rw-cap-dot { transition: transform 120ms ease-out; transform-box: fill-box; transform-origin: center; }
+          .rw-map-svg g.rw-cap:hover .rw-cap-dot:not(.rw-cap-dot--player) { transform: scale(1.2); }
+          @media (prefers-reduced-motion: reduce) {
+            .rw-map-svg .rw-cap-dot,
+            .rw-map-svg g.rw-cap:hover .rw-cap-dot { transition: none; transform: none; }
+          }
+        `}</style>
+
+        {/* Solid page bg — covers an overscan halo so panning past the
+            world doesn't reveal the underlying html background. */}
         <rect
-          x={VIEW.x - 200}
-          y={VIEW.y - 200}
-          width={VIEW.w + 400}
-          height={VIEW.h + 400}
+          x={-size.w}
+          y={-size.h}
+          width={size.w * 3}
+          height={size.h * 3}
           fill="var(--color-bg)"
         />
+        {/* Sea depth gradient — fills the natural canvas. */}
         <rect
-          x={VIEW.x}
-          y={VIEW.y}
-          width={VIEW.w}
-          height={VIEW.h}
+          x={0}
+          y={0}
+          width={size.w}
+          height={size.h}
           fill="url(#rw-sea-depth)"
-          fillOpacity={0.55}
+          fillOpacity={0.7}
           pointerEvents="none"
         />
         <rect
-          x={VIEW.x}
-          y={VIEW.y}
-          width={VIEW.w}
-          height={VIEW.h}
+          x={0}
+          y={0}
+          width={size.w}
+          height={size.h}
           fill="url(#rw-sea-wash)"
           pointerEvents="none"
         />
         <rect
-          x={VIEW.x - 200}
-          y={VIEW.y - 200}
-          width={VIEW.w + 400}
-          height={VIEW.h + 400}
+          x={0}
+          y={0}
+          width={size.w}
+          height={size.h}
+          fill="url(#rw-sea-grain)"
+          pointerEvents="none"
+        />
+        {/* Click-clear capture. */}
+        <rect
+          x={-size.w}
+          y={-size.h}
+          width={size.w * 3}
+          height={size.h * 3}
           fill="transparent"
           onClick={handleBackgroundClick}
         />
 
+        {/* Coastline glow — a soft outer halo painted under each country
+            polygon. Subtle (alpha 0.10) so it reads as moisture / atmospheric
+            perspective rather than a stroke. Rendered as a single decorative
+            pass before the interactive country paths. */}
+        <g aria-hidden pointerEvents="none">
+          {rendered.map((r) => (
+            <path
+              key={`glow-${r.iso}`}
+              d={r.d}
+              fill="none"
+              stroke="var(--color-fg)"
+              strokeOpacity={0.1}
+              strokeWidth={2.5}
+              strokeLinejoin="round"
+            />
+          ))}
+        </g>
+
         {/* Country polygons */}
         <g aria-hidden>
-          {rendered.map((r) => {
+          {rendered.map((r, idx) => {
             const isPlayer = r.countryId === playerCountryId;
             const isSelected = r.countryId === selectedId;
             const isHovered = r.countryId === hoveredId;
@@ -850,6 +979,10 @@ export default function RealWorldMap() {
               fillOpacity = fillOpacity * opacity;
             }
 
+            // Border stroke between adjacent countries — always a hairline of
+            // the page bg colour so neighbours of the same continent / bloc
+            // can still be visually told apart. State-dependent strokes
+            // (player accent, hover, selection) overlay this baseline.
             const stroke = isPlayer
               ? 'var(--color-accent)'
               : isSelected
@@ -864,6 +997,14 @@ export default function RealWorldMap() {
                 : isHovered
                   ? 0.9
                   : 0.5;
+            const strokeOpacity = isPlayer
+              ? 1
+              : isSelected || isHovered
+                ? 0.85
+                : 0.6;
+
+            // Stagger label / polygon fade-in on mount.
+            const fadeDelay = Math.min(idx * 30, 500);
 
             return (
               <path
@@ -874,10 +1015,11 @@ export default function RealWorldMap() {
                 stroke={stroke}
                 strokeWidth={strokeWidth}
                 strokeLinejoin="round"
-                strokeOpacity={isPlayer ? 1 : 0.7}
+                strokeOpacity={strokeOpacity}
                 style={{
                   cursor: isFeatured ? 'pointer' : 'default',
-                  transition: 'fill-opacity 200ms',
+                  transition: 'fill-opacity 200ms, stroke-opacity 200ms',
+                  animation: `map-label-fade 420ms ease-out ${fadeDelay}ms both`,
                 }}
                 onPointerEnter={() => {
                   if (r.countryId) setHoveredId(r.countryId);
@@ -919,6 +1061,27 @@ export default function RealWorldMap() {
           })}
         </g>
 
+        {/* Player country accent stroke — painted ABOVE every other country
+            so the player's silhouette never gets clipped by a neighbour.
+            Drawn as a non-filled path overlay to avoid double-painting the
+            interior; uses pointerEvents="none" so the interactive country
+            path underneath still receives clicks. */}
+        {rendered
+          .filter((r) => r.countryId === playerCountryId)
+          .map((r) => (
+            <path
+              key={`player-${r.iso}`}
+              d={r.d}
+              fill="none"
+              stroke="var(--color-accent)"
+              strokeWidth={1.8}
+              strokeOpacity={0.9}
+              strokeLinejoin="round"
+              pointerEvents="none"
+              aria-hidden
+            />
+          ))}
+
         {/* Alliance edges */}
         {overlay === 'alliances' && allianceEdges.length > 0 ? (
           <g aria-hidden pointerEvents="none" data-overlay="alliances">
@@ -942,7 +1105,7 @@ export default function RealWorldMap() {
         <g>
           {rendered
             .filter((r) => r.countryId !== null)
-            .map((r) => {
+            .map((r, capIdx) => {
               const id = r.countryId as CountryId;
               const isPlayer = id === playerCountryId;
               const isSelected = id === selectedId;
@@ -953,13 +1116,30 @@ export default function RealWorldMap() {
               const intel = intelMask.get(id) ?? 'none';
               const intelKnown =
                 isPlayer || intel === 'partial' || intel === 'full';
-              const showLabel = overlay !== 'intel' || intelKnown;
+              const intelAllowsLabel = overlay !== 'intel' || intelKnown;
+
+              // Label-collision pass: small countries (Belgium, Netherlands,
+              // Switzerland, Austria, Hungary, Czechia, ...) only show their
+              // label on hover / select / when they're the player. This keeps
+              // dense Europe legible without truncating the rest of the
+              // continent's labels.
+              const isSmall = r.area < SMALL_COUNTRY_AREA_PX2;
+              const forceLabel = isPlayer || isSelected || isHovered;
+              const showLabel = intelAllowsLabel && (!isSmall || forceLabel);
 
               const dotR = isPlayer ? 5 : 4;
+              // Stagger fade-in: capitals follow the country fade so they
+              // land just after their continent has painted.
+              const fadeDelay = Math.min(capIdx * 30, 500);
               return (
                 <g
                   key={`cap-${id}`}
-                  style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                  className="rw-cap"
+                  style={{
+                    cursor: 'pointer',
+                    pointerEvents: 'all',
+                    animation: `map-label-fade 420ms ease-out ${fadeDelay}ms both`,
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     selectCountry(id === selectedId ? null : id);
@@ -991,20 +1171,28 @@ export default function RealWorldMap() {
                   data-country={id}
                   data-player={isPlayer ? 'true' : undefined}
                 >
-                  {/* Player anchor disc */}
+                  {/* Player anchor pulse — softly-pulsing accent disc that
+                      makes the player's capital impossible to miss. The
+                      `map-capital-pulse` keyframe (globals.css) drives the
+                      scale + opacity wobble. */}
                   {isPlayer ? (
                     <circle
                       cx={r.cx}
                       cy={r.cy}
                       r={dotR + 5}
                       fill="var(--color-accent)"
-                      fillOpacity={0.16}
+                      fillOpacity={0.22}
                       pointerEvents="none"
+                      style={{
+                        transformBox: 'fill-box',
+                        transformOrigin: 'center',
+                        animation: 'map-capital-pulse 1.6s ease-in-out infinite',
+                      }}
                     />
                   ) : null}
 
-                  {/* Hover hairline */}
-                  {isHovered && !isSelected ? (
+                  {/* Hover hairline (non-player) */}
+                  {isHovered && !isSelected && !isPlayer ? (
                     <circle
                       cx={r.cx}
                       cy={r.cy}
@@ -1034,31 +1222,31 @@ export default function RealWorldMap() {
                     />
                   ) : null}
 
-                  {/* Contrast halo + dot */}
+                  {/* Contrast halo + dot. The dot carries `rw-cap-dot` so
+                      the SVG-wide style block above can drive the hover
+                      ripple on non-player capitals. Player dot opts out via
+                      the `--player` modifier. */}
                   <circle
                     cx={r.cx}
                     cy={r.cy}
                     r={dotR + 2}
                     fill="var(--color-bg)"
-                    fillOpacity={0.7}
+                    fillOpacity={0.75}
                     pointerEvents="none"
                   />
                   <circle
                     cx={r.cx}
                     cy={r.cy}
                     r={dotR}
+                    className={cn(
+                      'rw-cap-dot',
+                      isPlayer ? 'rw-cap-dot--player' : '',
+                    )}
                     fill={isPlayer ? 'var(--color-accent)' : 'var(--color-fg)'}
                     stroke={isPlayer ? 'var(--color-accent)' : 'var(--color-bg)'}
                     strokeWidth={isPlayer ? 1.5 : 0.5}
                     strokeOpacity={isPlayer ? 1 : 0.6}
                     pointerEvents="none"
-                    style={{
-                      transformBox: 'fill-box',
-                      transformOrigin: 'center',
-                      animation: isPlayer
-                        ? 'map-capital-pulse 1.6s ease-in-out infinite'
-                        : undefined,
-                    }}
                   />
 
                   {/* Bloc ring */}

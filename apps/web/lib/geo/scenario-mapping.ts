@@ -72,30 +72,60 @@ const MC_AMERICAS: ReadonlySet<string> = new Set([
   '238',
 ]);
 
+// Note on Turkey (792): the game places Turkey in Europe — it is a NATO and
+// Council of Europe member, and Mondo Contemporaneo treats it within the
+// European bloc rather than the Middle East. The fictional Aurion scenario
+// uses Turkey's geometry under a different region (sahel-karoun) but that's
+// scenario-local and lives in ASCESA_REGION_BY_COUNTRY.
 const MC_EUROPE: ReadonlySet<string> = new Set([
   '826', '372', '352', '578', '752', '246', '208', '233', '428', '440',
   '250', '276', '528', '056', '442', '756', '040',
-  '380', '724', '620', '300', '470', '300',
+  '380', '724', '620', '300', '470',
   '616', '203', '703', '348', '642', '100', '191', '705', '688', '499',
   '807', '008', '070',
   '498', '804', '112',
   '643',
+  // Turkey — NATO / Council of Europe.
+  '792',
 ]);
 
+// Africa includes the entire North African Maghreb / Nile band: Egypt (818),
+// Libya (434), Tunisia (788), Algeria (012), Morocco (504), Sudan (729) and
+// Western Sahara (732).
 const MC_AFRICA: ReadonlySet<string> = new Set([
   '012', '732', '504', '788', '434', '566', '288', '120', '180', '178',
   '266', '226', '024', '516', '072', '710', '748', '426', '454', '508',
-  '716', '894', '716', '454',
+  '716', '894',
   '231', '232', '262', '706', '404', '800', '646', '108', '834', '450',
   '728', '729', '140', '562', '466', '854', '684', '270', '624', '324',
   '430', '694', '384', '768', '204', '148', '478',
+  // Egypt — geographically and politically African (Arab League, AU).
+  '818',
 ]);
 
+// Middle East / SW Asia. Includes the full Gulf rim and Levant. Egypt (818)
+// belongs to MC_AFRICA above; Turkey (792) belongs to MC_EUROPE above; both
+// are intentionally NOT listed here.
 const MC_MIDDLE_EAST: ReadonlySet<string> = new Set([
-  '792', '760', '422', '376', '275', '400', '368', '364', '414', '682',
-  '634', '784', '512', '887', '004',
-  '196',
-  '818',
+  // Levant & Iraq
+  '760', // Syria
+  '422', // Lebanon
+  '376', // Israel
+  '275', // Palestine
+  '400', // Jordan
+  '368', // Iraq
+  // Persian Gulf
+  '364', // Iran
+  '414', // Kuwait
+  '682', // Saudi Arabia
+  '634', // Qatar
+  '784', // UAE
+  '512', // Oman
+  '887', // Yemen
+  '048', // Bahrain
+  '196', // Cyprus
+  // Eastern margin (sometimes grouped with West Asia / Caucasus)
+  '004', // Afghanistan
 ]);
 
 const MC_ASIA_PACIFIC: ReadonlySet<string> = new Set([
