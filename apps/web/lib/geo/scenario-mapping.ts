@@ -358,3 +358,27 @@ export const QUICK_START_COUNTRY_BY_ISO: Readonly<Record<string, string>> = {
   '792': 'verm-soltan',
   '818': 'verm-ridhana',
 };
+
+// ---------------------------------------------------------------------------
+// Featured ISO sets — convenience exports used by the renderer to filter the
+// world FeatureCollection BEFORE projecting. Cropping to just the featured
+// countries makes `fitSize` zoom into the region of interest (Mediterranean +
+// Middle East for Aurion, the European cluster for Quick Start) instead of
+// fitting a full-world bounding box and leaving the player's region as a
+// tiny coloured fragment in the middle of empty viewport.
+// ---------------------------------------------------------------------------
+
+export const ASCESA_ISO_SET: ReadonlySet<string> = new Set(
+  Object.keys(ASCESA_COUNTRY_BY_ISO),
+);
+
+export const QUICK_START_ISO_SET: ReadonlySet<string> = new Set(
+  Object.keys(QUICK_START_COUNTRY_BY_ISO),
+);
+
+// Antarctica (M49 numeric "010") is excluded from world projections — its
+// huge southern extent stretches the world's vertical bbox and causes the
+// fitSize result to letterbox the top of the canvas by ~25%. The continent
+// is geopolitically irrelevant to every supported scenario, so dropping it
+// loses no information and recovers the missing real estate.
+export const ANTARCTICA_ISO = '010';

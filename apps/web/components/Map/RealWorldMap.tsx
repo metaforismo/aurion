@@ -57,12 +57,15 @@ import {
   worldProjectionFit,
 } from '../../lib/geo/projections';
 import {
+  ANTARCTICA_ISO,
   ASCESA_COUNTRY_BY_ISO,
+  ASCESA_ISO_SET,
   ASCESA_REGION_BY_COUNTRY,
   ASCESA_REGION_TINT,
   GF_COUNTRY_BY_ISO,
   MC_COUNTRY_BY_ISO,
   QUICK_START_COUNTRY_BY_ISO,
+  QUICK_START_ISO_SET,
   blocByIso,
   continentByIso,
   type GfBloc,
@@ -295,48 +298,47 @@ function fillForCountry(
 }
 
 // Filter the world FeatureCollection down to the subset shown by the active
-// scenario. World scenarios get the full collection; the regional scenarios
-// crop to only the features they actually re-label, with one wider buffer
-// of geographic context (a real map of "the Aurion region" needs more than
-// just the 25 game countries to read as a continent).
+// scenario.
+//
+// - World scenarios (MC / GF): the FULL collection EXCEPT Antarctica. Bug 2
+//   fix — Antarctica stretches the world's vertical bbox so `fitSize` gives
+//   it ~25% of the viewport, leaving the populated continents letterboxed.
+//   Dropping it is geopolitically meaningless (no scenario plays there) and
+//   recovers the missing real estate at the top of the canvas.
+//
+// - Regional scenarios (Aurion / Quick Start): ONLY the featured countries.
+//   Bug 1 fix — the previous implementation also included a wide buffer of
+//   "context" features for visual grounding, but those buffer countries
+//   (Russia, India, South Africa, …) expanded the projection's bbox so much
+//   that the 25 actually-coloured countries became a tiny coloured strip in
+//   the middle of a half-empty canvas. By cropping to only the mapped
+//   countries the projection zooms tightly into the region of interest.
 function filterForMode(
   world: WorldCollection,
   mode: ScenarioMode,
 ): WorldCollection {
-  if (mode === 'mondo' || mode === 'fredda') return world;
-  if (mode === 'aurion') {
-    // Mediterranean + Middle East + Sahel + North Europe rim.
-    const allowed = new Set<string>([
-      // Featured Aurion countries
-      ...Object.keys(ASCESA_COUNTRY_BY_ISO),
-      // Geographic context (greyed out — gives the region a sense of place
-      // without overwhelming the featured nations).
-      '004', '008', '031', '040', '044', '048', '050', '051', '056', '070',
-      '100', '112', '120', '140', '148', '178', '191', '196', '203',
-      '208', '218', '226', '231', '232', '233', '246', '262', '266', '268',
-      '270', '275', '288', '320', '324', '348', '352', '368', '372', '376',
-      '384', '414', '417', '428', '430', '440', '442', '450', '454', '478',
-      '498', '499', '512', '524', '528', '566', '578', '588', '600', '620',
-      '624', '634', '642', '643', '646', '684', '688', '694', '703', '705',
-      '706', '707', '716', '728', '732', '748', '752', '756', '768', '784',
-      '795', '800', '807', '826', '834', '854', '887', '894',
-    ]);
+  if (mode === 'mondo' || mode === 'fredda') {
     return {
       ...world,
-      features: world.features.filter((f: CountryFeature) => allowed.has(getIso(f))),
+      features: world.features.filter(
+        (f: CountryFeature) => getIso(f) !== ANTARCTICA_ISO,
+      ),
     };
   }
-  // Quick Start: 6 featured countries + a single ring of European context.
-  const allowed = new Set<string>([
-    ...Object.keys(QUICK_START_COUNTRY_BY_ISO),
-    '040', '056', '100', '191', '203', '208', '246', '250', '276', '300',
-    '348', '352', '372', '380', '442', '498', '499', '528', '578', '616',
-    '620', '642', '688', '703', '705', '724', '752', '756', '792', '804',
-    '807', '818', '826', '012', '434', '504', '788',
-  ]);
+  if (mode === 'aurion') {
+    return {
+      ...world,
+      features: world.features.filter((f: CountryFeature) =>
+        ASCESA_ISO_SET.has(getIso(f)),
+      ),
+    };
+  }
+  // Quick Start: only the 6 featured European countries.
   return {
     ...world,
-    features: world.features.filter((f: CountryFeature) => allowed.has(getIso(f))),
+    features: world.features.filter((f: CountryFeature) =>
+      QUICK_START_ISO_SET.has(getIso(f)),
+    ),
   };
 }
 
@@ -535,6 +537,31 @@ export default function RealWorldMap() {
     }
     return out;
   }, [state]);
+
+  // Player feature resolution — used by the impossible-to-miss "TU" anchor
+  // layer rendered at the top of the SVG stack (Bug 3 fix). We search
+  // `rendered` for the feature whose engine countryId matches
+  // `state.playerCountryId`. If the lookup fails (e.g. a scenario uses a
+  // player country id not represented in its scenario-mapping ISO table) we
+  // log a console warning and fall back to the FIRST featured country so the
+  // player still has a visual anchor while we debug the missing mapping.
+  // Declared BEFORE the early-return guards so the hook order is stable
+  // across the loading / loaded transition.
+  const playerFeature = useMemo(() => {
+    if (!state) return null;
+    const pid = state.playerCountryId;
+    const direct = rendered.find((r) => r.countryId === pid);
+    if (direct) return direct;
+    const fallback = rendered.find((r) => r.countryId !== null);
+    if (fallback && rendered.length > 0) {
+      console.warn(
+        `[RealWorldMap] playerCountryId "${pid}" not found in scenario ` +
+          `"${scenario?.id}" ISO mapping — falling back to ` +
+          `"${fallback.countryId}" (iso ${fallback.iso}) as the player anchor.`,
+      );
+    }
+    return fallback ?? null;
+  }, [rendered, state, scenario?.id]);
 
   // ----- View box (pan + zoom) --------------------------------------------
   //
@@ -791,7 +818,7 @@ export default function RealWorldMap() {
   }
 
   // ----- Render -----------------------------------------------------------
-  const playerCountryId = state.playerCountryId;
+  const playerCountryId = state?.playerCountryId;
   const selectedId = selectedCountryId;
 
   const overlayLabels: Record<OverlayMode, string> = {
@@ -1065,22 +1092,25 @@ export default function RealWorldMap() {
             so the player's silhouette never gets clipped by a neighbour.
             Drawn as a non-filled path overlay to avoid double-painting the
             interior; uses pointerEvents="none" so the interactive country
-            path underneath still receives clicks. */}
-        {rendered
-          .filter((r) => r.countryId === playerCountryId)
-          .map((r) => (
-            <path
-              key={`player-${r.iso}`}
-              d={r.d}
-              fill="none"
-              stroke="var(--color-accent)"
-              strokeWidth={1.8}
-              strokeOpacity={0.9}
-              strokeLinejoin="round"
-              pointerEvents="none"
-              aria-hidden
-            />
-          ))}
+            path underneath still receives clicks. Bug 3 fix: bumped to a
+            visible 2px accent stroke and tagged with `data-debug-player` so
+            DevTools can confirm the lookup succeeded. */}
+        {playerFeature ? (
+          <path
+            key={`player-${playerFeature.iso}`}
+            d={playerFeature.d}
+            fill="none"
+            stroke="var(--color-accent)"
+            strokeWidth={2}
+            strokeOpacity={1}
+            strokeLinejoin="round"
+            pointerEvents="none"
+            aria-hidden
+            data-debug-player={playerCountryId}
+            data-debug-player-iso={playerFeature.iso}
+            data-debug-player-resolved={playerFeature.countryId ?? 'fallback'}
+          />
+        ) : null}
 
         {/* Alliance edges */}
         {overlay === 'alliances' && allianceEdges.length > 0 ? (
@@ -1294,35 +1324,91 @@ export default function RealWorldMap() {
                     </text>
                   ) : null}
 
-                  {/* Player marker */}
-                  {isPlayer && showLabel ? (
-                    <text
-                      x={r.cx}
-                      y={r.cy - dotR - 6}
-                      textAnchor="middle"
-                      fill="var(--color-accent)"
-                      fontSize={9}
-                      fontWeight={600}
-                      letterSpacing={1.4}
-                      style={{
-                        textTransform: 'uppercase',
-                        fontFamily: 'var(--font-mono)',
-                        userSelect: 'none',
-                        paintOrder: 'stroke',
-                        stroke: 'var(--color-bg)',
-                        strokeWidth: 3,
-                        strokeOpacity: 0.85,
-                        strokeLinejoin: 'round',
-                        pointerEvents: 'none',
-                      }}
-                    >
-                      {tNation('youMarker')}
-                    </text>
-                  ) : null}
+                  {/* Player TU/YOU marker — rendered by the top-level player
+                      anchor block at the bottom of the SVG so it sits above
+                      every other layer (Bug 3 fix). */}
                 </g>
               );
             })}
         </g>
+
+        {/* ------------------------------------------------------------------
+            Player anchor (TOP layer) — Bug 3 fix.
+            ------------------------------------------------------------------
+            Rendered as the LAST child of the SVG so the pulsing accent disc,
+            the 8px filled accent dot, the "TU" / "YOU" marker, and the halo
+            backdrop all sit on top of every other layer (countries, overlays,
+            alliance edges, capital dots). This guarantees the player country
+            is impossible to miss regardless of scenario, overlay, or zoom.
+            Uses `playerFeature` which falls back to the first featured
+            country when `state.playerCountryId` can't be resolved, so the
+            anchor is ALWAYS visible while debugging missing mappings. */}
+        {playerFeature ? (
+          <g
+            aria-hidden
+            pointerEvents="none"
+            data-debug-player-anchor={playerCountryId}
+            data-debug-player-anchor-iso={playerFeature.iso}
+            data-debug-player-anchor-resolved={
+              playerFeature.countryId ?? 'fallback'
+            }
+          >
+            {/* Pulsing 12px accent disc behind the dot. */}
+            <circle
+              cx={playerFeature.cx}
+              cy={playerFeature.cy}
+              r={12}
+              fill="var(--color-accent)"
+              fillOpacity={0.28}
+              style={{
+                transformBox: 'fill-box',
+                transformOrigin: 'center',
+                animation: 'map-capital-pulse 1.6s ease-in-out infinite',
+              }}
+            />
+            {/* Contrast halo — keeps the dot legible on any continent fill. */}
+            <circle
+              cx={playerFeature.cx}
+              cy={playerFeature.cy}
+              r={10}
+              fill="var(--color-bg)"
+              fillOpacity={0.85}
+            />
+            {/* 8px-radius solid accent dot. */}
+            <circle
+              cx={playerFeature.cx}
+              cy={playerFeature.cy}
+              r={8}
+              fill="var(--color-accent)"
+              stroke="var(--color-bg)"
+              strokeWidth={1.5}
+              strokeOpacity={0.9}
+            />
+            {/* "TU" / "YOU" marker — small-caps, weight 700, accent fill on
+                top of a bg-coloured halo (paint-order stroke first). */}
+            <text
+              x={playerFeature.cx}
+              y={playerFeature.cy - 16}
+              textAnchor="middle"
+              fill="var(--color-accent)"
+              fontSize={14}
+              fontWeight={700}
+              letterSpacing={1.6}
+              style={{
+                textTransform: 'uppercase',
+                fontFamily: 'var(--font-mono)',
+                userSelect: 'none',
+                paintOrder: 'stroke',
+                stroke: 'var(--color-bg)',
+                strokeWidth: 4,
+                strokeOpacity: 0.95,
+                strokeLinejoin: 'round',
+              }}
+            >
+              {tNation('youMarker')}
+            </text>
+          </g>
+        ) : null}
       </svg>
 
       <MapLegend
