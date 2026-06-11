@@ -27,6 +27,17 @@ export type MapTooltipProps = {
   isPlayer: boolean;
   /** Attitude (-100..100) of `country` toward the player; null if unknown. */
   attitudeTowardPlayer: number | null;
+  /**
+   * Standing between this country and the player. Null for the player's own
+   * nation or when no relation record exists. Drives the status chips under
+   * the header — war / alliance / sanctions are the three facts that change
+   * what hovering this nation *means* strategically.
+   */
+  relationToPlayer: {
+    atWar: boolean;
+    alliance: boolean;
+    sanctions: boolean;
+  } | null;
   labels: {
     capital: string;
     gdp: string;
@@ -37,6 +48,9 @@ export type MapTooltipProps = {
     player: string;
     selected: string;
     region: string;
+    atWar: string;
+    alliance: string;
+    sanctions: string;
     intelByLevel: Record<IntelLevel, string>;
   };
   isSelected: boolean;
@@ -106,6 +120,23 @@ export default function MapTooltip(props: MapTooltipProps) {
         ) : null}
       </div>
 
+      {props.relationToPlayer &&
+      (props.relationToPlayer.atWar ||
+        props.relationToPlayer.alliance ||
+        props.relationToPlayer.sanctions) ? (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {props.relationToPlayer.atWar ? (
+            <RelationChip tone="danger" label={props.labels.atWar} />
+          ) : null}
+          {props.relationToPlayer.alliance ? (
+            <RelationChip tone="success" label={props.labels.alliance} />
+          ) : null}
+          {props.relationToPlayer.sanctions ? (
+            <RelationChip tone="warning" label={props.labels.sanctions} />
+          ) : null}
+        </div>
+      ) : null}
+
       <hr className="my-2 border-border" />
 
       <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-[11px]">
@@ -174,6 +205,32 @@ export default function MapTooltip(props: MapTooltipProps) {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Small status chip for the player ↔ country standing (war / ally / sanctions). */
+function RelationChip({
+  tone,
+  label,
+}: {
+  tone: 'danger' | 'success' | 'warning';
+  label: string;
+}) {
+  const toneClass =
+    tone === 'danger'
+      ? 'border-danger/50 text-danger'
+      : tone === 'success'
+        ? 'border-success/50 text-success'
+        : 'border-warning/50 text-warning';
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-sm border px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.12em]',
+        toneClass,
+      )}
+    >
+      {label}
+    </span>
+  );
+}
 
 function formatBig(n: number): string {
   if (Math.abs(n) >= 1e12) return `${(n / 1e12).toFixed(2)}T`;

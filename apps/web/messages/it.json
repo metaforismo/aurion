@@ -997,6 +997,7 @@
       }
     },
     "zoom": {
+      "label": "Controlli zoom",
       "in": "Ingrandisci",
       "out": "Riduci",
       "reset": "Vista iniziale"
@@ -1010,7 +1011,10 @@
       "intelHidden": "Sconosciuto",
       "player": "Tua nazione",
       "selected": "Selezionata",
-      "region": "Regione"
+      "region": "Regione",
+      "atWar": "In guerra",
+      "alliance": "Alleanza",
+      "sanctions": "Sanzioni"
     },
     "intel": {
       "none": "Nessuna",

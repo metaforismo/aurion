@@ -86,13 +86,32 @@ export function AchievementsList({
       )}
       aria-label={tList('title')}
     >
-      <header className="flex items-baseline justify-between border-b border-border pb-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-          {tList('title')}
-        </h2>
-        <span className="numeric-tabular font-mono text-xs text-fg-faint">
-          {totalUnlocked}/{items.length}
-        </span>
+      <header className="flex flex-col gap-2 border-b border-border pb-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {tList('title')}
+          </h2>
+          <span className="numeric-tabular font-mono text-xs text-fg-faint">
+            {totalUnlocked}/{items.length}
+          </span>
+        </div>
+        {/* Completion bar — same hairline language as StatBar in the panels.
+            Width animates on hydration so the page-load reveal reads as a
+            tally rather than a static decoration. */}
+        <div
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={items.length}
+          aria-valuenow={totalUnlocked}
+          className="h-1 w-full overflow-hidden rounded-full bg-surface-1"
+        >
+          <div
+            className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out motion-reduce:transition-none"
+            style={{
+              width: `${items.length > 0 ? (totalUnlocked / items.length) * 100 : 0}%`,
+            }}
+          />
+        </div>
       </header>
       <ol className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0">
         {items.map((def) => {

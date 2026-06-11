@@ -44,6 +44,7 @@ import { loadScenarioMessages } from '../../lib/scenarios';
 import { useGameStore } from '../../lib/store';
 
 import MapLegend from './MapLegend';
+import MapZoomControls from './MapZoomControls';
 import MapNation from './MapNation';
 import MapTooltip from './MapTooltip';
 import RealWorldMap, { isRealWorldScenario } from './RealWorldMap';
@@ -82,6 +83,8 @@ import { GF_NATION_POSITIONS, GF_REGIONS } from './regions-gf';
 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 4;
+/** Magnification step per zoom-button press (matches ~6 wheel notches). */
+const BUTTON_ZOOM_STEP = 1.5;
 /** Pixel distance past which a single-pointer interaction becomes a drag (instead of a tap). */
 const DRAG_THRESHOLD_PX = 4;
 const FOCUS_TRANSITION_MS = 300;
@@ -459,6 +462,63 @@ function LegacyWorldMap() {
     return () => svg.removeEventListener('wheel', onWheel);
   }, []);
 
+  // -- Zoom buttons ---------------------------------------------------------
+  // Same clamps as the wheel path, anchored on the view centre and animated
+  // via the focus transition so a press reads as a deliberate camera move.
+  const beginViewTransition = useCallback(() => {
+    setTransitioning(true);
+    if (transitionTimer.current !== null) {
+      window.clearTimeout(transitionTimer.current);
+    }
+    transitionTimer.current = window.setTimeout(() => {
+      setTransitioning(false);
+      transitionTimer.current = null;
+    }, FOCUS_TRANSITION_MS + 50);
+  }, []);
+
+  const zoomByFactor = useCallback(
+    (factor: number) => {
+      beginViewTransition();
+      setViewBox((prev) => {
+        const newW = clamp(
+          prev.w * factor,
+          PLAY_BOUNDS.width / MAX_ZOOM,
+          PLAY_BOUNDS.width / MIN_ZOOM,
+        );
+        const newH = (newW / PLAY_BOUNDS.width) * PLAY_BOUNDS.height;
+        const cx = prev.x + prev.w / 2;
+        const cy = prev.y + prev.h / 2;
+        const x = clampViewBoxX(cx - newW / 2, newW);
+        const y = clampViewBoxY(cy - newH / 2, newH);
+        return { x, y, w: newW, h: newH };
+      });
+    },
+    [beginViewTransition],
+  );
+
+  const handleZoomIn = useCallback(
+    () => zoomByFactor(1 / BUTTON_ZOOM_STEP),
+    [zoomByFactor],
+  );
+  const handleZoomOut = useCallback(
+    () => zoomByFactor(BUTTON_ZOOM_STEP),
+    [zoomByFactor],
+  );
+  const handleZoomReset = useCallback(() => {
+    beginViewTransition();
+    setViewBox({
+      x: PLAY_BOUNDS.x,
+      y: PLAY_BOUNDS.y,
+      w: PLAY_BOUNDS.width,
+      h: PLAY_BOUNDS.height,
+    });
+  }, [beginViewTransition]);
+
+  // Limit flags drive the buttons' disabled state. The 1% epsilon absorbs
+  // floating-point drift from repeated multiply/clamp cycles.
+  const canZoomIn = viewBox.w > (PLAY_BOUNDS.width / MAX_ZOOM) * 1.01;
+  const canZoomOut = viewBox.w < (PLAY_BOUNDS.width / MIN_ZOOM) * 0.99;
+
   // -- Click on empty SVG background clears selection ----------------------
   const handleBackgroundClick = useCallback(
     (e: ReactPointerEvent<SVGRectElement>) => {
@@ -767,6 +827,22 @@ function LegacyWorldMap() {
         ) : null}
       </svg>
 
+      {/* Top-right zoom cluster — explicit affordance for the wheel/pinch
+          zoom plus a reset-to-fit action. */}
+      <MapZoomControls
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onReset={handleZoomReset}
+        canZoomIn={canZoomIn}
+        canZoomOut={canZoomOut}
+        labels={{
+          group: t('zoom.label'),
+          in: t('zoom.in'),
+          out: t('zoom.out'),
+          reset: t('zoom.reset'),
+        }}
+      />
+
       {/* Bottom legend rail — overlay segmented toggle plus, when the blocs
           overlay is active, the bloc colour key. */}
       <MapLegend
@@ -799,6 +875,11 @@ function LegacyWorldMap() {
               ? null
               : getAttitude(state, playerCountryId, tooltipCountry.id)
           }
+          relationToPlayer={getRelationToPlayer(
+            state,
+            playerCountryId,
+            tooltipCountry.id,
+          )}
           isSelected={tooltipCountry.id === selectedId}
           labels={{
             capital: tTooltip('capital'),
@@ -810,6 +891,9 @@ function LegacyWorldMap() {
             player: tTooltip('player'),
             selected: tTooltip('selected'),
             region: tTooltip('region'),
+            atWar: tTooltip('atWar'),
+            alliance: tTooltip('alliance'),
+            sanctions: tTooltip('sanctions'),
             intelByLevel: {
               none: tIntel('none'),
               rumors: tIntel('rumors'),
@@ -892,6 +976,25 @@ function localiseName(c: Country, msgs: Record<string, string>): string {
 function localiseCapital(c: Country, msgs: Record<string, string>): string {
   const v = msgs[c.capitalKey];
   return v ?? c.capitalKey;
+}
+
+/**
+ * Player ↔ country standing for the tooltip status chips. Null for the
+ * player's own nation or when no relation record exists yet.
+ */
+function getRelationToPlayer(
+  state: GameState,
+  player: CountryId,
+  other: CountryId,
+): { atWar: boolean; alliance: boolean; sanctions: boolean } | null {
+  if (player === other) return null;
+  const rel = state.relations[relKey(player, other)];
+  if (!rel) return null;
+  return {
+    atWar: rel.atWar,
+    alliance: rel.treaties.includes('alliance'),
+    sanctions: rel.treaties.includes('sanctions'),
+  };
 }
 
 function getAttitude(

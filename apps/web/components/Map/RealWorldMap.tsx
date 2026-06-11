@@ -34,7 +34,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { geoCentroid, geoPath, type GeoProjection } from 'd3-geo';
+import {
+  geoCentroid,
+  geoGraticule10,
+  geoPath,
+  type GeoProjection,
+} from 'd3-geo';
 import type { Feature, Geometry } from 'geojson';
 import type {
   Country,
@@ -74,6 +79,7 @@ import {
 
 import MapLegend from './MapLegend';
 import MapTooltip from './MapTooltip';
+import MapZoomControls from './MapZoomControls';
 import {
   BLOC_COLOR,
   computeAllianceEdges,
@@ -100,6 +106,8 @@ const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 8;
 const DRAG_THRESHOLD_PX = 4;
 const FOCUS_TRANSITION_MS = 300;
+/** Magnification step per zoom-button press (matches ~6 wheel notches). */
+const BUTTON_ZOOM_STEP = 1.5;
 // Bounded fallback size used when the container hasn't yet been measured by
 // the ResizeObserver. Keeps the projection happy for the first render.
 const FALLBACK_W = 1280;
@@ -222,6 +230,25 @@ function localiseCapital(c: Country, msgs: Record<string, string>): string {
 
 function relKey(a: CountryId, b: CountryId) {
   return a < b ? (`${a}::${b}` as const) : (`${b}::${a}` as const);
+}
+
+/**
+ * Player ↔ country standing for the tooltip status chips. Null for the
+ * player's own nation or when no relation record exists yet.
+ */
+function getRelationToPlayer(
+  state: GameState,
+  player: CountryId,
+  other: CountryId,
+): { atWar: boolean; alliance: boolean; sanctions: boolean } | null {
+  if (player === other) return null;
+  const rel = state.relations[relKey(player, other)];
+  if (!rel) return null;
+  return {
+    atWar: rel.atWar,
+    alliance: rel.treaties.includes('alliance'),
+    sanctions: rel.treaties.includes('sanctions'),
+  };
 }
 
 function getAttitude(
@@ -446,6 +473,14 @@ export default function RealWorldMap() {
     if (!projection) return null;
     return geoPath(projection);
   }, [projection]);
+
+  // 10° lat/long graticule — drawn once per projection under the country
+  // polygons. Pure atlas texture: barely-there ink that makes the sea read
+  // as a charted ocean instead of a flat backdrop.
+  const graticulePath = useMemo(() => {
+    if (!pathBuilder) return null;
+    return pathBuilder(geoGraticule10());
+  }, [pathBuilder]);
 
   // Per-feature path string + centroid + projected pixel area (used by the
   // label-collision pass to decide which Europe labels to hide).
@@ -795,6 +830,55 @@ export default function RealWorldMap() {
     return () => svg.removeEventListener('wheel', onWheel);
   }, [size]);
 
+  // ----- Zoom buttons -------------------------------------------------------
+  // Same clamps as the wheel path, but anchored on the view centre (button
+  // zoom has no cursor position to anchor on) and animated via the focus
+  // transition so a press reads as a deliberate camera move, not a jump.
+  const beginViewTransition = useCallback(() => {
+    setTransitioning(true);
+    if (transitionTimer.current !== null) {
+      window.clearTimeout(transitionTimer.current);
+    }
+    transitionTimer.current = window.setTimeout(() => {
+      setTransitioning(false);
+      transitionTimer.current = null;
+    }, FOCUS_TRANSITION_MS + 50);
+  }, []);
+
+  const zoomByFactor = useCallback(
+    (factor: number) => {
+      beginViewTransition();
+      setViewBox((prev) => {
+        const newW = clamp(prev.w * factor, size.w / MAX_ZOOM, size.w / MIN_ZOOM);
+        const newH = (newW / size.w) * size.h;
+        const cx = prev.x + prev.w / 2;
+        const cy = prev.y + prev.h / 2;
+        const x = clampViewBoxX(cx - newW / 2, newW, size);
+        const y = clampViewBoxY(cy - newH / 2, newH, size);
+        return { x, y, w: newW, h: newH };
+      });
+    },
+    [beginViewTransition, size],
+  );
+
+  const handleZoomIn = useCallback(
+    () => zoomByFactor(1 / BUTTON_ZOOM_STEP),
+    [zoomByFactor],
+  );
+  const handleZoomOut = useCallback(
+    () => zoomByFactor(BUTTON_ZOOM_STEP),
+    [zoomByFactor],
+  );
+  const handleZoomReset = useCallback(() => {
+    beginViewTransition();
+    setViewBox({ x: 0, y: 0, w: size.w, h: size.h });
+  }, [beginViewTransition, size]);
+
+  // Limit flags drive the buttons' disabled state. The 1% epsilon absorbs
+  // floating-point drift from repeated multiply/clamp cycles.
+  const canZoomIn = viewBox.w > (size.w / MAX_ZOOM) * 1.01;
+  const canZoomOut = viewBox.w < (size.w / MIN_ZOOM) * 0.99;
+
   const handleBackgroundClick = useCallback(
     (e: ReactPointerEvent<SVGRectElement>) => {
       const drag = dragStateRef.current;
@@ -985,6 +1069,18 @@ export default function RealWorldMap() {
           fill="url(#rw-sea-grain)"
           pointerEvents="none"
         />
+        {/* 10° graticule — charted-ocean texture under the landmasses. */}
+        {graticulePath ? (
+          <path
+            aria-hidden
+            d={graticulePath}
+            fill="none"
+            stroke="var(--color-fg)"
+            strokeOpacity={0.05}
+            strokeWidth={0.5}
+            pointerEvents="none"
+          />
+        ) : null}
         {/* Click-clear capture. */}
         <rect
           x={-size.w}
@@ -1448,6 +1544,20 @@ export default function RealWorldMap() {
         ) : null}
       </svg>
 
+      <MapZoomControls
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onReset={handleZoomReset}
+        canZoomIn={canZoomIn}
+        canZoomOut={canZoomOut}
+        labels={{
+          group: t('zoom.label'),
+          in: t('zoom.in'),
+          out: t('zoom.out'),
+          reset: t('zoom.reset'),
+        }}
+      />
+
       <MapLegend
         mode={overlay}
         onChange={setOverlay}
@@ -1477,6 +1587,11 @@ export default function RealWorldMap() {
               ? null
               : getAttitude(state, playerCountryId, tooltipCountry.id)
           }
+          relationToPlayer={getRelationToPlayer(
+            state,
+            playerCountryId,
+            tooltipCountry.id,
+          )}
           isSelected={tooltipCountry.id === selectedId}
           labels={{
             capital: tTooltip('capital'),
@@ -1488,6 +1603,9 @@ export default function RealWorldMap() {
             player: tTooltip('player'),
             selected: tTooltip('selected'),
             region: tTooltip('region'),
+            atWar: tTooltip('atWar'),
+            alliance: tTooltip('alliance'),
+            sanctions: tTooltip('sanctions'),
             intelByLevel: {
               none: tIntel('none'),
               rumors: tIntel('rumors'),
