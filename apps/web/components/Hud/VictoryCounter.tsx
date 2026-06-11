@@ -247,7 +247,14 @@ function resolveVictoryLabel(
   } catch {
     // fall through
   }
-  return key;
+  // Last resort: show the condition's id segment ("economic") rather than the
+  // full dotted key ("victory.qs.economic.name"), which reads like a bug.
+  const segments = key.split('.');
+  const idSegment =
+    segments[segments.length - 1] === 'name'
+      ? segments[segments.length - 2]
+      : segments[segments.length - 1];
+  return idSegment ?? key;
 }
 
 export default VictoryCounter;

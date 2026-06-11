@@ -88,7 +88,9 @@ export default function MapTooltip(props: MapTooltipProps) {
         <span
           aria-hidden
           className="h-2 w-2 shrink-0 rounded-full"
-          style={{ backgroundColor: props.country.color }}
+          style={{
+            backgroundColor: props.country.color || 'var(--color-fg-faint)',
+          }}
         />
         <span className="truncate text-[13px] font-medium text-fg">
           {props.name}

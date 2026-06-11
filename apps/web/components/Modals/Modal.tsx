@@ -17,6 +17,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '../../lib/cn';
 
@@ -80,6 +81,7 @@ export function Modal({
   titleId: titleIdProp,
   descriptionId,
 }: ModalProps) {
+  const tCommon = useTranslations('common');
   const reactTitleId = useId();
   const titleId = titleIdProp ?? reactTitleId;
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -238,7 +240,7 @@ export function Modal({
               type="button"
               onClick={handleClose}
               className="rounded-sm border border-transparent p-1 text-fg-muted transition hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-              aria-label="close"
+              aria-label={tCommon('close')}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

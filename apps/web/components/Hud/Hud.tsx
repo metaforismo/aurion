@@ -63,7 +63,7 @@ export function Hud({ onNotify }: HudProps) {
   const notify = onNotify ?? setInternalToast;
 
   return (
-    <header className="sticky top-0 z-20 flex h-[52px] items-center gap-x-7 border-b border-border bg-bg px-5 text-sm">
+    <header className="sticky top-0 z-20 flex h-[52px] items-center gap-x-4 border-b border-border bg-bg px-3 text-sm md:gap-x-7 md:px-5">
       {/* Brand wordmark — small caps, wide tracking, anchors the row left. */}
       <span
         aria-label={tApp('name')}
@@ -76,16 +76,25 @@ export function Hud({ onNotify }: HudProps) {
       </span>
       {/* Era pill — sits between the brand and the date so the player gets
           an immediate sense of "what era are we in" before reading the
-          tick. Hides itself for scenarios without an `eras[]` schedule. */}
-      <EraBadge />
+          tick. Hides itself for scenarios without an `eras[]` schedule.
+          Below the md breakpoint the pill yields its space to the primary
+          readouts (date / treasury / popularity / speed); `md:contents`
+          dissolves the wrapper at md+ so the row's gap rhythm is unchanged. */}
+      <div className="hidden md:contents">
+        <EraBadge />
+      </div>
       <DateBadge />
       {ironMan ? <IronManBadge /> : null}
       <TreasuryBadge />
       <PopularityBadge />
       {/* Phase 3 — bloc reputation chips. Hide themselves when the active
           scenario does not opt into the bloc system (i.e. state.reputation
-          is undefined), so Phase 1/2 saves see the previous HUD layout. */}
-      <ReputationBadges />
+          is undefined), so Phase 1/2 saves see the previous HUD layout.
+          Also hidden below md: secondary info that would otherwise crowd the
+          speed controls out of a narrow viewport. */}
+      <div className="hidden md:contents">
+        <ReputationBadges />
+      </div>
       {/* Phase 3 — Eternal-mode multi-victory counter. Hides itself unless
           state.gameMode === 'eternal'. */}
       <VictoryCounter />

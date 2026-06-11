@@ -223,7 +223,10 @@ export function NotificationStream({ onWidthChange }: NotificationStreamProps = 
             const isNew = idx === 0 && event.firedAtTick === lastFired;
             const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
             return (
-              <li key={`${event.definitionId}-${event.firedAtTick}-${idx}`}>
+              // Stable identity: definition + tick. Excluding the positional
+              // index keeps React reconciliation correct when the visible
+              // window slides (old entries culled off the end).
+              <li key={`${event.definitionId}-${event.firedAtTick}`}>
                 <NotificationItem
                   event={event}
                   definition={definition}

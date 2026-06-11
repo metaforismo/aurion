@@ -8,10 +8,11 @@
 'use client';
 
 import { useFormatter, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { ComponentType, ReactNode, SVGProps } from 'react';
 import {
   BookOpen,
+  Check,
   Coins,
   Crown,
   Flag,
@@ -51,6 +52,9 @@ import { tone, toneChip } from '../../../lib/theme';
 // ---------------------------------------------------------------------------
 
 type StepId = 'scenario' | 'country' | 'victory' | 'difficulty' | 'gameMode';
+
+/** One row of the step-5 recap (label = step name, value = chosen option). */
+type SummaryItem = { label: string; value: string };
 const STEPS: readonly StepId[] = [
   'scenario',
   'country',
@@ -204,6 +208,8 @@ export default function NewGamePage() {
   const t = useTranslations('setup');
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('errors');
+  const tVictory = useTranslations('victory');
+  const tAll = useTranslations();
   const router = useRouter();
 
   const startNewGame = useGameStore((s) => s.startNewGame);
@@ -275,6 +281,49 @@ export default function NewGamePage() {
   // Index of the current step in STEPS — used by breadcrumbs / step counter.
   const currentStepIndex = STEPS.indexOf(step);
 
+  // Country names live in the scenario side-car bundle (same pattern as
+  // CountryStep below) — resolved here so the step-5 recap can show them.
+  const { t: tScenario } = useScenarioMessages(scenarioId);
+
+  // Recap of the four earlier choices, shown on the final step right above
+  // the "Avvia partita" CTA so the player confirms the whole run at a glance.
+  // Each row degrades to the raw id when a translation is missing so the
+  // recap never renders an empty cell.
+  const summary = useMemo<SummaryItem[]>(() => {
+    const items: SummaryItem[] = [];
+    if (scenarioId) {
+      const meta = listScenarios().find((m) => m.id === scenarioId);
+      const raw = meta ? tAll(meta.nameKey) : scenarioId;
+      items.push({
+        label: t('breadcrumbs.scenario'),
+        value: meta && raw !== meta.nameKey ? raw : scenarioId,
+      });
+    }
+    if (countryId) {
+      const country = scenario?.countries.find((c) => c.id === countryId);
+      const raw = country ? tScenario(country.nameKey) : countryId;
+      items.push({
+        label: t('breadcrumbs.country'),
+        value: country && raw !== country.nameKey ? raw : countryId,
+      });
+    }
+    if (victory) {
+      items.push({
+        label: t('breadcrumbs.victory'),
+        value: tVictory(`${victory}.name`),
+      });
+    }
+    if (difficultyId) {
+      const preset = scenario?.difficulties.find((d) => d.id === difficultyId);
+      const raw = preset ? tAll(preset.nameKey) : difficultyId;
+      items.push({
+        label: t('breadcrumbs.difficulty'),
+        value: preset && raw !== preset.nameKey ? raw : difficultyId,
+      });
+    }
+    return items;
+  }, [scenarioId, scenario, countryId, victory, difficultyId, t, tAll, tScenario, tVictory]);
+
   // ---- Step navigation ---------------------------------------------------
 
   /**
@@ -344,7 +393,7 @@ export default function NewGamePage() {
         </Link>
       </header>
 
-      <Breadcrumbs current={step} onJump={handleGoToStep} />
+      <Stepper current={step} onJump={handleGoToStep} />
 
       {step === 'scenario' ? (
         <ScenarioStep
@@ -398,6 +447,7 @@ export default function NewGamePage() {
           stepLabel={stepCounterLabel}
           scenarioId={scenarioId}
           selected={gameMode}
+          summary={summary}
           onSelect={setGameMode}
           onBack={() => setStep('difficulty')}
           onStart={handleStart}
@@ -415,10 +465,17 @@ export default function NewGamePage() {
 }
 
 // ---------------------------------------------------------------------------
-// Breadcrumbs
+// Stepper
+//
+// Numbered progress indicator replacing the plain text breadcrumb. Completed
+// steps render a check inside an accent-tinted circle and stay clickable
+// (jump back); the current step is a filled accent circle; future steps are
+// hairline outlines. Connector lines between markers tint up to the current
+// step so the player reads progress at a glance. Labels collapse on small
+// screens (the circles + the per-step "Passo N di 5" heading carry position).
 // ---------------------------------------------------------------------------
 
-function Breadcrumbs({
+function Stepper({
   current,
   onJump,
 }: {
@@ -429,38 +486,66 @@ function Breadcrumbs({
   const currentIndex = STEPS.indexOf(current);
 
   return (
-    <nav aria-label={t('label')} className="flex flex-wrap items-center gap-1 text-sm">
+    <nav aria-label={t('label')} className="flex items-center">
       {STEPS.map((id, idx) => {
         const isCurrent = id === current;
         const isPast = idx < currentIndex;
         const label = t(id);
+        const marker = (
+          <span
+            aria-hidden
+            className={cn(
+              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border font-mono text-[11px] transition-colors',
+              isCurrent
+                ? 'border-accent bg-accent font-semibold text-bg'
+                : isPast
+                  ? 'border-accent/60 bg-accent/15 text-accent'
+                  : 'border-border text-fg-faint',
+            )}
+          >
+            {isPast ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : idx + 1}
+          </span>
+        );
         return (
-          <span key={id} className="flex items-center gap-1">
+          <Fragment key={id}>
             {idx > 0 ? (
-              <span aria-hidden className="text-fg-faint">
-                ›
-              </span>
+              <span
+                aria-hidden
+                className={cn(
+                  'mx-1.5 h-px min-w-3 flex-1 sm:mx-2',
+                  idx <= currentIndex ? 'bg-accent/50' : 'bg-border',
+                )}
+              />
             ) : null}
             {isPast ? (
               <button
                 type="button"
                 onClick={() => onJump(id)}
-                className="rounded px-1 text-fg-muted underline-offset-2 hover:text-fg hover:underline"
+                title={label}
+                className="group flex shrink-0 items-center gap-1.5 rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
               >
-                {label}
+                {marker}
+                <span className="hidden text-xs text-fg-muted transition-colors group-hover:text-fg md:inline">
+                  {label}
+                </span>
               </button>
             ) : (
               <span
                 aria-current={isCurrent ? 'step' : undefined}
-                className={cn(
-                  'px-1',
-                  isCurrent ? 'font-semibold text-fg' : 'text-fg-faint',
-                )}
+                className="flex shrink-0 items-center gap-1.5"
               >
-                {label}
+                {marker}
+                <span
+                  className={cn(
+                    'hidden text-xs md:inline',
+                    isCurrent ? 'font-semibold text-fg' : 'text-fg-faint',
+                  )}
+                >
+                  {label}
+                </span>
               </span>
             )}
-          </span>
+          </Fragment>
         );
       })}
     </nav>
@@ -496,6 +581,27 @@ function StepHeading({
       </span>
       <h2 className="text-xl font-semibold text-fg">{title}</h2>
       <p className="text-sm text-fg-muted">{description}</p>
+    </div>
+  );
+}
+
+/**
+ * Loading skeleton shown while a scenario's data is in flight. Pulsing card
+ * shells match the height of the option cards they stand in for, so the
+ * layout doesn't jump when the real content lands. The label is sr-only —
+ * sighted users read the pulse, screen readers hear "Loading…".
+ */
+function StepSkeleton({ rows, label }: { rows: number; label: string }) {
+  return (
+    <div role="status" className="flex flex-col gap-2">
+      <span className="sr-only">{label}</span>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div
+          key={i}
+          aria-hidden
+          className="h-16 animate-pulse rounded-md border border-border bg-surface-1/60"
+        />
+      ))}
     </div>
   );
 }
@@ -828,7 +934,7 @@ function CountryStep({
           })}
         </ul>
       ) : !scenarioError ? (
-        <p className="text-sm text-fg-faint">…</p>
+        <StepSkeleton rows={3} label={tCommon('loading')} />
       ) : null}
       <div className="flex justify-between pt-2">
         <NavButton variant="secondary" onClick={onBack}>
@@ -957,8 +1063,18 @@ function DifficultyStep({
         title={t('stepDifficulty.title')}
         description={t('stepDifficulty.description')}
       />
-      {presets.length === 0 ? (
-        <p className="text-sm text-fg-faint">…</p>
+      {scenario === null ? (
+        // Scenario data still in flight — match the country step's skeleton.
+        <StepSkeleton rows={3} label={tCommon('loading')} />
+      ) : presets.length === 0 ? (
+        // Scenario loaded but declares no difficulty presets: the player
+        // would otherwise be stuck on a disabled "Next" with no explanation.
+        <p
+          role="alert"
+          className={cn('rounded-md px-3 py-2 text-sm', toneChip('warning'))}
+        >
+          {t('stepDifficulty.empty')}
+        </p>
       ) : (
         <ul className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {presets.map((preset) => (
@@ -1159,6 +1275,7 @@ function GameModeStep({
   stepLabel,
   scenarioId,
   selected,
+  summary,
   onSelect,
   onBack,
   onStart,
@@ -1167,6 +1284,8 @@ function GameModeStep({
   stepLabel: string;
   scenarioId: ScenarioId | null;
   selected: SelectableGameMode;
+  /** Recap rows for the player's earlier choices (scenario → difficulty). */
+  summary: readonly SummaryItem[];
   onSelect: (mode: SelectableGameMode) => void;
   onBack: () => void;
   onStart: () => void;
@@ -1229,6 +1348,28 @@ function GameModeStep({
         >
           {tMode('dethrone.isolationUnavailable')}
         </p>
+      ) : null}
+      {summary.length > 0 ? (
+        <section
+          aria-label={t('summary.title')}
+          className="rounded-md border border-border bg-surface px-4 py-3"
+        >
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+            {t('summary.title')}
+          </h3>
+          <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
+            {summary.map((item) => (
+              <div key={item.label} className="flex min-w-0 flex-col">
+                <dt className="text-[10px] uppercase tracking-wider text-fg-faint">
+                  {item.label}
+                </dt>
+                <dd className="truncate text-sm font-medium text-fg">
+                  {item.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
       ) : null}
       <div className="flex justify-between pt-2">
         <NavButton variant="secondary" onClick={onBack}>

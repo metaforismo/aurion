@@ -776,6 +776,7 @@ function LegacyWorldMap() {
         labels={overlayLabels}
         disabled={overlayDisabled}
         blocLabels={blocLegendLabels}
+        blocGroupLabel={t('legend.blocGroup')}
       />
 
       {/* Tooltip */}

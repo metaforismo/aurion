@@ -377,26 +377,43 @@ export default function RealWorldMap() {
     void loadScenarioMessages(
       scenario.id as Parameters<typeof loadScenarioMessages>[0],
       locale,
-    ).then((m) => {
-      if (!cancelled) setScenarioMessages(m);
-    });
+    )
+      .then((m) => {
+        if (!cancelled) setScenarioMessages(m);
+      })
+      .catch(() => {
+        // Bundle missing / fetch failed — the renderers already degrade to
+        // raw country ids, so an empty message table is an acceptable state.
+      });
     return () => {
       cancelled = true;
     };
   }, [scenario, locale]);
 
   // World data is loaded lazily — first render shows a loading frame, then
-  // re-renders once the FeatureCollection resolves.
+  // re-renders once the FeatureCollection resolves. A failed chunk load
+  // (offline, stale deploy) flips `worldError` so the player gets an explicit
+  // retry affordance instead of an eternal loading frame.
   const [world, setWorld] = useState<WorldCollection | null>(null);
+  const [worldError, setWorldError] = useState(false);
+  // Incremented by the retry button to re-run the load effect.
+  const [worldLoadAttempt, setWorldLoadAttempt] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    void loadWorld().then((w) => {
-      if (!cancelled) setWorld(w);
-    });
+    // Reset before each (re)load so the retry path clears the error frame.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWorldError(false);
+    void loadWorld()
+      .then((w) => {
+        if (!cancelled) setWorld(w);
+      })
+      .catch(() => {
+        if (!cancelled) setWorldError(true);
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [worldLoadAttempt]);
 
   // Filtered features for the active mode (full world for MC/GF, regional
   // crop for Aurion / Quick Start).
@@ -801,6 +818,26 @@ export default function RealWorldMap() {
         aria-label={t('label')}
       >
         {t('loading')}
+      </div>
+    );
+  }
+  if (worldError) {
+    return (
+      <div
+        className={cn(
+          'flex min-h-[60vh] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-surface/30 text-xs text-fg-muted',
+        )}
+        aria-label={t('label')}
+        role="alert"
+      >
+        <span>{t('loadError')}</span>
+        <button
+          type="button"
+          onClick={() => setWorldLoadAttempt((n) => n + 1)}
+          className="rounded-sm border border-border px-3 py-1.5 font-semibold text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        >
+          {t('retry')}
+        </button>
       </div>
     );
   }
@@ -1418,6 +1455,7 @@ export default function RealWorldMap() {
         labels={overlayLabels}
         disabled={overlayDisabled}
         blocLabels={blocLegendLabels}
+        blocGroupLabel={t('legend.blocGroup')}
       />
 
       {tooltipId && tooltipCountry ? (

@@ -78,7 +78,8 @@
         "deltaPositive": "+{percent}%",
         "deltaNegative": "{percent}%",
         "neutral": "—"
-      }
+      },
+      "empty": "This scenario does not declare any difficulty preset. The scenario data may be incomplete — go back and pick another scenario."
     },
     "scenario": {
       "status": {
@@ -132,6 +133,9 @@
     },
     "disclaimer": {
       "nuclearWarfare": "This scenario includes nuclear warfare mechanics, including civilian consequences and MAD exchanges."
+    },
+    "summary": {
+      "title": "Your run"
     }
   },
   "hud": {
@@ -217,7 +221,8 @@
       "nov": "Nov",
       "dec": "Dec"
     },
-    "autoPausedDotLabel": "Auto-pause indicator"
+    "autoPausedDotLabel": "Auto-pause indicator",
+    "persistenceUnavailable": "Saving is unavailable — this browser blocks local storage."
   },
   "notifications": {
     "title": "Notifications",
@@ -922,6 +927,14 @@
     "isolated": "Your reputation collapsed below -50 in every bloc for 5 years: completely isolated."
   },
   "errors": {
+    "crash": {
+      "title": "Aurion crashed",
+      "description": "Something went wrong while rendering the game. Your progress can still be exported below.",
+      "download": "Download crash report",
+      "downloaded": "Downloaded ✓",
+      "retry": "Retry",
+      "home": "Home"
+    },
     "engineNotReady": "The game engine is not yet available.",
     "noActiveGame": "No active game.",
     "saveNotFound": "Save not found.",
@@ -963,6 +976,8 @@
   "map": {
     "label": "World map of Aurion",
     "loading": "Loading map…",
+    "loadError": "The map data failed to load.",
+    "retry": "Retry",
     "overlay": {
       "label": "Overlay layer",
       "none": "None",
@@ -973,6 +988,7 @@
       "blocsUnavailable": "This scenario does not use the bloc system"
     },
     "legend": {
+      "blocGroup": "Bloc legend",
       "bloc": {
         "western": "Western",
         "eastern": "Eastern",
@@ -1214,31 +1230,61 @@
   },
   "bloc": {
     "mc": {
-      "western": { "name": "Western Alliance" },
-      "eastern": { "name": "Eastern Alliance" },
-      "non-aligned": { "name": "Non-Aligned Movement" }
+      "western": {
+        "name": "Western Alliance"
+      },
+      "eastern": {
+        "name": "Eastern Alliance"
+      },
+      "non-aligned": {
+        "name": "Non-Aligned Movement"
+      }
     },
     "gf": {
-      "western": { "name": "Western Bloc" },
-      "eastern": { "name": "Eastern Bloc" },
-      "non-aligned": { "name": "Non-Aligned Movement" }
+      "western": {
+        "name": "Western Bloc"
+      },
+      "eastern": {
+        "name": "Eastern Bloc"
+      },
+      "non-aligned": {
+        "name": "Non-Aligned Movement"
+      }
     },
     "ascesa": {
-      "western": { "name": "Western Coalition" },
-      "eastern": { "name": "Eastern Coalition" },
-      "non-aligned": { "name": "Non-Aligned Movement" }
+      "western": {
+        "name": "Western Coalition"
+      },
+      "eastern": {
+        "name": "Eastern Coalition"
+      },
+      "non-aligned": {
+        "name": "Non-Aligned Movement"
+      }
     }
   },
   "era": {
     "mc": {
-      "info-age": { "name": "Information Age" },
-      "space-age": { "name": "Space Age" },
-      "post-scarcity": { "name": "Post-Scarcity Era" }
+      "info-age": {
+        "name": "Information Age"
+      },
+      "space-age": {
+        "name": "Space Age"
+      },
+      "post-scarcity": {
+        "name": "Post-Scarcity Era"
+      }
     },
     "gf": {
-      "early-cold-war": { "name": "Early Cold War" },
-      "detente": { "name": "Détente" },
-      "end-of-history": { "name": "End of History" }
+      "early-cold-war": {
+        "name": "Early Cold War"
+      },
+      "detente": {
+        "name": "Détente"
+      },
+      "end-of-history": {
+        "name": "End of History"
+      }
     }
   },
   "onboarding": {

@@ -174,6 +174,13 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
   };
 
   const persistenceOk = isPersistenceAvailable();
+  // Single hint resolver so every storage-gated item explains WHY it's
+  // locked: Iron Man rules first (more specific), then missing IndexedDB.
+  const storageDisabledHint = ironManLocked
+    ? tIronMan('menuDisabled')
+    : !persistenceOk
+      ? t('persistenceUnavailable')
+      : undefined;
 
   return (
     <div ref={containerRef} className="relative">
@@ -209,13 +216,13 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
             label={t('save')}
             onSelect={handleSave}
             disabled={!persistenceOk || ironManLocked}
-            disabledHint={ironManLocked ? tIronMan('menuDisabled') : undefined}
+            disabledHint={storageDisabledHint}
           />
           <MenuItem
             label={t('load')}
             onSelect={() => setShowSaves((v) => !v)}
             disabled={!persistenceOk || ironManLocked}
-            disabledHint={ironManLocked ? tIronMan('menuDisabled') : undefined}
+            disabledHint={storageDisabledHint}
             expanded={ironManLocked ? undefined : showSaves}
           />
           {showSaves && !ironManLocked ? (
@@ -264,7 +271,7 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
             label={t('import')}
             onSelect={handleImportPick}
             disabled={!persistenceOk || ironManLocked}
-            disabledHint={ironManLocked ? tIronMan('menuDisabled') : undefined}
+            disabledHint={storageDisabledHint}
           />
           <div className="border-t border-border" />
           <MenuItem label={t('exit')} onSelect={handleExit} tone="danger" />

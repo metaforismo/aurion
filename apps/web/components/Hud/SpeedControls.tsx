@@ -109,6 +109,13 @@ export function SpeedControls() {
 
   return (
     <div className="flex items-baseline gap-5">
+      {/* SR-only announcement of the current speed. `aria-pressed` flips on
+          the buttons, but screen readers don't re-read a button's pressed
+          state on toggle reliably — this live region narrates the change
+          ("2×", "Paused") without any visual footprint. */}
+      <span aria-live="polite" className="sr-only">
+        {speedAriaLabel(ticker.speed, t)}
+      </span>
       <div
         className="flex items-baseline gap-3 font-mono text-sm"
         role="group"

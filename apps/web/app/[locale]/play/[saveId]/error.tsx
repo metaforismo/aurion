@@ -5,6 +5,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Link } from '../../../../i18n/navigation';
 import { useGameStore } from '../../../../lib/store';
@@ -14,11 +15,34 @@ type ErrorPageProps = {
   reset: () => void;
 };
 
+// English fallbacks in case the crash originated inside the intl provider —
+// an error page must never throw while rendering.
+const FALLBACK_LABELS = {
+  title: 'Aurion crashed',
+  description:
+    'Something went wrong while rendering the game. Your progress can still be exported below.',
+  download: 'Download crash report',
+  downloaded: 'Downloaded ✓',
+  retry: 'Retry',
+  home: 'Home',
+} as const;
+
+type CrashLabelKey = keyof typeof FALLBACK_LABELS;
+
 export default function PlayError({ error, reset }: ErrorPageProps) {
+  const t = useTranslations('errors.crash');
   const state = useGameStore((s) => s.state);
   const saveId = useGameStore((s) => s.saveId);
   const saveName = useGameStore((s) => s.saveName);
   const [downloaded, setDownloaded] = useState(false);
+
+  const label = (key: CrashLabelKey): string => {
+    try {
+      return t(key);
+    } catch {
+      return FALLBACK_LABELS[key];
+    }
+  };
 
   // Log to the console for debugging in dev / collected production logs.
   useEffect(() => {
@@ -56,30 +80,35 @@ export default function PlayError({ error, reset }: ErrorPageProps) {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col items-center justify-center gap-4 px-6 text-center">
-      <h1 className="text-2xl font-bold text-rose-300">Aurion crashed</h1>
-      <p className="text-sm text-slate-400">{error.message}</p>
-      <div className="flex gap-2">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col items-center justify-center gap-4 bg-bg px-6 text-center text-fg">
+      <h1 className="text-2xl font-bold text-danger">{label('title')}</h1>
+      <p className="text-sm text-fg-muted">{label('description')}</p>
+      {error.message ? (
+        <p className="max-w-full truncate rounded-sm border border-border bg-surface px-3 py-2 font-mono text-xs text-fg-faint">
+          {error.message}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap justify-center gap-2 pt-2">
         <button
           type="button"
           onClick={handleDownload}
           disabled={!state}
-          className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400 disabled:bg-slate-700 disabled:text-slate-500"
+          className="rounded-sm border border-accent bg-accent px-4 py-2 text-sm font-semibold text-bg transition hover:border-accent-strong hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-fg-faint"
         >
-          {downloaded ? 'Downloaded ✓' : 'Download crash report'}
+          {downloaded ? label('downloaded') : label('download')}
         </button>
         <button
           type="button"
           onClick={reset}
-          className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm hover:border-slate-600"
+          className="rounded-sm border border-border bg-transparent px-4 py-2 text-sm text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         >
-          Retry
+          {label('retry')}
         </button>
         <Link
           href="/"
-          className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm hover:border-slate-600"
+          className="rounded-sm border border-border bg-transparent px-4 py-2 text-sm text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         >
-          Home
+          {label('home')}
         </Link>
       </div>
     </main>

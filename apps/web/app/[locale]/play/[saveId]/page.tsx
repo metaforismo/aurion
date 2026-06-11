@@ -44,6 +44,7 @@ export default function PlayPage({
 }) {
   const { saveId } = use(params);
   const t = useTranslations('play');
+  const tApp = useTranslations('app');
 
   const state = useGameStore((s) => s.state);
   const storeSaveId = useGameStore((s) => s.saveId);
@@ -75,8 +76,16 @@ export default function PlayPage({
 
   if (isLoading || !state) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
-        {t('loadingState')}
+      <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-bg text-fg-muted">
+        <span
+          aria-hidden
+          className="animate-pulse select-none font-mono text-xs font-semibold uppercase tracking-[0.32em] text-fg-faint"
+        >
+          {tApp('name')}
+        </span>
+        <span role="status" className="text-sm">
+          {t('loadingState')}
+        </span>
       </main>
     );
   }
@@ -86,7 +95,7 @@ export default function PlayPage({
       {/* Audio behaviours mounted *inside* the provider so they have a
           context to read from. Side-effect-only — no DOM. */}
       <PlayAudioBindings />
-      <main className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-slate-950 text-slate-100">
+      <main className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-bg text-fg">
         <Hud />
         {/* Three-column work surface. We give the row a fixed height equal to
             the viewport minus the HUD (52px — see Hud.tsx) so that the map

@@ -137,7 +137,9 @@ function Step1({
   // as the component mounts (the modal's focus-trap also activates here).
   const [remainingMs, setRemainingMs] = useState(STEP_1_COOLDOWN_MS);
   useEffect(() => {
-    if (remainingMs <= 0) return;
+    // Single interval for the whole countdown (instead of re-creating one per
+    // 100ms state change). Cleared either when the countdown bottoms out or
+    // when the modal unmounts mid-count.
     const id = window.setInterval(() => {
       setRemainingMs((prev) => {
         const next = prev - 100;
@@ -149,7 +151,7 @@ function Step1({
       });
     }, 100);
     return () => window.clearInterval(id);
-  }, [remainingMs]);
+  }, []);
 
   const remainingSec = Math.ceil(remainingMs / 1000);
   const continueDisabled = remainingMs > 0;

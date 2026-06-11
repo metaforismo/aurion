@@ -54,6 +54,12 @@ export async function loadWorld(): Promise<WorldCollection> {
     cached = collection;
     return collection;
   })();
+  // If the dynamic import fails (offline, stale chunk after a deploy), drop
+  // the in-flight promise so the next call can retry instead of replaying the
+  // same rejection forever.
+  pending.catch(() => {
+    pending = null;
+  });
   return pending;
 }
 

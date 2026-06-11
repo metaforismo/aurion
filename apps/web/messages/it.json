@@ -78,7 +78,8 @@
         "deltaPositive": "+{percent}%",
         "deltaNegative": "{percent}%",
         "neutral": "—"
-      }
+      },
+      "empty": "Questo scenario non dichiara alcun preset di difficoltà. I dati dello scenario potrebbero essere incompleti — torna indietro e scegli un altro scenario."
     },
     "scenario": {
       "status": {
@@ -132,6 +133,9 @@
     },
     "disclaimer": {
       "nuclearWarfare": "Questo scenario include meccaniche di guerra nucleare, comprese conseguenze sui civili e scambi MAD."
+    },
+    "summary": {
+      "title": "La tua partita"
     }
   },
   "hud": {
@@ -217,7 +221,8 @@
       "nov": "Nov",
       "dec": "Dic"
     },
-    "autoPausedDotLabel": "Indicatore pausa automatica"
+    "autoPausedDotLabel": "Indicatore pausa automatica",
+    "persistenceUnavailable": "Salvataggio non disponibile — questo browser blocca l'archiviazione locale."
   },
   "notifications": {
     "title": "Notifiche",
@@ -922,6 +927,14 @@
     "isolated": "La tua reputazione è precipitata sotto -50 in tutti i blocchi per 5 anni: completamente isolato."
   },
   "errors": {
+    "crash": {
+      "title": "Aurion si è bloccato",
+      "description": "Qualcosa è andato storto durante il rendering della partita. Puoi comunque esportare i tuoi progressi qui sotto.",
+      "download": "Scarica il rapporto di crash",
+      "downloaded": "Scaricato ✓",
+      "retry": "Riprova",
+      "home": "Home"
+    },
     "engineNotReady": "L'engine di gioco non è ancora disponibile.",
     "noActiveGame": "Nessuna partita attiva.",
     "saveNotFound": "Salvataggio non trovato.",
@@ -963,6 +976,8 @@
   "map": {
     "label": "Mappa del mondo di Aurion",
     "loading": "Caricamento mappa…",
+    "loadError": "Impossibile caricare i dati della mappa.",
+    "retry": "Riprova",
     "overlay": {
       "label": "Strato informativo",
       "none": "Nessuno",
@@ -973,6 +988,7 @@
       "blocsUnavailable": "Lo scenario non usa il sistema di blocchi"
     },
     "legend": {
+      "blocGroup": "Legenda blocchi",
       "bloc": {
         "western": "Occidentale",
         "eastern": "Orientale",
@@ -1214,31 +1230,61 @@
   },
   "bloc": {
     "mc": {
-      "western": { "name": "Alleanza Occidentale" },
-      "eastern": { "name": "Alleanza Orientale" },
-      "non-aligned": { "name": "Movimento dei Non Allineati" }
+      "western": {
+        "name": "Alleanza Occidentale"
+      },
+      "eastern": {
+        "name": "Alleanza Orientale"
+      },
+      "non-aligned": {
+        "name": "Movimento dei Non Allineati"
+      }
     },
     "gf": {
-      "western": { "name": "Blocco Occidentale" },
-      "eastern": { "name": "Blocco Orientale" },
-      "non-aligned": { "name": "Movimento dei Non Allineati" }
+      "western": {
+        "name": "Blocco Occidentale"
+      },
+      "eastern": {
+        "name": "Blocco Orientale"
+      },
+      "non-aligned": {
+        "name": "Movimento dei Non Allineati"
+      }
     },
     "ascesa": {
-      "western": { "name": "Coalizione Occidentale" },
-      "eastern": { "name": "Coalizione Orientale" },
-      "non-aligned": { "name": "Movimento dei Non Allineati" }
+      "western": {
+        "name": "Coalizione Occidentale"
+      },
+      "eastern": {
+        "name": "Coalizione Orientale"
+      },
+      "non-aligned": {
+        "name": "Movimento dei Non Allineati"
+      }
     }
   },
   "era": {
     "mc": {
-      "info-age": { "name": "Era dell'Informazione" },
-      "space-age": { "name": "Era Spaziale" },
-      "post-scarcity": { "name": "Era Post-Scarsità" }
+      "info-age": {
+        "name": "Era dell'Informazione"
+      },
+      "space-age": {
+        "name": "Era Spaziale"
+      },
+      "post-scarcity": {
+        "name": "Era Post-Scarsità"
+      }
     },
     "gf": {
-      "early-cold-war": { "name": "Inizio Guerra Fredda" },
-      "detente": { "name": "Distensione" },
-      "end-of-history": { "name": "Fine della Storia" }
+      "early-cold-war": {
+        "name": "Inizio Guerra Fredda"
+      },
+      "detente": {
+        "name": "Distensione"
+      },
+      "end-of-history": {
+        "name": "Fine della Storia"
+      }
     }
   },
   "onboarding": {

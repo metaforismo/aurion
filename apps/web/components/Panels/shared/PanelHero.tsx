@@ -89,11 +89,11 @@ export function PanelHero({
         {delta ? <DeltaChip delta={delta} /> : null}
       </div>
 
-      {/* Quick stats — a single row of label/value pairs. Capped at 3 visually
-          (we just render whatever is passed; callers police the cap). */}
+      {/* Quick stats — a single row of label/value pairs. Hard-capped at 3
+          so a caller passing a longer list can't collapse the hero layout. */}
       {quickStats && quickStats.length > 0 ? (
         <dl className="flex flex-wrap items-baseline gap-x-4 gap-y-1 pt-0.5">
-          {quickStats.map((stat, i) => (
+          {quickStats.slice(0, 3).map((stat, i) => (
             <div key={i} className="flex items-baseline gap-1.5">
               <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
                 {stat.label}

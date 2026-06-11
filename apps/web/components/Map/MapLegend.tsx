@@ -26,6 +26,9 @@ export type MapLegendProps = {
   disabled?: Partial<Record<OverlayMode, { tooltip?: string }>>;
   /** Bloc-key labels — only consulted when `mode === 'blocs'`. */
   blocLabels: Record<BlocColorKey, string>;
+  /** Accessible label for the bloc colour key group. Pass a translated
+   * string; falls back to a language-neutral default. */
+  blocGroupLabel?: string;
 };
 
 export default function MapLegend(props: MapLegendProps) {
@@ -44,7 +47,9 @@ export default function MapLegend(props: MapLegendProps) {
         groupLabel={props.groupLabel}
         disabled={props.disabled}
       />
-      {showBlocKey ? <BlocKey labels={props.blocLabels} /> : null}
+      {showBlocKey ? (
+        <BlocKey labels={props.blocLabels} groupLabel={props.blocGroupLabel} />
+      ) : null}
     </div>
   );
 }
@@ -77,7 +82,9 @@ function OverlayToggle(props: OverlayToggleInternalProps) {
               key={m}
               title={isDisabled ? disabledEntry?.tooltip : undefined}
               className={cn(
-                'px-2 py-1 transition-colors',
+                // Visible keyboard-focus ring: the radio itself is sr-only,
+                // so the label carries the indicator via :has().
+                'rounded-sm px-2 py-1 transition-colors has-[:focus-visible]:ring-1 has-[:focus-visible]:ring-accent',
                 isDisabled
                   ? 'cursor-not-allowed text-fg-faint/60'
                   : 'cursor-pointer',
@@ -114,11 +121,17 @@ function OverlayToggle(props: OverlayToggleInternalProps) {
 // Bloc key (only when blocs overlay is active)
 // ---------------------------------------------------------------------------
 
-function BlocKey({ labels }: { labels: Record<BlocColorKey, string> }) {
+function BlocKey({
+  labels,
+  groupLabel,
+}: {
+  labels: Record<BlocColorKey, string>;
+  groupLabel?: string;
+}) {
   return (
     <div
       role="group"
-      aria-label="bloc legend"
+      aria-label={groupLabel ?? 'bloc legend'}
       className={cn(
         'pointer-events-auto flex flex-wrap items-center gap-3 border border-border bg-bg/85 px-3 py-1.5',
         'rounded-sm font-mono text-[10px] uppercase tracking-[0.14em] text-fg-muted backdrop-blur-sm',

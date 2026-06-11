@@ -8,7 +8,7 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
-import { Globe } from 'lucide-react';
+import { ArrowRight, ChevronRight, Globe } from 'lucide-react';
 
 import { AchievementCounter } from '../../components/Hud/AchievementCounter';
 import { Link, usePathname, useRouter } from '../../i18n/navigation';
@@ -135,13 +135,17 @@ export default function HomePage() {
             <Link
               href="/new"
               className={cn(
-                'mt-4 inline-flex items-center justify-center rounded-xl bg-accent px-7 py-3.5',
+                'group mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-7 py-3.5',
                 'text-base font-semibold text-bg shadow-md transition-colors',
                 'hover:bg-accent-strong focus-visible:outline focus-visible:outline-2',
                 'focus-visible:outline-offset-2 focus-visible:outline-accent',
               )}
             >
               {t('newGame')}
+              <ArrowRight
+                aria-hidden
+                className="h-4 w-4 transition-transform motion-reduce:transform-none group-hover:translate-x-0.5"
+              />
             </Link>
 
             {/* Secondary actions sit below the primary CTA as quiet text
@@ -390,6 +394,13 @@ function GeoBackdrop() {
         'pointer-events-none absolute inset-0 z-0 overflow-hidden',
         'opacity-[0.06]',
       )}
+      style={{
+        // Faint warm spotlight behind the hero so the scene reads as "lit"
+        // rather than uniformly flat. Sits inside the same 6%-opacity layer
+        // as the landmass shapes, so it can never compete with content.
+        backgroundImage:
+          'radial-gradient(ellipse 60% 50% at 50% 35%, var(--color-accent) 0%, transparent 70%)',
+      }}
     >
       <svg
         viewBox="0 0 1200 600"
@@ -485,6 +496,13 @@ function SaveRow({ save }: { save: SaveSummary }) {
       >
         {relative}
       </span>
+      <ChevronRight
+        aria-hidden
+        className={cn(
+          'h-4 w-4 shrink-0 text-fg-faint opacity-0 transition-opacity',
+          'group-hover:opacity-100 group-focus-visible:opacity-100',
+        )}
+      />
     </Link>
   );
 }

@@ -23,6 +23,7 @@ export function VictoryToast() {
   const dismiss = useGameStore((s) => s.dismissVictoryToast);
   const t = useTranslations('notifications.victoryToast');
   const tVictory = useTranslations('victory');
+  const tCommon = useTranslations('common');
 
   // Auto-dismiss timer. Reset whenever `pending` changes so back-to-back
   // milestones each get a full window before being cleared.
@@ -90,7 +91,7 @@ export function VictoryToast() {
         <button
           type="button"
           onClick={dismiss}
-          aria-label="close"
+          aria-label={tCommon('close')}
           className="rounded-sm border border-transparent p-1 text-fg-muted transition hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         >
           <svg
