@@ -8,7 +8,16 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, ChevronRight, Download, Globe, Trash2 } from 'lucide-react';
+import {
+  ArrowRight,
+  Check,
+  ChevronRight,
+  Download,
+  Globe,
+  Pencil,
+  Trash2,
+  X,
+} from 'lucide-react';
 
 import { AchievementCounter } from '../../components/Hud/AchievementCounter';
 import { Link, usePathname, useRouter } from '../../i18n/navigation';
@@ -20,6 +29,7 @@ import {
   importSave,
   isPersistenceAvailable,
   listSaves,
+  renameSave,
   type SaveSummary,
 } from '../../lib/persistence';
 import { getScenarioMeta } from '../../lib/scenarios';
@@ -169,6 +179,16 @@ export default function HomePage() {
                 style={{ transitionDuration: MOTION.fast }}
               >
                 {tTrofei('linkLabel')}
+              </Link>
+              <span aria-hidden className="text-fg-faint">
+                ·
+              </span>
+              <Link
+                href="/settings"
+                className="transition-colors hover:text-fg"
+                style={{ transitionDuration: MOTION.fast }}
+              >
+                {t('settings')}
               </Link>
             </div>
 
@@ -477,6 +497,40 @@ function SaveRow({
     'idle' | 'confirm' | 'busy' | 'error'
   >('idle');
 
+  // Rename edit mode: the row link swaps for a text input. Kept independent
+  // of deleteState — the two flows never overlap (entering one resets the
+  // other via the buttons' disabled rendering below).
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(save.name);
+  const [renameBusy, setRenameBusy] = useState(false);
+  const [renameError, setRenameError] = useState(false);
+
+  const startEditing = () => {
+    setEditName(save.name);
+    setRenameError(false);
+    setEditing(true);
+  };
+
+  const handleRename = async () => {
+    const trimmed = editName.trim();
+    // No-op renames (blank or unchanged) just close the editor.
+    if (!trimmed || trimmed === save.name) {
+      setEditing(false);
+      return;
+    }
+    setRenameBusy(true);
+    setRenameError(false);
+    try {
+      await renameSave(save.id, trimmed);
+      setEditing(false);
+      onChanged();
+    } catch {
+      setRenameError(true);
+    } finally {
+      setRenameBusy(false);
+    }
+  };
+
   const relative = useMemo(
     () => formatRelative(save.savedAt, locale),
     [save.savedAt, locale],
@@ -520,6 +574,59 @@ function SaveRow({
       )}
       style={{ transitionDuration: MOTION.normal }}
     >
+      {editing ? (
+        <form
+          className="flex min-w-0 flex-1 items-center gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleRename();
+          }}
+        >
+          <span
+            aria-hidden
+            className="h-7 w-1 shrink-0 rounded-full"
+            style={{ backgroundColor: save.thumbnailColor }}
+          />
+          <input
+            // autoFocus is the expected behaviour when the user explicitly
+            // enters an inline edit mode — focus follows the action.
+            autoFocus
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setEditing(false);
+            }}
+            disabled={renameBusy}
+            aria-label={t('renameSave')}
+            maxLength={80}
+            className="min-w-0 flex-1 rounded-sm border border-border bg-surface px-2 py-1.5 text-sm text-fg outline-none transition focus:border-accent disabled:opacity-50"
+          />
+          {renameError ? (
+            <span role="alert" className="shrink-0 text-xs text-danger">
+              {t('renameFailed')}
+            </span>
+          ) : null}
+          <button
+            type="submit"
+            disabled={renameBusy}
+            aria-label={tCommon('save')}
+            title={tCommon('save')}
+            className="rounded-sm p-1.5 text-success transition hover:bg-success/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-success disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Check aria-hidden className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            disabled={renameBusy}
+            aria-label={tCommon('cancel')}
+            title={tCommon('cancel')}
+            className="rounded-sm p-1.5 text-fg-muted transition hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <X aria-hidden className="h-4 w-4" />
+          </button>
+        </form>
+      ) : (
       <Link
         href={`/play/${encodeURIComponent(save.id)}`}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -554,8 +661,9 @@ function SaveRow({
           {relative}
         </span>
       </Link>
+      )}
 
-      {deleteState === 'confirm' || deleteState === 'busy' ? (
+      {editing ? null : deleteState === 'confirm' || deleteState === 'busy' ? (
         <span className="flex shrink-0 items-center gap-2 text-xs">
           <span className="text-fg-muted">{t('deleteConfirm')}</span>
           <button
@@ -590,6 +698,15 @@ function SaveRow({
               {t('deleteFailed')}
             </span>
           ) : null}
+          <button
+            type="button"
+            onClick={startEditing}
+            aria-label={t('renameSave')}
+            title={t('renameSave')}
+            className="rounded-sm p-1.5 text-fg-faint transition hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          >
+            <Pencil aria-hidden className="h-4 w-4" />
+          </button>
           <button
             type="button"
             onClick={handleExport}

@@ -32,7 +32,9 @@
     "exportSave": "Esporta salvataggio",
     "deleteSave": "Elimina salvataggio",
     "deleteConfirm": "Eliminare questo salvataggio?",
-    "deleteFailed": "Impossibile eliminare il salvataggio."
+    "deleteFailed": "Impossibile eliminare il salvataggio.",
+    "renameSave": "Rinomina salvataggio",
+    "renameFailed": "Impossibile rinominare il salvataggio."
   },
   "trofei": {
     "pageTitle": "Trofei",
@@ -1303,5 +1305,16 @@
       "map": "La tua mappa · Click una nazione per dettagli",
       "notifications": "Eventi importanti appariranno qui"
     }
+  },
+  "settings": {
+    "pageTitle": "Impostazioni",
+    "audioTitle": "Audio",
+    "gameplayTitle": "Gioco",
+    "languageTitle": "Lingua",
+    "replayRecording": "Registra i replay",
+    "replayRecordingHint": "Salva il registro completo delle azioni in ogni salvataggio, così le versioni future potranno rigiocare le tue partite.",
+    "tutorialReset": "Mostra di nuovo il tutorial",
+    "tutorialResetDone": "Il tutorial riapparirà all’inizio della prossima partita.",
+    "unavailable": "Le impostazioni richiedono l’archiviazione locale, bloccata da questo browser."
   }
 }

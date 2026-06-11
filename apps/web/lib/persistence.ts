@@ -464,6 +464,26 @@ export async function deleteSave(id: SaveId): Promise<void> {
   await withWriteGuard(() => db().saves.delete(id));
 }
 
+/**
+ * Rename an existing save in place. Only the `name` field changes —
+ * `savedAt` is deliberately untouched because renaming is bookkeeping, not a
+ * save event, and bumping the timestamp would re-sort the Continue list under
+ * the player's cursor. Throws `InvalidSaveError` when the name is blank or
+ * the id doesn't exist.
+ */
+export async function renameSave(id: SaveId, name: string): Promise<void> {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new InvalidSaveError('Save name cannot be empty');
+  }
+  const updated = await withWriteGuard(() =>
+    db().saves.update(id, { name: trimmed }),
+  );
+  if (updated === 0) {
+    throw new InvalidSaveError(`No save with id ${id}`);
+  }
+}
+
 /** Serialize a save to a Blob suitable for download. */
 export async function exportSave(id: SaveId): Promise<Blob> {
   const entry = await loadSave(id);

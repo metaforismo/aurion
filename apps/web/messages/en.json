@@ -32,7 +32,9 @@
     "exportSave": "Export save",
     "deleteSave": "Delete save",
     "deleteConfirm": "Delete this save?",
-    "deleteFailed": "Failed to delete the save."
+    "deleteFailed": "Failed to delete the save.",
+    "renameSave": "Rename save",
+    "renameFailed": "Failed to rename the save."
   },
   "trofei": {
     "pageTitle": "Trophies",
@@ -1303,5 +1305,16 @@
       "map": "Your map · Click a nation for details",
       "notifications": "Important events will appear here"
     }
+  },
+  "settings": {
+    "pageTitle": "Settings",
+    "audioTitle": "Audio",
+    "gameplayTitle": "Gameplay",
+    "languageTitle": "Language",
+    "replayRecording": "Record replays",
+    "replayRecordingHint": "Stores the full action log inside each save so future versions can replay your runs.",
+    "tutorialReset": "Show tutorial again",
+    "tutorialResetDone": "The tutorial will appear at the start of your next game.",
+    "unavailable": "Settings need local storage, which this browser blocks."
   }
 }

@@ -47,6 +47,7 @@ import {
   listSaves,
   loadSave,
   migrateSaveEntry,
+  renameSave,
   saveGame,
   setAudioVolumes,
   setMeta,
@@ -525,6 +526,49 @@ describe('export / import roundtrip', () => {
     const text = await blob.text();
     const parsed = JSON.parse(text) as { id: string };
     expect(parsed.id).toBe(AUTOSAVE_ID);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// renameSave
+// ---------------------------------------------------------------------------
+
+describe('renameSave', () => {
+  it('changes only the name, leaving savedAt and state untouched', async () => {
+    const written = await saveGame({
+      id: 'rename-me' as SaveId,
+      name: 'Old name',
+      scenarioId: 'ascesa-aurion',
+      state: makePhase3Wave10State({ gameMode: 'classic' }),
+    });
+
+    await renameSave(written.id, '  New name  ');
+
+    const reloaded = await loadSave(written.id);
+    expect(reloaded?.name).toBe('New name'); // trimmed
+    expect(reloaded?.savedAt).toBe(written.savedAt);
+    expect(reloaded?.state).toEqual(written.state);
+  });
+
+  it('throws InvalidSaveError for a blank name', async () => {
+    const written = await saveGame({
+      id: 'rename-blank' as SaveId,
+      name: 'Keep me',
+      scenarioId: 'ascesa-aurion',
+      state: makePhase3Wave10State({ gameMode: 'classic' }),
+    });
+
+    await expect(renameSave(written.id, '   ')).rejects.toBeInstanceOf(
+      InvalidSaveError,
+    );
+    const reloaded = await loadSave(written.id);
+    expect(reloaded?.name).toBe('Keep me');
+  });
+
+  it('throws InvalidSaveError for a missing id', async () => {
+    await expect(
+      renameSave('does-not-exist' as SaveId, 'Anything'),
+    ).rejects.toBeInstanceOf(InvalidSaveError);
   });
 });
 
