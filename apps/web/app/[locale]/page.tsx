@@ -8,13 +8,15 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, ChevronRight, Globe } from 'lucide-react';
+import { ArrowRight, ChevronRight, Download, Globe, Trash2 } from 'lucide-react';
 
 import { AchievementCounter } from '../../components/Hud/AchievementCounter';
 import { Link, usePathname, useRouter } from '../../i18n/navigation';
 import { routing, type AppLocale } from '../../i18n/routing';
 import { cn } from '../../lib/cn';
 import {
+  deleteSave,
+  exportSave,
   importSave,
   isPersistenceAvailable,
   listSaves,
@@ -40,6 +42,7 @@ export default function HomePage() {
   const tErrors = useTranslations('errors');
   const tTrofei = useTranslations('trofei');
 
+  const router = useRouter();
   const [saves, setSaves] = useState<SaveSummary[] | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -71,8 +74,11 @@ export default function HomePage() {
       const entry = await importSave(file);
       const rows = await listSaves();
       setSaves(rows);
-      // Optimistically navigate into the imported game (handled by play page).
-      window.location.assign(`./play/${entry.id}`);
+      // Navigate into the imported game via the locale-aware router. The
+      // previous relative `window.location.assign('./play/…')` dropped the
+      // locale segment, bouncing non-default-locale users through the
+      // middleware back to the default locale.
+      router.push(`/play/${encodeURIComponent(entry.id)}`);
     } catch (err) {
       setImportError(
         err instanceof Error ? err.message : tErrors('importFailed'),
@@ -197,7 +203,14 @@ export default function HomePage() {
               <ul className="flex flex-col divide-y divide-border border-y border-border">
                 {saves!.map((save) => (
                   <li key={save.id}>
-                    <SaveRow save={save} />
+                    <SaveRow
+                      save={save}
+                      onChanged={() => {
+                        listSaves()
+                          .then((rows) => setSaves(rows))
+                          .catch(() => setSaves([]));
+                      }}
+                    />
                   </li>
                 ))}
               </ul>
@@ -434,12 +447,21 @@ function GeoBackdrop() {
  * carries `state.difficultyId` (the cheapest path that avoids a per-save load
  * is to widen the summary type, which is out of scope for the wizard refactor).
  *
- * Presentation changed in the redesign from card-chrome to a divider list:
- * the parent wraps these rows with `divide-y` so each row only needs flat
- * padding + hover state.
+ * Layout: the navigable area is a Link (name / scenario / timestamp) with an
+ * action cluster (export, delete) as SIBLINGS — nesting buttons inside the
+ * anchor would be invalid HTML and break keyboard semantics. Delete is a
+ * two-step inline confirm so a stray click can't destroy a run.
  */
-function SaveRow({ save }: { save: SaveSummary }) {
+function SaveRow({
+  save,
+  onChanged,
+}: {
+  save: SaveSummary;
+  /** Called after a successful delete so the parent can refresh the list. */
+  onChanged: () => void;
+}) {
   const t = useTranslations('home');
+  const tCommon = useTranslations('common');
   const tAll = useTranslations();
   const locale = useLocale();
   const meta = getScenarioMeta(save.scenarioId);
@@ -448,6 +470,12 @@ function SaveRow({ save }: { save: SaveSummary }) {
     rawScenarioName && rawScenarioName !== meta?.nameKey
       ? rawScenarioName
       : save.scenarioId;
+
+  // 'idle' → hover-revealed icon cluster; 'confirm' → inline "Delete?" row;
+  // 'busy' → delete in flight (buttons locked); 'error' → delete failed.
+  const [deleteState, setDeleteState] = useState<
+    'idle' | 'confirm' | 'busy' | 'error'
+  >('idle');
 
   const relative = useMemo(
     () => formatRelative(save.savedAt, locale),
@@ -458,52 +486,139 @@ function SaveRow({ save }: { save: SaveSummary }) {
     [save.savedAt, locale],
   );
 
+  const handleExport = async () => {
+    try {
+      const blob = await exportSave(save.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${save.id}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Export failures are non-destructive; the row simply stays put.
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleteState('busy');
+    try {
+      await deleteSave(save.id);
+      onChanged();
+    } catch {
+      setDeleteState('error');
+    }
+  };
+
   return (
-    <Link
-      href={`/play/${encodeURIComponent(save.id)}`}
+    <div
       className={cn(
         'group flex items-center gap-3 px-2 py-3',
-        'transition-colors hover:bg-surface-1',
+        'transition-colors hover:bg-surface-1 focus-within:bg-surface-1',
       )}
       style={{ transitionDuration: MOTION.normal }}
     >
-      <span
-        aria-hidden
-        className="h-7 w-1 shrink-0 rounded-full"
-        style={{
-          backgroundColor: save.thumbnailColor,
-          boxShadow: `0 0 10px -2px ${save.thumbnailColor}80`,
-        }}
-      />
-      <span className="flex flex-1 flex-col truncate">
-        <span className="truncate font-medium text-fg">{save.name}</span>
-        <span className="truncate text-xs text-fg-muted">{scenarioName}</span>
-      </span>
-      <span
-        className={cn(
-          'shrink-0 font-mono text-xs tabular-nums text-fg-faint',
-          // Compact relative time on small screens, full timestamp from
-          // the sm breakpoint upward.
-          'hidden sm:inline',
-        )}
-        title={fullDate}
+      <Link
+        href={`/play/${encodeURIComponent(save.id)}`}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        {t('saveSavedAt', { date: fullDate })}
-      </span>
-      <span
-        className="shrink-0 font-mono text-xs tabular-nums text-fg-faint sm:hidden"
-        title={fullDate}
-      >
-        {relative}
-      </span>
+        <span
+          aria-hidden
+          className="h-7 w-1 shrink-0 rounded-full"
+          style={{
+            backgroundColor: save.thumbnailColor,
+            boxShadow: `0 0 10px -2px ${save.thumbnailColor}80`,
+          }}
+        />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate font-medium text-fg">{save.name}</span>
+          <span className="truncate text-xs text-fg-muted">{scenarioName}</span>
+        </span>
+        <span
+          className={cn(
+            'shrink-0 font-mono text-xs tabular-nums text-fg-faint',
+            // Compact relative time on small screens, full timestamp from
+            // the sm breakpoint upward.
+            'hidden sm:inline',
+          )}
+          title={fullDate}
+        >
+          {t('saveSavedAt', { date: fullDate })}
+        </span>
+        <span
+          className="shrink-0 font-mono text-xs tabular-nums text-fg-faint sm:hidden"
+          title={fullDate}
+        >
+          {relative}
+        </span>
+      </Link>
+
+      {deleteState === 'confirm' || deleteState === 'busy' ? (
+        <span className="flex shrink-0 items-center gap-2 text-xs">
+          <span className="text-fg-muted">{t('deleteConfirm')}</span>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleteState === 'busy'}
+            className="rounded-sm border border-danger/50 px-2 py-1 font-semibold text-danger transition hover:bg-danger/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-danger disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {tCommon('delete')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeleteState('idle')}
+            disabled={deleteState === 'busy'}
+            className="rounded-sm border border-border px-2 py-1 text-fg-muted transition hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {tCommon('cancel')}
+          </button>
+        </span>
+      ) : (
+        <span
+          className={cn(
+            'flex shrink-0 items-center gap-1',
+            // Hidden until the row is hovered or any control inside is
+            // focused — keeps the resting list quiet.
+            'opacity-0 transition-opacity group-hover:opacity-100',
+            'focus-within:opacity-100 group-focus-within:opacity-100',
+          )}
+        >
+          {deleteState === 'error' ? (
+            <span role="alert" className="text-xs text-danger">
+              {t('deleteFailed')}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleExport}
+            aria-label={t('exportSave')}
+            title={t('exportSave')}
+            className="rounded-sm p-1.5 text-fg-faint transition hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          >
+            <Download aria-hidden className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeleteState('confirm')}
+            aria-label={t('deleteSave')}
+            title={t('deleteSave')}
+            className="rounded-sm p-1.5 text-fg-faint transition hover:text-danger focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-danger"
+          >
+            <Trash2 aria-hidden className="h-4 w-4" />
+          </button>
+        </span>
+      )}
+
       <ChevronRight
         aria-hidden
         className={cn(
           'h-4 w-4 shrink-0 text-fg-faint opacity-0 transition-opacity',
-          'group-hover:opacity-100 group-focus-visible:opacity-100',
+          'group-hover:opacity-100 group-focus-within:opacity-100',
         )}
       />
-    </Link>
+    </div>
   );
 }
 

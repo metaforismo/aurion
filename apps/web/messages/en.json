@@ -28,7 +28,11 @@
     "languageSwitch": "Switch language",
     "saveSavedAt": "Saved {date}",
     "import": "Import save",
-    "emptyHint": "Start a new game to see it here."
+    "emptyHint": "Start a new game to see it here.",
+    "exportSave": "Export save",
+    "deleteSave": "Delete save",
+    "deleteConfirm": "Delete this save?",
+    "deleteFailed": "Failed to delete the save."
   },
   "trofei": {
     "pageTitle": "Trophies",

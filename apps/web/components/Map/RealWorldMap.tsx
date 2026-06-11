@@ -879,6 +879,47 @@ export default function RealWorldMap() {
   const canZoomIn = viewBox.w > (size.w / MAX_ZOOM) * 1.01;
   const canZoomOut = viewBox.w < (size.w / MIN_ZOOM) * 0.99;
 
+  // Keyboard camera control on the focused map region: arrows pan, +/− zoom,
+  // 0 resets. Mirrors the wheel/drag mutations so keyboard-only players get
+  // the full camera. Enter/Space on inner nation buttons are untouched —
+  // none of the keys handled here collide with them.
+  const handleMapKeyDown = useCallback(
+    (e: ReactKeyboardEvent<HTMLDivElement>) => {
+      const PAN_FRACTION = 0.15;
+      switch (e.key) {
+        case 'ArrowLeft':
+        case 'ArrowRight':
+        case 'ArrowUp':
+        case 'ArrowDown': {
+          e.preventDefault();
+          const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+          const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+          setViewBox((prev) => ({
+            ...prev,
+            x: clampViewBoxX(prev.x + dx * prev.w * PAN_FRACTION, prev.w, size),
+            y: clampViewBoxY(prev.y + dy * prev.h * PAN_FRACTION, prev.h, size),
+          }));
+          break;
+        }
+        case '+':
+        case '=':
+          e.preventDefault();
+          handleZoomIn();
+          break;
+        case '-':
+        case '_':
+          e.preventDefault();
+          handleZoomOut();
+          break;
+        case '0':
+          e.preventDefault();
+          handleZoomReset();
+          break;
+      }
+    },
+    [size, handleZoomIn, handleZoomOut, handleZoomReset],
+  );
+
   const handleBackgroundClick = useCallback(
     (e: ReactPointerEvent<SVGRectElement>) => {
       const drag = dragStateRef.current;
@@ -968,9 +1009,14 @@ export default function RealWorldMap() {
   return (
     <div
       ref={containerRef}
-      className={cn('relative h-full min-h-[60vh] w-full overflow-hidden bg-bg')}
+      className={cn(
+        'relative h-full min-h-[60vh] w-full overflow-hidden bg-bg',
+        'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
+      )}
       role="region"
       aria-label={t('label')}
+      tabIndex={0}
+      onKeyDown={handleMapKeyDown}
     >
       <svg
         ref={svgRef}

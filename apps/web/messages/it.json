@@ -28,7 +28,11 @@
     "languageSwitch": "Cambia lingua",
     "saveSavedAt": "Salvato il {date}",
     "import": "Importa partita",
-    "emptyHint": "Inizia una nuova partita per vederla qui."
+    "emptyHint": "Inizia una nuova partita per vederla qui.",
+    "exportSave": "Esporta salvataggio",
+    "deleteSave": "Elimina salvataggio",
+    "deleteConfirm": "Eliminare questo salvataggio?",
+    "deleteFailed": "Impossibile eliminare il salvataggio."
   },
   "trofei": {
     "pageTitle": "Trofei",

@@ -2,7 +2,7 @@
 // every visible route lives under /[locale]. The non-localised /app/layout.tsx
 // is intentionally absent so Next.js uses this one.
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { JetBrains_Mono, Space_Grotesk } from 'next/font/google';
@@ -32,8 +32,18 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Aurion',
+  title: {
+    default: 'Aurion',
+    template: '%s — Aurion',
+  },
   description: 'Real-time pausable geopolitical strategy',
+  applicationName: 'Aurion',
+};
+
+export const viewport: Viewport = {
+  // sRGB equivalent of --color-bg (oklch 0.11 0.012 250) so mobile browser
+  // chrome / PWA title bars blend with the page instead of flashing white.
+  themeColor: '#020508',
 };
 
 export function generateStaticParams() {
