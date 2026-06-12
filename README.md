@@ -8,9 +8,9 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-Aurion is a single-player browser game inspired by the pacing of *Plague Inc.* and the depth of *Civilization*, set in a fictional world of ~25 nations. You start small. You win by outsmarting, outbuilding, or outlasting everyone else — five distinct victory conditions, each playable from the same starting point.
+Aurion is a single-player browser game inspired by the pacing of *Plague Inc.* and the depth of *Civilization*. You start small and lead a nation to global power across fictional worlds and real-world scenarios. You win by outsmarting, outbuilding, or outlasting everyone else — five distinct victory conditions, each playable from the same starting point — or you play on forever in Eternal mode.
 
-**Status:** active development — Phase 1 (core engine + first scenario *Ascesa di Aurion*).
+**Status:** playable. Core engine, four scenarios, seven interlocking systems, four game modes, an interactive flat/globe world map, audio, achievements, and a guided onboarding flow are all in place. Runs entirely in the browser — no backend, no account.
 
 ---
 
@@ -40,12 +40,29 @@ Aurion is a single-player browser game inspired by the pacing of *Plague Inc.* a
 
 ## Features
 
-- **Six interlocking systems** — Economy, Research, Military, Spies, Diplomacy, Internal Politics (5 factions per nation).
+**Gameplay**
+
+- **Seven interlocking systems** — Economy, Research, Military, Spies, Diplomacy, Internal Politics (5 factions per nation), and a United Nations world stage.
 - **Five selectable victory conditions** — Economic, Military, Scientific (incl. space program), Diplomatic, Total Domination.
+- **Four game modes** — Classic (win once), Eternal (open-ended, victories become milestones), Era-paced (chapter-driven, for scenarios with an era schedule), and Dethrone (reach #1 and hold it).
+- **Four scenarios** — *Ascesa di Aurion* and *Quick Start* (fictional worlds) plus *Mondo Contemporaneo* and *Guerra Fredda* (real-world maps, with blocs and nuclear arsenals).
+- **Difficulty presets** — Easy / Normal / Hard, plus an Iron Man permadeath mode (no saves, one shot).
 - **Real-time, pausable** — pause / 1× / 2× / 4× speeds. Auto-pauses on narrative events and tab switch.
+- **Cross-game achievements** — a trophy catalogue that persists across runs.
+
+**Experience**
+
+- **Quick Play** — a one-click starter run with sensible defaults, or the full five-step new-game wizard when you want to choose.
+- **Interactive world map** — flat atlas or a drag-to-rotate orthographic globe (real-world scenarios), with zoom, keyboard camera, tension/alliance/intel/bloc overlays, and animated war arcs.
+- **Guided onboarding** — an in-game advisor that surfaces your most urgent next moves, a first-objectives checklist, and a one-line explainer on every panel.
+- **In-game settings** — audio mix, replay recording, tutorial reset, and language, all reachable from the home screen.
+- **Save management** — rename, delete, export and import saves directly from the home screen; IndexedDB persistence with autosave.
+
+**Foundations**
+
 - **Deterministic & seeded** — every game has a `rngSeed`; same seed + same actions → same outcome. Saves are reproducible bug reports.
-- **Save / export / import** — IndexedDB persistence with autosave, multi-slot, and JSON export/import.
-- **IT + EN** out of the box (`next-intl`).
+- **Accessible by default** — keyboard-navigable map and panels, focus management, screen-reader labels, and full `prefers-reduced-motion` support.
+- **IT + EN** out of the box (`next-intl`), with the two locale bundles kept in strict key parity.
 - **Pure-TS engine** with zero React/DOM coupling — portable to mobile, CLI, headless simulation.
 
 ---
@@ -86,10 +103,10 @@ Full design spec: see [`docs/SPEC.md`](./docs/SPEC.md).
 aurion/
 ├── apps/
 │   └── web/                       # Next.js 16 App Router (@aurion/web)
-│       ├── app/                   # Routes: /, /new, /play/[saveId]
-│       ├── components/            # Map, Hud, Panels (6 systems), Modals
+│       ├── app/                   # Routes: /, /new, /play/[saveId], /trofei, /settings
+│       ├── components/            # Map (flat + globe), Hud, Panels (7 systems), Modals, Onboarding
 │       ├── content/scenarios/     # Data-driven scenarios (JSON)
-│       ├── lib/                   # store, ticker, persistence, i18n
+│       ├── lib/                   # store, ticker, persistence, geo, i18n
 │       ├── messages/              # IT + EN translations
 │       └── tests/                 # Playwright E2E
 │
@@ -137,9 +154,11 @@ CI runs typecheck, lint, engine tests, and the web build on every PR. See [`.git
 
 ## Roadmap
 
-- **Phase 1 (in progress)** — engine + 1 scenario (*Ascesa di Aurion*), 6 systems, 5 victory conditions, IT + EN.
-- **Phase 2 (planned)** — additional scenarios (modern world, Cold War, etc.), 3 difficulty levels, deeper balancing.
-- **Phase 3 (planned)** — polish, deeper tech tree, advanced narrative events, audio, achievements, optional cloud sync.
+- **Phase 1 (done)** — engine + first scenario (*Ascesa di Aurion*), 7 systems, 5 victory conditions, IT + EN.
+- **Phase 2 (done)** — additional scenarios (*Quick Start*, *Mondo Contemporaneo*, *Guerra Fredda*), difficulty presets, deeper balancing.
+- **Phase 3 (done)** — game modes (Classic / Eternal / Era-paced / Dethrone), blocs, nuclear warfare, narrative events, audio, achievements.
+- **UX & graphics polish (done)** — guided onboarding (advisor, objectives, panel explainers), Quick Play, interactive flat/globe world map with war arcs, settings page, save management, cinematic endgame.
+- **Next** — optional cloud sync, a replay viewer for recorded action logs, and deeper engine-side variety (event cadence, rival storylines).
 
 Detailed scope and out-of-scope items per phase are documented in [`docs/SPEC.md`](./docs/SPEC.md).
 
