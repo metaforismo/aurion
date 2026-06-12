@@ -1340,5 +1340,14 @@
     "diplomacy": "Treaties, alliances and sanctions with other nations.",
     "politics": "Keep your factions happy or lose your grip on power.",
     "un": "Propose and vote on resolutions that bind the whole world."
+  },
+  "objectives": {
+    "title": "First objectives",
+    "progress": "{done} of {total}",
+    "research": "Start your first research project",
+    "intel": "Gather intel on a rival nation",
+    "treaty": "Sign your first treaty",
+    "popularity": "Bring popularity to 60%",
+    "bloc": "Join a bloc"
   }
 }

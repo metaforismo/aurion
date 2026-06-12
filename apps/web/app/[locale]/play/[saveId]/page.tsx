@@ -27,6 +27,7 @@ import NotificationStream, {
   VictoryToast,
 } from '../../../../components/Notifications';
 import { FirstGameHints } from '../../../../components/Onboarding';
+import { ObjectivesCard } from '../../../../components/Onboarding/ObjectivesCard';
 import PanelTabs from '../../../../components/Panels';
 import TutorialOverlay from '../../../../components/Tutorial';
 import { useGameStore } from '../../../../lib/store';
@@ -115,7 +116,10 @@ export default function PlayPage({
         >
           <PanelTabs />
           <WorldMap />
-          <NotificationStream onWidthChange={handleRailWidth} />
+          <NotificationStream
+            onWidthChange={handleRailWidth}
+            topSlot={<ObjectivesCard />}
+          />
         </div>
         <ModalRoot />
         {/* Cross-game achievement toast — self-managed: reads

@@ -1340,5 +1340,14 @@
     "diplomacy": "Trattati, alleanze e sanzioni con le altre nazioni.",
     "politics": "Tieni felici le fazioni o perderai il potere.",
     "un": "Proponi e vota risoluzioni che vincolano il mondo intero."
+  },
+  "objectives": {
+    "title": "Primi obiettivi",
+    "progress": "{done} di {total}",
+    "research": "Avvia la tua prima ricerca",
+    "intel": "Raccogli informazioni su una nazione rivale",
+    "treaty": "Firma il tuo primo trattato",
+    "popularity": "Porta la popolarità al 60%",
+    "bloc": "Unisciti a un blocco"
   }
 }

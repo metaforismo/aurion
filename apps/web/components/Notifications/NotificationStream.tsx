@@ -26,6 +26,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { GameEvent } from '@aurion/engine';
 
 import { cn } from '../../lib/cn';
@@ -51,9 +52,16 @@ export type NotificationStreamProps = {
    * decides to grow or shrink. The parent forwards it into the grid's
    * `--rail-w` CSS variable. */
   onWidthChange?: (width: string) => void;
+  /** Optional content rendered ABOVE the stream header when the rail is
+   * expanded (medium/full). Used by the play page to mount the
+   * first-objectives checklist. Hidden in the slim collapsed state. */
+  topSlot?: ReactNode;
 };
 
-export function NotificationStream({ onWidthChange }: NotificationStreamProps = {}) {
+export function NotificationStream({
+  onWidthChange,
+  topSlot,
+}: NotificationStreamProps = {}) {
   const events = useGameStore((s) => s.state?.events ?? EMPTY_EVENTS);
   const tick = useGameStore((s) => s.state?.tick ?? 0);
   const scenario = useGameStore((s) => s.scenario);
@@ -174,6 +182,7 @@ export function NotificationStream({ onWidthChange }: NotificationStreamProps = 
       aria-label={t('title')}
       data-rail-mode={mode}
     >
+      {topSlot}
       <header className="flex items-baseline justify-between gap-2 border-b border-border pb-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
           {t('title')}
