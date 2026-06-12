@@ -6,10 +6,11 @@
 'use client';
 
 import { useFormatter, useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { GameState, Scenario, WinLossState } from '@aurion/engine';
 
 import { Link } from '../../i18n/navigation';
+import { useCountUp } from '../../lib/animations';
 import { cn } from '../../lib/cn';
 import type { ScenarioId } from '../../lib/scenarios';
 import {
@@ -55,6 +56,7 @@ export function WinLossModal() {
       // dead game state.
       dismissable={false}
       size="md"
+      className={isWin ? 'border-success/60' : 'border-danger/60'}
       footer={
         <>
           <Link
@@ -72,6 +74,9 @@ export function WinLossModal() {
         </>
       }
     >
+      <Verdict isWin={isWin}>
+        {isWin ? t('wonTitle') : t('lostTitle')}
+      </Verdict>
       <Reason
         winLoss={winLoss}
         lossReason={lossReason}
@@ -93,6 +98,53 @@ export function WinLossModal() {
       />
     </Modal>
   );
+}
+
+/**
+ * Set-piece banner: the big verdict word over a soft semantic glow. Rises
+ * with a short delay so the modal card lands first; reduced-motion users get
+ * an instant cut via the global animation override.
+ */
+function Verdict({ isWin, children }: { isWin: boolean; children: ReactNode }) {
+  return (
+    <div className="relative -mx-2 mb-4 overflow-hidden rounded-md px-2 py-6 text-center">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: isWin
+            ? 'radial-gradient(ellipse 70% 90% at 50% 0%, oklch(0.74 0.09 165 / 0.18), transparent 70%)'
+            : 'radial-gradient(ellipse 70% 90% at 50% 0%, oklch(0.66 0.10 18 / 0.16), transparent 70%)',
+        }}
+      />
+      <p
+        className={cn(
+          'relative text-4xl font-bold uppercase tracking-[0.18em]',
+          isWin ? 'text-success' : 'text-danger',
+        )}
+        style={{
+          animation:
+            'verdict-rise 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms both',
+        }}
+      >
+        {children}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Count-up driver for the end-of-run tally. `useCountUp` only tweens
+ * *changes*, so we mount at 0 and flip to the target one frame later — the
+ * classic score-reveal. Reduced-motion users snap (handled inside the hook).
+ */
+function useTally(target: number): number {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setValue(target));
+    return () => cancelAnimationFrame(id);
+  }, [target]);
+  return useCountUp(value);
 }
 
 function Reason({
@@ -192,15 +244,20 @@ function Summary({
   unknownLabel: string;
 }) {
   const player = state.countries[state.playerCountryId];
-  const peakPopularity = useMemo(
-    () => Math.round(player?.politics.popularity ?? 0),
-    [player],
-  );
-  const peakTreasury = player?.economy.treasury ?? 0;
+  const peakPopularity = Math.round(player?.politics.popularity ?? 0);
+  const peakTreasury = Math.round(player?.economy.treasury ?? 0);
   const techsUnlocked = player?.science.completedTechs.length ?? 0;
   const spyOpsLaunched = state.spyOperations.filter(
     (op) => op.ownerCountryId === state.playerCountryId,
   ).length;
+
+  // Score-reveal tallies — each stat counts up from zero when the modal
+  // mounts, so the post-mortem reads as a result screen, not a spreadsheet.
+  const tickTally = useTally(state.tick);
+  const popularityTally = useTally(peakPopularity);
+  const treasuryTally = useTally(peakTreasury);
+  const techsTally = useTally(techsUnlocked);
+  const spyOpsTally = useTally(spyOpsLaunched);
 
   return (
     <section className="mt-4 space-y-3 border-t border-border pt-4">
@@ -208,19 +265,22 @@ function Summary({
         {labels.summary}
       </h3>
       <dl className="grid grid-cols-2 gap-3 text-sm">
-        <Stat label={tickLabel.split(':')[0] ?? 'Weeks'} value={String(state.tick)} />
-        <Stat label={labels.peakPopularity} value={`${peakPopularity}%`} />
+        <Stat
+          label={tickLabel.split(':')[0] ?? 'Weeks'}
+          value={String(tickTally)}
+        />
+        <Stat label={labels.peakPopularity} value={`${popularityTally}%`} />
         <Stat
           label={labels.peakTreasury}
-          value={format.number(Math.round(peakTreasury), {
+          value={format.number(treasuryTally, {
             style: 'currency',
             currency: 'EUR',
             notation: 'compact',
             maximumFractionDigits: 1,
           })}
         />
-        <Stat label={labels.techsUnlocked} value={String(techsUnlocked)} />
-        <Stat label={labels.spyOpsLaunched} value={String(spyOpsLaunched)} />
+        <Stat label={labels.techsUnlocked} value={String(techsTally)} />
+        <Stat label={labels.spyOpsLaunched} value={String(spyOpsTally)} />
       </dl>
       {/* Sr-only fallback to keep typescript happy when no labels are present */}
       <span className="sr-only">{unknownLabel}</span>
@@ -234,7 +294,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
         {label}
       </dt>
-      <dd className="numeric-tabular font-mono text-sm text-fg">{value}</dd>
+      <dd className="numeric-tabular font-mono text-base text-fg">{value}</dd>
     </div>
   );
 }

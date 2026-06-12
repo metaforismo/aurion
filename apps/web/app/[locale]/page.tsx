@@ -17,6 +17,7 @@ import {
   Pencil,
   Trash2,
   X,
+  Zap,
 } from 'lucide-react';
 
 import { AchievementCounter } from '../../components/Hud/AchievementCounter';
@@ -32,7 +33,8 @@ import {
   renameSave,
   type SaveSummary,
 } from '../../lib/persistence';
-import { getScenarioMeta } from '../../lib/scenarios';
+import { getScenarioMeta, loadScenario } from '../../lib/scenarios';
+import { useGameStore } from '../../lib/store';
 import { MOTION } from '../../lib/theme';
 // Build-time constant. Webpack inlines the JSON; we only consume `.version`.
 import pkg from '../../package.json';
@@ -53,8 +55,43 @@ export default function HomePage() {
   const tTrofei = useTranslations('trofei');
 
   const router = useRouter();
+  const startNewGame = useGameStore((s) => s.startNewGame);
   const [saves, setSaves] = useState<SaveSummary[] | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [quickStarting, setQuickStarting] = useState(false);
+
+  // One-click starter run: the Quick Start scenario with the recommended
+  // defaults (first playable country, normal difficulty, Eternal mode — the
+  // mode the wizard recommends). The full wizard remains the primary CTA;
+  // this is the zero-friction path for "just let me play".
+  const handleQuickPlay = async () => {
+    if (quickStarting) return;
+    setQuickStarting(true);
+    setImportError(null);
+    try {
+      const scenario = await loadScenario('quick-start');
+      const countryId = scenario.playableCountries[0];
+      const difficulty =
+        scenario.difficulties.find((d) => d.id === 'normal') ??
+        scenario.difficulties[0];
+      if (!countryId || !difficulty) {
+        throw new Error(tErrors('newGameFailed'));
+      }
+      const saveId = await startNewGame({
+        scenarioId: 'quick-start',
+        playerCountryId: countryId,
+        victory: 'economic',
+        difficultyId: difficulty.id,
+        gameMode: 'eternal',
+      });
+      router.push(`/play/${encodeURIComponent(saveId)}`);
+    } catch (err) {
+      setImportError(
+        err instanceof Error ? err.message : tErrors('newGameFailed'),
+      );
+      setQuickStarting(false);
+    }
+  };
 
   useEffect(() => {
     if (!isPersistenceAvailable()) {
@@ -148,21 +185,39 @@ export default function HomePage() {
               {t('subtitle')}
             </p>
 
-            <Link
-              href="/new"
-              className={cn(
-                'group mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-7 py-3.5',
-                'text-base font-semibold text-bg shadow-md transition-colors',
-                'hover:bg-accent-strong focus-visible:outline focus-visible:outline-2',
-                'focus-visible:outline-offset-2 focus-visible:outline-accent',
-              )}
-            >
-              {t('newGame')}
-              <ArrowRight
-                aria-hidden
-                className="h-4 w-4 transition-transform motion-reduce:transform-none group-hover:translate-x-0.5"
-              />
-            </Link>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/new"
+                className={cn(
+                  'group inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-7 py-3.5',
+                  'text-base font-semibold text-bg shadow-md transition-colors',
+                  'hover:bg-accent-strong focus-visible:outline focus-visible:outline-2',
+                  'focus-visible:outline-offset-2 focus-visible:outline-accent',
+                )}
+              >
+                {t('newGame')}
+                <ArrowRight
+                  aria-hidden
+                  className="h-4 w-4 transition-transform motion-reduce:transform-none group-hover:translate-x-0.5"
+                />
+              </Link>
+              <button
+                type="button"
+                onClick={handleQuickPlay}
+                disabled={quickStarting}
+                title={t('quickPlayHint')}
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 rounded-xl border border-border px-6 py-3.5',
+                  'text-base font-semibold text-fg transition-colors',
+                  'hover:border-border-strong hover:bg-surface-1',
+                  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                  'disabled:cursor-not-allowed disabled:opacity-60',
+                )}
+              >
+                <Zap aria-hidden className="h-4 w-4 text-accent" />
+                {quickStarting ? tCommon('loading') : t('quickPlay')}
+              </button>
+            </div>
 
             {/* Secondary actions sit below the primary CTA as quiet text
                 links separated by a thin middle dot. The import "link" is

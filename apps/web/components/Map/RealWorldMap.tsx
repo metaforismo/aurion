@@ -118,6 +118,8 @@ const BUTTON_ZOOM_STEP = 1.5;
 const GLOBE_MIN_ZOOM = 0.8;
 const GLOBE_MAX_ZOOM = 4;
 const DEFAULT_GLOBE_ROTATION: readonly [number, number] = [-15, -25];
+/** localStorage key for the player's flat ↔ globe preference. */
+const PROJECTION_PREF_KEY = 'aurion.map.projectionMode';
 /** Duration of the rotate-to-country tween when a selection happens. */
 const GLOBE_FOCUS_TWEEN_MS = 600;
 /** Number of deterministic background stars behind the globe. */
@@ -478,7 +480,22 @@ export default function RealWorldMap() {
   // flat. Flat stays the default so nothing regresses; the toggle lives in
   // the zoom cluster.
   const isWorldMode = mode === 'mondo' || mode === 'fredda';
-  const [projectionMode, setProjectionMode] = useState<'flat' | 'globe'>('flat');
+  // Globe is the default for world scenarios — the planet IS the wow shot.
+  // The player's explicit toggle choice persists across sessions.
+  const [projectionMode, setProjectionMode] = useState<'flat' | 'globe'>('globe');
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(PROJECTION_PREF_KEY);
+      if (stored === 'flat' || stored === 'globe') {
+        // localStorage → React state sync on mount; same exception pattern
+        // as NotificationStream's collapsed-pref hydration.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setProjectionMode(stored);
+      }
+    } catch {
+      // Private mode / quota — keep the default.
+    }
+  }, []);
   const isGlobe = isWorldMode && projectionMode === 'globe';
   const [rotation, setRotation] = useState<[number, number]>([
     DEFAULT_GLOBE_ROTATION[0],
@@ -1112,11 +1129,17 @@ export default function RealWorldMap() {
   // gets its natural viewBox back, the globe gets the default rotation/zoom.
   const toggleProjectionMode = useCallback(() => {
     cancelRotationTween();
-    setProjectionMode((m) => (m === 'flat' ? 'globe' : 'flat'));
+    const next = projectionMode === 'flat' ? 'globe' : 'flat';
+    setProjectionMode(next);
+    try {
+      window.localStorage.setItem(PROJECTION_PREF_KEY, next);
+    } catch {
+      // Best-effort persistence.
+    }
     setViewBox({ x: 0, y: 0, w: size.w, h: size.h });
     setGlobeZoom(1);
     setRotation([DEFAULT_GLOBE_ROTATION[0], DEFAULT_GLOBE_ROTATION[1]]);
-  }, [cancelRotationTween, size]);
+  }, [cancelRotationTween, projectionMode, size]);
 
   // Limit flags drive the buttons' disabled state. The 1% epsilon absorbs
   // floating-point drift from repeated multiply/clamp cycles.

@@ -34,7 +34,9 @@
     "deleteConfirm": "Delete this save?",
     "deleteFailed": "Failed to delete the save.",
     "renameSave": "Rename save",
-    "renameFailed": "Failed to rename the save."
+    "renameFailed": "Failed to rename the save.",
+    "quickPlay": "Quick play",
+    "quickPlayHint": "Jump straight into a starter run — no setup."
   },
   "trofei": {
     "pageTitle": "Trophies",

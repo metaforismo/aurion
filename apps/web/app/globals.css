@@ -447,6 +447,13 @@ code, kbd, samp, pre,
   to   { opacity: 1; }
 }
 
+/* Win/Loss verdict — the big VICTORY / DEFEAT word rises and settles. Used
+ * with a small inline animation-delay so the modal card lands first. */
+@keyframes verdict-rise {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Speed control flash — brief accent pulse on selection. */
 @keyframes speed-flash {
   0%   { color: var(--color-accent); }

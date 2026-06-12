@@ -34,7 +34,9 @@
     "deleteConfirm": "Eliminare questo salvataggio?",
     "deleteFailed": "Impossibile eliminare il salvataggio.",
     "renameSave": "Rinomina salvataggio",
-    "renameFailed": "Impossibile rinominare il salvataggio."
+    "renameFailed": "Impossibile rinominare il salvataggio.",
+    "quickPlay": "Partita rapida",
+    "quickPlayHint": "Entra subito in una partita introduttiva — senza configurazione."
   },
   "trofei": {
     "pageTitle": "Trofei",
