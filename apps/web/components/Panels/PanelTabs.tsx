@@ -37,6 +37,7 @@ import {
   type PanelId,
 } from '../../lib/store';
 
+import { AdvisorStrip } from './AdvisorStrip';
 import { DiplomacyPanel } from './DiplomacyPanel';
 import { EconomyPanel } from './EconomyPanel';
 import { MilitaryPanel } from './MilitaryPanel';
@@ -98,6 +99,7 @@ export type PanelTabsProps = {
 export function PanelTabs({ className, onErrors }: PanelTabsProps) {
   const t = useTranslations('panels');
   const tRail = useTranslations('panelRail');
+  const tIntro = useTranslations('panelIntro');
   const selectedPanel = useGameStore((s: GameStoreState) => s.selectedPanel);
   const setSelectedPanel = useGameStore(
     (s: GameStoreState) => s.setSelectedPanel,
@@ -202,7 +204,7 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
                 'group relative flex flex-1 items-center justify-start gap-2 px-3 py-2.5 pr-7 text-left text-xs transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent lg:flex-none',
                 'border-b-2 lg:border-b-0 lg:border-l-2',
                 active
-                  ? 'border-accent text-fg'
+                  ? 'border-accent bg-accent/[0.07] text-fg'
                   : 'border-transparent text-fg-muted hover:text-fg',
               )}
             >
@@ -242,12 +244,22 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
         })}
       </nav>
 
+      {/* Advisor — "what should I do now?" Suggestions derive from the same
+          signals as the tab badges and navigate straight to the panel where
+          the action lives. Renders nothing when all is calm. */}
+      <AdvisorStrip onNavigate={setSelectedPanel} />
+
       <div
         role="tabpanel"
         id={`panel-${selectedPanel}`}
         aria-labelledby={`tab-${selectedPanel}`}
         className="flex-1 overflow-y-auto"
       >
+        {/* One-line system explainer — answers "what is this panel for?"
+            without costing more than a line of quiet text. */}
+        <p className="border-b border-border/60 px-3 py-2 text-[11px] leading-snug text-fg-faint">
+          {tIntro(selectedPanel)}
+        </p>
         {inlineErrors.length > 0 ? (
           <ul
             role="alert"

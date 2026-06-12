@@ -1322,5 +1322,23 @@
     "tutorialReset": "Mostra di nuovo il tutorial",
     "tutorialResetDone": "Il tutorial riapparirà all’inizio della prossima partita.",
     "unavailable": "Le impostazioni richiedono l’archiviazione locale, bloccata da questo browser."
+  },
+  "advisor": {
+    "title": "Cosa fare ora",
+    "military": "Sei in guerra senza unità schierate — mobilita l’esercito",
+    "un": "Una risoluzione ONU attende il tuo voto",
+    "research": "I laboratori sono fermi — avvia una ricerca",
+    "politics": "La popolarità sta calando — placa una fazione",
+    "spies": "Sei cieco all’estero — schiera una spia per raccogliere informazioni",
+    "diplomacy": "Nessun trattato firmato — apri un negoziato con un vicino"
+  },
+  "panelIntro": {
+    "economy": "Tasse, investimenti e PIL — il denaro finanzia tutto il resto.",
+    "research": "Sblocca tecnologie che potenziano ogni altro sistema.",
+    "military": "Addestra, schiera e combatti — o dissuadi.",
+    "spies": "Raccogli informazioni sui rivali e conduci operazioni coperte.",
+    "diplomacy": "Trattati, alleanze e sanzioni con le altre nazioni.",
+    "politics": "Tieni felici le fazioni o perderai il potere.",
+    "un": "Proponi e vota risoluzioni che vincolano il mondo intero."
   }
 }

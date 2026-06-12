@@ -1322,5 +1322,23 @@
     "tutorialReset": "Show tutorial again",
     "tutorialResetDone": "The tutorial will appear at the start of your next game.",
     "unavailable": "Settings need local storage, which this browser blocks."
+  },
+  "advisor": {
+    "title": "What now",
+    "military": "You are at war with no units deployed — rally the army",
+    "un": "A UN resolution is awaiting your vote",
+    "research": "Your labs are idle — start a research project",
+    "politics": "Popularity is slipping — placate a faction",
+    "spies": "You are blind abroad — deploy a spy to gather intel",
+    "diplomacy": "No treaties signed yet — open talks with a neighbour"
+  },
+  "panelIntro": {
+    "economy": "Tax, invest and grow your GDP — money funds everything else.",
+    "research": "Unlock technologies that strengthen every other system.",
+    "military": "Train, deploy and wage war — or deter it.",
+    "spies": "Gather intel on rivals and run covert operations.",
+    "diplomacy": "Treaties, alliances and sanctions with other nations.",
+    "politics": "Keep your factions happy or lose your grip on power.",
+    "un": "Propose and vote on resolutions that bind the whole world."
   }
 }
