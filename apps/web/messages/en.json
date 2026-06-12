@@ -1049,6 +1049,10 @@
     "nation": {
       "aria": "{name}, {region} region, GDP {gdp}, army {army}",
       "youMarker": "YOU"
+    },
+    "projection": {
+      "globe": "Globe view",
+      "flat": "Flat map"
     }
   },
   "tutorial": {

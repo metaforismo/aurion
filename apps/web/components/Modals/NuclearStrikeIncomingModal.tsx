@@ -60,7 +60,20 @@ export function NuclearStrikeIncomingModal({
   const bodyKey = `body.${notification.kind}` as const;
 
   return (
-    <Modal
+    <>
+      {/* Full-screen impact flash + shake. The flash overlay paints a danger
+          wash that spikes and decays; the shake wrapper judders the viewport
+          contents for half a second. Both keyframes collapse to no-ops under
+          prefers-reduced-motion via the global override in globals.css. The
+          fragment renders the flash OUTSIDE the modal so it covers the whole
+          play surface, not just the dialog backdrop. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-50 bg-danger"
+        style={{ animation: 'nuke-flash 900ms ease-out both' }}
+      />
+      <div style={{ animation: 'nuke-shake 500ms linear both' }}>
+        <Modal
       // Player MUST acknowledge — the strike is irreversible and the framing
       // demands a deliberate beat before the loop resumes.
       dismissable={false}
@@ -91,11 +104,13 @@ export function NuclearStrikeIncomingModal({
           <li>{t(`effects.${notification.kind}.economy`)}</li>
           <li>{t(`effects.${notification.kind}.aftermath`)}</li>
         </ul>
-        <p className="text-[11px] italic leading-relaxed text-fg-faint">
-          {t('helper')}
-        </p>
+          <p className="text-[11px] italic leading-relaxed text-fg-faint">
+            {t('helper')}
+          </p>
+        </div>
+        </Modal>
       </div>
-    </Modal>
+    </>
   );
 }
 

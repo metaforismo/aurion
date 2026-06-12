@@ -1049,6 +1049,10 @@
     "nation": {
       "aria": "{name}, regione {region}, PIL {gdp}, esercito {army}",
       "youMarker": "TU"
+    },
+    "projection": {
+      "globe": "Vista globo",
+      "flat": "Mappa piatta"
     }
   },
   "tutorial": {

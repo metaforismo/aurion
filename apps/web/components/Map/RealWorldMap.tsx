@@ -58,6 +58,7 @@ import {
   type WorldCollection,
 } from '../../lib/geo/world';
 import {
+  globeProjectionFit,
   regionProjectionFit,
   worldProjectionFit,
 } from '../../lib/geo/projections';
@@ -108,6 +109,19 @@ const DRAG_THRESHOLD_PX = 4;
 const FOCUS_TRANSITION_MS = 300;
 /** Magnification step per zoom-button press (matches ~6 wheel notches). */
 const BUTTON_ZOOM_STEP = 1.5;
+
+// ----- Globe mode ----------------------------------------------------------
+// Orthographic projection limits. Zoom 1 = the disc fits the canvas with a
+// small margin; rotation is the [lambda, phi] pair handed to d3's
+// `projection.rotate`. The default rotation looks at ~15°E 25°N — Europe /
+// Africa / Middle East, where most scenario action concentrates.
+const GLOBE_MIN_ZOOM = 0.8;
+const GLOBE_MAX_ZOOM = 4;
+const DEFAULT_GLOBE_ROTATION: readonly [number, number] = [-15, -25];
+/** Duration of the rotate-to-country tween when a selection happens. */
+const GLOBE_FOCUS_TWEEN_MS = 600;
+/** Number of deterministic background stars behind the globe. */
+const STAR_COUNT = 140;
 // Bounded fallback size used when the container hasn't yet been measured by
 // the ResizeObserver. Keeps the projection happy for the first render.
 const FALLBACK_W = 1280;
@@ -458,16 +472,44 @@ export default function RealWorldMap() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState<Size>({ w: FALLBACK_W, h: FALLBACK_H });
 
+  // ----- Globe mode state ---------------------------------------------------
+  // Only the two world scenarios offer the globe — the regional crops
+  // (Ascesa, Quick Start) cover a slice of one hemisphere and read better
+  // flat. Flat stays the default so nothing regresses; the toggle lives in
+  // the zoom cluster.
+  const isWorldMode = mode === 'mondo' || mode === 'fredda';
+  const [projectionMode, setProjectionMode] = useState<'flat' | 'globe'>('flat');
+  const isGlobe = isWorldMode && projectionMode === 'globe';
+  const [rotation, setRotation] = useState<[number, number]>([
+    DEFAULT_GLOBE_ROTATION[0],
+    DEFAULT_GLOBE_ROTATION[1],
+  ]);
+  const [globeZoom, setGlobeZoom] = useState(1);
+
+  // Refs mirroring globe state for handlers that intentionally avoid
+  // re-subscribing on every rotation frame (wheel listener, store subscribe).
+  const isGlobeRef = useRef(isGlobe);
+  const rotationRef = useRef(rotation);
+  useEffect(() => {
+    isGlobeRef.current = isGlobe;
+    rotationRef.current = rotation;
+  });
+
   // Projection + pathBuilder. Recomputed when the filtered world, mode, or
   // container size changes — fitSize re-runs every resize so the cartography
-  // always fills the available space without dead bands.
+  // always fills the available space without dead bands. In globe mode the
+  // projection also tracks rotation + globe zoom, so dragging re-renders the
+  // hemisphere per frame (25–180 country paths — fine for SVG).
   const projection = useMemo<GeoProjection | null>(() => {
     if (!filteredWorld || !mode) return null;
     if (mode === 'mondo' || mode === 'fredda') {
+      if (projectionMode === 'globe') {
+        return globeProjectionFit(size.w, size.h, rotation, globeZoom);
+      }
       return worldProjectionFit(filteredWorld, size.w, size.h);
     }
     return regionProjectionFit(filteredWorld, size.w, size.h);
-  }, [filteredWorld, mode, size.w, size.h]);
+  }, [filteredWorld, mode, size.w, size.h, projectionMode, rotation, globeZoom]);
 
   const pathBuilder = useMemo(() => {
     if (!projection) return null;
@@ -503,7 +545,13 @@ export default function RealWorldMap() {
       const iso = getIso(feature);
       const d = pathBuilder(feature as unknown as Feature<Geometry>);
       if (!d) continue;
-      const centroid = projection(geoCentroid(feature as unknown as Feature<Geometry>));
+      // Flat: project the geographic centroid (stable under fitSize).
+      // Globe: use the centroid of the CLIPPED geometry instead — a country
+      // straddling the limb would otherwise get its label projected from the
+      // far side, mirrored across the disc.
+      const centroid = isGlobe
+        ? pathBuilder.centroid(feature as unknown as Feature<Geometry>)
+        : projection(geoCentroid(feature as unknown as Feature<Geometry>));
       const cx = centroid?.[0] ?? 0;
       const cy = centroid?.[1] ?? 0;
       const area = pathBuilder.area(feature as unknown as Feature<Geometry>);
@@ -519,7 +567,51 @@ export default function RealWorldMap() {
       });
     }
     return out;
-  }, [filteredWorld, pathBuilder, projection, mode]);
+  }, [filteredWorld, pathBuilder, projection, mode, isGlobe]);
+
+  // Geographic (lon/lat) centroids per country — projection-independent, so
+  // the globe focus tween can rotate to a country even while the projected
+  // centroid is on the far side.
+  const geoCentroidByCountry = useMemo(() => {
+    const m = new Map<string, [number, number]>();
+    if (!filteredWorld || !mode) return m;
+    const isoTable = isoToCountryIdFor(mode);
+    for (const feature of filteredWorld.features) {
+      const cid = isoTable[getIso(feature)];
+      if (!cid) continue;
+      m.set(
+        cid,
+        geoCentroid(feature as unknown as Feature<Geometry>) as [number, number],
+      );
+    }
+    return m;
+  }, [filteredWorld, mode]);
+  const geoCentroidsRef = useRef(geoCentroidByCountry);
+  useEffect(() => {
+    geoCentroidsRef.current = geoCentroidByCountry;
+  });
+
+  // Sphere outline path — the full disc under the country polygons. Null in
+  // flat mode (the flat renderer keeps its sea rects).
+  const spherePath = useMemo(() => {
+    if (!isGlobe || !pathBuilder) return null;
+    return pathBuilder({ type: 'Sphere' });
+  }, [isGlobe, pathBuilder]);
+
+  // Deterministic starfield behind the globe. Stateless hash per star index
+  // so the sky doesn't reshuffle on re-render; only a resize re-seeds it.
+  const stars = useMemo(() => {
+    const rand = (i: number, salt: number) => {
+      const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453;
+      return x - Math.floor(x);
+    };
+    return Array.from({ length: STAR_COUNT }, (_, i) => ({
+      x: rand(i, 1) * size.w,
+      y: rand(i, 2) * size.h,
+      r: 0.4 + rand(i, 3) * 0.9,
+      o: 0.12 + rand(i, 4) * 0.45,
+    }));
+  }, [size.w, size.h]);
 
   // Country → projected centroid lookup (used for tension/intel/blocs/
   // alliance overlays which previously assumed pixel positions on the
@@ -531,6 +623,39 @@ export default function RealWorldMap() {
     }
     return m;
   }, [rendered]);
+
+  // Active wars, as renderable arcs between the belligerents' centroids.
+  // Always-on (not gated behind an overlay): a war is the single most
+  // important fact on the map, and the animated arc is what makes the world
+  // read as alive. Edges whose endpoint is off-canvas (far hemisphere in
+  // globe mode) drop out naturally via the centroid lookup.
+  const warEdges = useMemo(() => {
+    if (!state) return [];
+    const me = state.playerCountryId;
+    const out: Array<{
+      key: string;
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      involvesPlayer: boolean;
+    }> = [];
+    for (const rel of Object.values(state.relations)) {
+      if (!rel.atWar) continue;
+      const a = centroidByCountry.get(rel.countryA);
+      const b = centroidByCountry.get(rel.countryB);
+      if (!a || !b) continue;
+      out.push({
+        key: `${rel.countryA}::${rel.countryB}`,
+        x1: a.x,
+        y1: a.y,
+        x2: b.x,
+        y2: b.y,
+        involvesPlayer: rel.countryA === me || rel.countryB === me,
+      });
+    }
+    return out;
+  }, [state, centroidByCountry]);
 
   // ----- UI state ----------------------------------------------------------
   const [overlay, setOverlay] = useState<OverlayMode>('none');
@@ -661,12 +786,62 @@ export default function RealWorldMap() {
   const [transitioning, setTransitioning] = useState(false);
   const transitionTimer = useRef<number | null>(null);
 
-  // Smooth focus when an external selection happens.
+  // rAF tween that rotates the globe toward a target [lambda, phi]. Takes the
+  // shortest path around the antimeridian and collapses to a jump for
+  // reduced-motion users. Cancelled by any new tween or a manual drag.
+  const rotationTweenRef = useRef<number | null>(null);
+  const cancelRotationTween = useCallback(() => {
+    if (rotationTweenRef.current !== null) {
+      cancelAnimationFrame(rotationTweenRef.current);
+      rotationTweenRef.current = null;
+    }
+  }, []);
+  const startRotationTween = useCallback(
+    (target: readonly [number, number]) => {
+      cancelRotationTween();
+      const prefersReduced =
+        typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReduced) {
+        setRotation([target[0], target[1]]);
+        return;
+      }
+      const from: [number, number] = [
+        rotationRef.current[0],
+        rotationRef.current[1],
+      ];
+      let deltaLambda = target[0] - from[0];
+      // Shortest way around: -350° of longitude is +10°.
+      deltaLambda = ((deltaLambda + 540) % 360) - 180;
+      const deltaPhi = target[1] - from[1];
+      const startedAt = performance.now();
+      const step = (now: number) => {
+        const t = Math.min(1, (now - startedAt) / GLOBE_FOCUS_TWEEN_MS);
+        const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+        setRotation([from[0] + deltaLambda * eased, from[1] + deltaPhi * eased]);
+        rotationTweenRef.current =
+          t < 1 ? requestAnimationFrame(step) : null;
+      };
+      rotationTweenRef.current = requestAnimationFrame(step);
+    },
+    [cancelRotationTween],
+  );
+  useEffect(() => cancelRotationTween, [cancelRotationTween]);
+
+  // Smooth focus when an external selection happens. Flat mode pans the
+  // viewBox; globe mode rotates the sphere to the country's geographic
+  // centroid (the projected centroid may be on the far side — useless).
   useEffect(() => {
     const unsubscribe = useGameStore.subscribe((s, prev) => {
       if (s.selectedCountryId === prev.selectedCountryId) return;
       const id = s.selectedCountryId;
       if (!id) return;
+      if (isGlobeRef.current) {
+        const geo = geoCentroidsRef.current.get(id);
+        if (!geo) return;
+        startRotationTween([-geo[0], -geo[1]]);
+        return;
+      }
       const pos = centroidByCountry.get(id);
       if (!pos) return;
       setViewBox((current) => {
@@ -692,16 +867,21 @@ export default function RealWorldMap() {
         transitionTimer.current = null;
       }
     };
-  }, [centroidByCountry, size]);
+  }, [centroidByCountry, size, startRotationTween]);
 
-  // Pointer-driven panning + pinch zoom.
+  // Pointer-driven panning + pinch zoom. Globe mode reuses the same gesture
+  // plumbing but maps a drag to a rotation and a pinch to the globe zoom —
+  // the start snapshots carry both coordinate systems so the move handler
+  // just branches on `isGlobe`.
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const dragStateRef = useRef<{
     startVB: ViewBox;
+    startRotation: [number, number];
     startClient: { x: number; y: number };
   } | null>(null);
   const pinchStateRef = useRef<{
     startVB: ViewBox;
+    startGlobeZoom: number;
     startDistance: number;
     centerClient: { x: number; y: number };
   } | null>(null);
@@ -718,9 +898,12 @@ export default function RealWorldMap() {
         transitionTimer.current = null;
       }
       setTransitioning(false);
+      // Grabbing the globe interrupts an in-flight focus rotation.
+      cancelRotationTween();
       if (ptrs.size === 1) {
         dragStateRef.current = {
           startVB: viewBox,
+          startRotation: [rotation[0], rotation[1]],
           startClient: { x: e.clientX, y: e.clientY },
         };
         pinchStateRef.current = null;
@@ -729,6 +912,7 @@ export default function RealWorldMap() {
         if (a && b) {
           pinchStateRef.current = {
             startVB: viewBox,
+            startGlobeZoom: globeZoom,
             startDistance: distance(a, b),
             centerClient: midpoint(a, b),
           };
@@ -736,7 +920,7 @@ export default function RealWorldMap() {
         dragStateRef.current = null;
       }
     },
-    [viewBox],
+    [viewBox, rotation, globeZoom, cancelRotationTween],
   );
 
   const handleSvgPointerMove = useCallback(
@@ -755,6 +939,19 @@ export default function RealWorldMap() {
         const [a, b] = Array.from(ptrs.values());
         if (!a || !b) return;
         const newDist = distance(a, b);
+        if (isGlobe) {
+          // Pinch maps to globe zoom (no anchor math — the sphere is
+          // centre-locked).
+          const ratio = newDist / Math.max(pinchStateRef.current.startDistance, 1);
+          setGlobeZoom(
+            clamp(
+              pinchStateRef.current.startGlobeZoom * ratio,
+              GLOBE_MIN_ZOOM,
+              GLOBE_MAX_ZOOM,
+            ),
+          );
+          return;
+        }
         const ratio = pinchStateRef.current.startDistance / Math.max(newDist, 1);
         const start = pinchStateRef.current.startVB;
         const newW = clamp(start.w * ratio, size.w / MAX_ZOOM, size.w / MIN_ZOOM);
@@ -777,6 +974,21 @@ export default function RealWorldMap() {
         if (!e.currentTarget.hasPointerCapture(e.pointerId)) {
           e.currentTarget.setPointerCapture(e.pointerId);
         }
+        if (isGlobe) {
+          // Drag rotates: degrees-per-pixel scales with the rendered radius
+          // so the ground tracks the cursor at any zoom level.
+          const radius = Math.max(
+            1,
+            (Math.min(size.w, size.h) / 2 - 12) * globeZoom,
+          );
+          const degPerPx = 90 / radius;
+          const start = dragStateRef.current.startRotation;
+          setRotation([
+            start[0] + totalDx * degPerPx,
+            clamp(start[1] - totalDy * degPerPx, -89, 89),
+          ]);
+          return;
+        }
         const dx = (totalDx / rect.width) * dragStateRef.current.startVB.w;
         const dy = (totalDy / rect.height) * dragStateRef.current.startVB.h;
         const start = dragStateRef.current.startVB;
@@ -788,7 +1000,7 @@ export default function RealWorldMap() {
         });
       }
     },
-    [size],
+    [size, isGlobe, globeZoom],
   );
 
   const handleSvgPointerUp = useCallback(
@@ -811,6 +1023,13 @@ export default function RealWorldMap() {
     if (!svg) return;
     const onWheel = (ev: WheelEvent) => {
       ev.preventDefault();
+      if (isGlobeRef.current) {
+        const factor = Math.exp(-ev.deltaY * 0.001);
+        setGlobeZoom((prev) =>
+          clamp(prev * factor, GLOBE_MIN_ZOOM, GLOBE_MAX_ZOOM),
+        );
+        return;
+      }
       const rect = svg.getBoundingClientRect();
       setViewBox((prev) => {
         const factor = Math.exp(ev.deltaY * 0.001);
@@ -861,23 +1080,52 @@ export default function RealWorldMap() {
     [beginViewTransition, size],
   );
 
-  const handleZoomIn = useCallback(
-    () => zoomByFactor(1 / BUTTON_ZOOM_STEP),
-    [zoomByFactor],
-  );
-  const handleZoomOut = useCallback(
-    () => zoomByFactor(BUTTON_ZOOM_STEP),
-    [zoomByFactor],
-  );
+  const handleZoomIn = useCallback(() => {
+    if (isGlobe) {
+      setGlobeZoom((z) =>
+        clamp(z * BUTTON_ZOOM_STEP, GLOBE_MIN_ZOOM, GLOBE_MAX_ZOOM),
+      );
+      return;
+    }
+    zoomByFactor(1 / BUTTON_ZOOM_STEP);
+  }, [isGlobe, zoomByFactor]);
+  const handleZoomOut = useCallback(() => {
+    if (isGlobe) {
+      setGlobeZoom((z) =>
+        clamp(z / BUTTON_ZOOM_STEP, GLOBE_MIN_ZOOM, GLOBE_MAX_ZOOM),
+      );
+      return;
+    }
+    zoomByFactor(BUTTON_ZOOM_STEP);
+  }, [isGlobe, zoomByFactor]);
   const handleZoomReset = useCallback(() => {
+    if (isGlobe) {
+      setGlobeZoom(1);
+      startRotationTween(DEFAULT_GLOBE_ROTATION);
+      return;
+    }
     beginViewTransition();
     setViewBox({ x: 0, y: 0, w: size.w, h: size.h });
-  }, [beginViewTransition, size]);
+  }, [isGlobe, startRotationTween, beginViewTransition, size]);
+
+  // Flat ↔ globe toggle. Each mode starts from its home view: the flat map
+  // gets its natural viewBox back, the globe gets the default rotation/zoom.
+  const toggleProjectionMode = useCallback(() => {
+    cancelRotationTween();
+    setProjectionMode((m) => (m === 'flat' ? 'globe' : 'flat'));
+    setViewBox({ x: 0, y: 0, w: size.w, h: size.h });
+    setGlobeZoom(1);
+    setRotation([DEFAULT_GLOBE_ROTATION[0], DEFAULT_GLOBE_ROTATION[1]]);
+  }, [cancelRotationTween, size]);
 
   // Limit flags drive the buttons' disabled state. The 1% epsilon absorbs
   // floating-point drift from repeated multiply/clamp cycles.
-  const canZoomIn = viewBox.w > (size.w / MAX_ZOOM) * 1.01;
-  const canZoomOut = viewBox.w < (size.w / MIN_ZOOM) * 0.99;
+  const canZoomIn = isGlobe
+    ? globeZoom < GLOBE_MAX_ZOOM * 0.99
+    : viewBox.w > (size.w / MAX_ZOOM) * 1.01;
+  const canZoomOut = isGlobe
+    ? globeZoom > GLOBE_MIN_ZOOM * 1.01
+    : viewBox.w < (size.w / MIN_ZOOM) * 0.99;
 
   // Keyboard camera control on the focused map region: arrows pan, +/− zoom,
   // 0 resets. Mirrors the wheel/drag mutations so keyboard-only players get
@@ -894,6 +1142,17 @@ export default function RealWorldMap() {
           e.preventDefault();
           const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
           const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+          if (isGlobe) {
+            // Arrows rotate the globe; step shrinks as you zoom in so the
+            // apparent ground speed stays constant.
+            cancelRotationTween();
+            const stepDeg = 12 / globeZoom;
+            setRotation((prev) => [
+              prev[0] - dx * stepDeg,
+              clamp(prev[1] + dy * stepDeg, -89, 89),
+            ]);
+            break;
+          }
           setViewBox((prev) => ({
             ...prev,
             x: clampViewBoxX(prev.x + dx * prev.w * PAN_FRACTION, prev.w, size),
@@ -917,7 +1176,15 @@ export default function RealWorldMap() {
           break;
       }
     },
-    [size, handleZoomIn, handleZoomOut, handleZoomReset],
+    [
+      size,
+      isGlobe,
+      globeZoom,
+      cancelRotationTween,
+      handleZoomIn,
+      handleZoomOut,
+      handleZoomReset,
+    ],
   );
 
   const handleBackgroundClick = useCallback(
@@ -1006,6 +1273,10 @@ export default function RealWorldMap() {
   const tooltipCountry = hoveredCountry ?? selectedCountry;
   const tooltipId = tooltipCountry?.id ?? null;
 
+  // Rendered sphere radius in viewBox units — drives the atmosphere ring and
+  // the lighting overlay. Mirrors the radius formula in globeProjectionFit.
+  const globeRadius = Math.max(1, (Math.min(size.w, size.h) / 2 - 12) * globeZoom);
+
   return (
     <div
       ref={containerRef}
@@ -1052,6 +1323,20 @@ export default function RealWorldMap() {
             <stop offset="0%" stopColor="var(--color-fg)" stopOpacity={0.02} />
             <stop offset="100%" stopColor="var(--color-fg)" stopOpacity={0} />
           </linearGradient>
+          {/* Globe atmosphere — a thin haze ring hugging the disc's limb.
+              Transparent through the body so it never tints the land. */}
+          <radialGradient id="rw-atmo" cx="50%" cy="50%" r="50%">
+            <stop offset="78%" stopColor="oklch(0.62 0.09 240)" stopOpacity={0} />
+            <stop offset="92%" stopColor="oklch(0.62 0.09 240)" stopOpacity={0.16} />
+            <stop offset="100%" stopColor="oklch(0.68 0.10 235)" stopOpacity={0.34} />
+          </radialGradient>
+          {/* Globe lighting — top-left key light + limb falloff painted OVER
+              the land so the sphere reads as lit, not flat. */}
+          <radialGradient id="rw-globe-shade" cx="38%" cy="34%" r="68%">
+            <stop offset="0%" stopColor="var(--color-fg)" stopOpacity={0.09} />
+            <stop offset="55%" stopColor="var(--color-fg)" stopOpacity={0.015} />
+            <stop offset="100%" stopColor="oklch(0 0 0)" stopOpacity={0.38} />
+          </radialGradient>
           {/* Paper-grain dots — ≤0.04 opacity so it reads as grain not noise. */}
           <pattern
             id="rw-sea-grain"
@@ -1089,32 +1374,61 @@ export default function RealWorldMap() {
           height={size.h * 3}
           fill="var(--color-bg)"
         />
-        {/* Sea depth gradient — fills the natural canvas. */}
-        <rect
-          x={0}
-          y={0}
-          width={size.w}
-          height={size.h}
-          fill="url(#rw-sea-depth)"
-          fillOpacity={0.7}
-          pointerEvents="none"
-        />
-        <rect
-          x={0}
-          y={0}
-          width={size.w}
-          height={size.h}
-          fill="url(#rw-sea-wash)"
-          pointerEvents="none"
-        />
-        <rect
-          x={0}
-          y={0}
-          width={size.w}
-          height={size.h}
-          fill="url(#rw-sea-grain)"
-          pointerEvents="none"
-        />
+        {isGlobe ? (
+          // ----- Globe backdrop: starfield + atmosphere + ocean sphere -----
+          <g aria-hidden pointerEvents="none">
+            {stars.map((s, i) => (
+              <circle
+                key={i}
+                cx={s.x}
+                cy={s.y}
+                r={s.r}
+                fill="var(--color-fg)"
+                fillOpacity={s.o}
+              />
+            ))}
+            <circle
+              cx={size.w / 2}
+              cy={size.h / 2}
+              r={globeRadius * 1.08}
+              fill="url(#rw-atmo)"
+            />
+            {spherePath ? (
+              <path
+                d={spherePath}
+                fill="url(#rw-sea-depth)"
+                stroke="var(--color-border-strong)"
+                strokeWidth={1}
+              />
+            ) : null}
+          </g>
+        ) : (
+          // ----- Flat backdrop: sea gradient + haze + paper grain ----------
+          <g aria-hidden pointerEvents="none">
+            <rect
+              x={0}
+              y={0}
+              width={size.w}
+              height={size.h}
+              fill="url(#rw-sea-depth)"
+              fillOpacity={0.7}
+            />
+            <rect
+              x={0}
+              y={0}
+              width={size.w}
+              height={size.h}
+              fill="url(#rw-sea-wash)"
+            />
+            <rect
+              x={0}
+              y={0}
+              width={size.w}
+              height={size.h}
+              fill="url(#rw-sea-grain)"
+            />
+          </g>
+        )}
         {/* 10° graticule — charted-ocean texture under the landmasses. */}
         {graticulePath ? (
           <path
@@ -1307,6 +1621,38 @@ export default function RealWorldMap() {
                 strokeLinecap="round"
               />
             ))}
+          </g>
+        ) : null}
+
+        {/* War arcs — animated dashed danger curves between belligerents.
+            The player's own wars draw brighter/thicker than AI-vs-AI wars.
+            Quadratic lift perpendicular to the chord gives a missile-trajectory
+            silhouette; the marching dash (map-war-dash) supplies the motion. */}
+        {warEdges.length > 0 ? (
+          <g aria-hidden pointerEvents="none" data-layer="war-arcs">
+            {warEdges.map((e) => {
+              const mx = (e.x1 + e.x2) / 2;
+              const my = (e.y1 + e.y2) / 2;
+              const dx = e.x2 - e.x1;
+              const dy = e.y2 - e.y1;
+              const len = Math.hypot(dx, dy) || 1;
+              const lift = Math.min(48, len * 0.22);
+              const qx = mx - (dy / len) * lift;
+              const qy = my + (dx / len) * lift;
+              return (
+                <path
+                  key={e.key}
+                  d={`M ${e.x1} ${e.y1} Q ${qx} ${qy} ${e.x2} ${e.y2}`}
+                  fill="none"
+                  stroke="var(--color-danger)"
+                  strokeWidth={e.involvesPlayer ? 1.6 : 1}
+                  strokeOpacity={e.involvesPlayer ? 0.85 : 0.45}
+                  strokeDasharray="6 5"
+                  strokeLinecap="round"
+                  style={{ animation: 'map-war-dash 1.1s linear infinite' }}
+                />
+              );
+            })}
           </g>
         ) : null}
 
@@ -1588,7 +1934,33 @@ export default function RealWorldMap() {
             </text>
           </g>
         ) : null}
+
+        {/* Globe lighting — key light upper-left, limb falloff. Painted over
+            every layer so the whole disc (land, arcs, labels) sits inside the
+            same sphere of light. Non-interactive. */}
+        {isGlobe ? (
+          <circle
+            aria-hidden
+            pointerEvents="none"
+            cx={size.w / 2}
+            cy={size.h / 2}
+            r={globeRadius}
+            fill="url(#rw-globe-shade)"
+          />
+        ) : null}
       </svg>
+
+      {/* Vignette — slight darkening at the frame edges so the play surface
+          reads as a lit scene rather than a flat document. Sits above the SVG
+          but below the legend / zoom chrome (z-10). */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 75% 70% at 50% 45%, transparent 62%, oklch(0.04 0.01 250 / 0.32) 100%)',
+        }}
+      />
 
       <MapZoomControls
         onZoomIn={handleZoomIn}
@@ -1602,6 +1974,18 @@ export default function RealWorldMap() {
           out: t('zoom.out'),
           reset: t('zoom.reset'),
         }}
+        projection={
+          isWorldMode
+            ? {
+                mode: projectionMode,
+                onToggle: toggleProjectionMode,
+                labels: {
+                  flat: t('projection.flat'),
+                  globe: t('projection.globe'),
+                },
+              }
+            : undefined
+        }
       />
 
       <MapLegend

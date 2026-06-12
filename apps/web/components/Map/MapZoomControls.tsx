@@ -13,7 +13,7 @@
 // The component is renderer-agnostic: WorldMap and RealWorldMap own their
 // own viewBox math and pass plain callbacks + boolean limits down.
 
-import { Minus, Plus, Scan } from 'lucide-react';
+import { Globe, Map as MapIcon, Minus, Plus, Scan } from 'lucide-react';
 
 import { cn } from '../../lib/cn';
 
@@ -27,6 +27,18 @@ export type MapZoomControlsProps = {
   canZoomOut: boolean;
   /** Pre-translated labels (map.zoom.* keys). */
   labels: { group: string; in: string; out: string; reset: string };
+  /**
+   * Optional flat ↔ globe projection toggle. Rendered as an extra button at
+   * the top of the cluster when provided — only the real-world renderer's
+   * world scenarios pass it (regional crops don't suit a globe).
+   */
+  projection?: {
+    mode: 'flat' | 'globe';
+    onToggle: () => void;
+    /** Pre-translated labels (map.projection.* keys); each describes the
+     * mode the button SWITCHES TO. */
+    labels: { flat: string; globe: string };
+  };
 };
 
 export default function MapZoomControls(props: MapZoomControlsProps) {
@@ -39,6 +51,23 @@ export default function MapZoomControls(props: MapZoomControlsProps) {
         'overflow-hidden rounded-sm border border-border bg-bg/85 backdrop-blur-sm',
       )}
     >
+      {props.projection ? (
+        <ZoomButton
+          label={
+            props.projection.mode === 'flat'
+              ? props.projection.labels.globe
+              : props.projection.labels.flat
+          }
+          onClick={props.projection.onToggle}
+          className="border-b border-border"
+        >
+          {props.projection.mode === 'flat' ? (
+            <Globe aria-hidden className="h-3.5 w-3.5" />
+          ) : (
+            <MapIcon aria-hidden className="h-3.5 w-3.5" />
+          )}
+        </ZoomButton>
+      ) : null}
       <ZoomButton
         label={props.labels.in}
         disabled={!props.canZoomIn}

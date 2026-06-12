@@ -14,6 +14,7 @@
 import {
   geoEqualEarth,
   geoEquirectangular,
+  geoOrthographic,
   type GeoPermissibleObjects,
   type GeoProjection,
 } from 'd3-geo';
@@ -100,4 +101,27 @@ export function regionProjectionFit(
     proj.translate()[1] + 8,
   ]);
   return proj;
+}
+
+/**
+ * Orthographic "globe" projection for the world scenarios. The sphere is
+ * centred on the canvas; `rotation` is the [lambda, phi] pair fed straight to
+ * `projection.rotate` (so to look at lon/lat L,P pass [-L, -P]); `zoom`
+ * scales the sphere radius around a fit-to-canvas baseline (1 = the disc
+ * fits with a small margin). `clipAngle(90)` makes `geoPath` drop the far
+ * hemisphere, which is what keeps the rest of the renderer agnostic — far
+ * side features simply produce no path data.
+ */
+export function globeProjectionFit(
+  width: number,
+  height: number,
+  rotation: readonly [number, number],
+  zoom: number,
+): GeoProjection {
+  const radius = Math.max(1, (Math.min(width, height) / 2 - 12) * zoom);
+  return geoOrthographic()
+    .scale(radius)
+    .translate([width / 2, height / 2])
+    .rotate([rotation[0], rotation[1]])
+    .clipAngle(90);
 }

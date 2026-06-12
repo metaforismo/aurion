@@ -159,6 +159,36 @@ function LegacyWorldMap() {
     effectivePositionsRef.current = effectivePositions;
   }, [effectivePositions]);
 
+  // Active wars, as renderable arcs between the belligerents' anchors.
+  // Always-on (not gated behind an overlay) — mirrors RealWorldMap.
+  const warEdges = useMemo(() => {
+    if (!state) return [];
+    const me = state.playerCountryId;
+    const out: Array<{
+      key: string;
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      involvesPlayer: boolean;
+    }> = [];
+    for (const rel of Object.values(state.relations)) {
+      if (!rel.atWar) continue;
+      const a = effectivePositions[rel.countryA];
+      const b = effectivePositions[rel.countryB];
+      if (!a || !b) continue;
+      out.push({
+        key: `${rel.countryA}::${rel.countryB}`,
+        x1: a.x,
+        y1: a.y,
+        x2: b.x,
+        y2: b.y,
+        involvesPlayer: rel.countryA === me || rel.countryB === me,
+      });
+    }
+    return out;
+  }, [state, effectivePositions]);
+
   // -- Local UI state -------------------------------------------------------
   const [overlay, setOverlay] = useState<OverlayMode>('none');
   const [hoveredId, setHoveredId] = useState<CountryId | null>(null);
@@ -791,6 +821,37 @@ function LegacyWorldMap() {
           <AllianceEdges edges={allianceData.edges} />
         ) : null}
 
+        {/* War arcs — animated dashed danger curves between belligerents.
+            Always on; the player's own wars draw brighter than AI-vs-AI.
+            Rendered under the nation dots so labels stay readable. */}
+        {warEdges.length > 0 ? (
+          <g aria-hidden pointerEvents="none" data-layer="war-arcs">
+            {warEdges.map((e) => {
+              const mx = (e.x1 + e.x2) / 2;
+              const my = (e.y1 + e.y2) / 2;
+              const dx = e.x2 - e.x1;
+              const dy = e.y2 - e.y1;
+              const len = Math.hypot(dx, dy) || 1;
+              const lift = Math.min(48, len * 0.22);
+              const qx = mx - (dy / len) * lift;
+              const qy = my + (dx / len) * lift;
+              return (
+                <path
+                  key={e.key}
+                  d={`M ${e.x1} ${e.y1} Q ${qx} ${qy} ${e.x2} ${e.y2}`}
+                  fill="none"
+                  stroke="var(--color-danger)"
+                  strokeWidth={e.involvesPlayer ? 1.6 : 1}
+                  strokeOpacity={e.involvesPlayer ? 0.85 : 0.45}
+                  strokeDasharray="6 5"
+                  strokeLinecap="round"
+                  style={{ animation: 'map-war-dash 1.1s linear infinite' }}
+                />
+              );
+            })}
+          </g>
+        ) : null}
+
         {/* Nations */}
         <g>
           {countryEntries.map((c) => {
@@ -870,6 +931,18 @@ function LegacyWorldMap() {
           />
         ) : null}
       </svg>
+
+      {/* Vignette — slight darkening at the frame edges so the play surface
+          reads as a lit scene rather than a flat document. Sits above the SVG
+          but below the legend / zoom chrome (z-10). */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 75% 70% at 50% 45%, transparent 62%, oklch(0.04 0.01 250 / 0.32) 100%)',
+        }}
+      />
 
       {/* Top-right zoom cluster — explicit affordance for the wheel/pinch
           zoom plus a reset-to-fit action. */}
