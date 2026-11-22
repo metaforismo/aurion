@@ -1,285 +1,206 @@
-// Inline form for proposing a new UN resolution.
-//
-// Only rendered by the UNPanel when the player country sits on the scenario's
-// `unCouncilMembers` list. Lets the player pick a kind, an optional target
-// (country or region — depends on kind), previews the static defaults, and
-// dispatches `proposeUNResolution` through the store. The engine fills in
-// proposer / titleKey / votingClosesAtTick / effects from the scenario's
-// `unTriggerMap` (or its built-in defaults).
-
 'use client';
 
+// Tabling a resolution, one question at a time: what kind, against whom or
+// where, then a plain summary of what the vote will and will not do.
+
+import type { RegionId, UNResolutionKind } from '@aurion/engine';
+import { Lock, MapPin, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
-import type {
-  CountryId,
-  RegionId,
-  UNResolutionKind,
-} from '@aurion/engine';
+import { useMemo, useState, type ReactNode } from 'react';
 
 import { cn } from '../../lib/cn';
-import { ActionButton } from './shared/ActionButton';
+import { Button, Card, Row } from '../ui';
 
-const KIND_OPTIONS: readonly UNResolutionKind[] = [
-  'sanctions',
-  'peacekeeping',
-  'recognition',
-  'humanitarian',
-  'climate',
-  'nonProliferation',
-  'condemnation',
-];
+import { CountryPicker, type PickerItem } from './diplomacy/CountryPicker';
+import { AttitudeValue, StanceChip, TargetHeader } from './diplomacy/parts';
+import { stanceOf, useCommit, type World } from './diplomacy/world';
+import { regionsOf } from './military/forces';
+import { KINDS, KIND_ICON, KIND_TARGET, OPEN_KINDS, PLAYER_VOTING_WEEKS } from './un/shared';
 
-/**
- * Per-kind metadata: which target the resolution accepts (country / region /
- * none), and a short preview blurb describing the typical effect family. Kept
- * here so the form can render contextual UI without round-tripping through
- * the engine. The engine remains the source of truth for actual effects.
- */
-type KindMeta = {
-  target: 'country' | 'region' | 'none';
-  /** i18n keys (under panelUN.propose.preview.{kind}.*). */
-  previewBullets: readonly string[];
-};
-
-const KIND_META: Record<UNResolutionKind, KindMeta> = {
-  sanctions: {
-    target: 'country',
-    previewBullets: [
-      'sanctions.income',
-      'sanctions.tension',
-      'sanctions.repCost',
-    ],
-  },
-  peacekeeping: {
-    target: 'region',
-    previewBullets: [
-      'peacekeeping.tension',
-      'peacekeeping.repWestern',
-      'peacekeeping.cost',
-    ],
-  },
-  recognition: {
-    target: 'country',
-    previewBullets: [
-      'recognition.attitude',
-      'recognition.repNonAligned',
-    ],
-  },
-  humanitarian: {
-    target: 'none',
-    previewBullets: [
-      'humanitarian.cost',
-      'humanitarian.repAll',
-    ],
-  },
-  climate: {
-    target: 'none',
-    previewBullets: [
-      'climate.cost',
-      'climate.repWestern',
-      'climate.repNonAligned',
-    ],
-  },
-  nonProliferation: {
-    target: 'none',
-    previewBullets: [
-      'nonProliferation.tension',
-      'nonProliferation.repAll',
-    ],
-  },
-  condemnation: {
-    target: 'country',
-    previewBullets: [
-      'condemnation.attitude',
-      'condemnation.tension',
-    ],
-  },
-};
-
-export type UNProposeFormProps = {
-  /** Selectable target countries (typically every non-player country). */
-  countries: ReadonlyArray<{ id: CountryId; nameKey: string }>;
-  /** Selectable regions (typically every distinct regionId in the scenario). */
-  regions: ReadonlyArray<RegionId>;
-  /** Translated country name lookup — shared with the parent panel. */
-  countryName: (id: CountryId) => string;
-  /** Translated region name lookup — shared with the parent panel. */
-  regionName: (id: string) => string;
-  /** Submission handler. Returns the engine's i18n-key error array. */
-  onSubmit: (args: {
-    kind: UNResolutionKind;
-    targetCountryId?: CountryId;
-    targetRegionId?: RegionId;
-  }) => Promise<string[]>;
-  /** Optional cancel hook (e.g. to collapse the form back into a CTA). */
-  onCancel?: () => void;
-  /** Forwarded to the submit button. */
-  onErrors?: (errors: string[]) => void;
-};
-
-export function UNProposeForm({
-  countries,
-  regions,
-  countryName,
-  regionName,
-  onSubmit,
-  onCancel,
-  onErrors,
-}: UNProposeFormProps) {
-  const t = useTranslations('panelUN');
-  const tShared = useTranslations('panelShared');
-
-  const [kind, setKind] = useState<UNResolutionKind>('sanctions');
-  const [targetCountry, setTargetCountry] = useState<CountryId>('');
-  const [targetRegion, setTargetRegion] = useState<RegionId>('');
-
-  const meta = KIND_META[kind];
-  const needsCountry = meta.target === 'country';
-  const needsRegion = meta.target === 'region';
-
-  // Validation: depending on the kind, we may require a country or region
-  // before we can dispatch the action. The engine will repeat the check
-  // server-side, but we surface a friendlier disabled hint up front.
-  const disabledReason: string | null = useMemo(() => {
-    if (needsCountry && !targetCountry) return t('propose.pickCountry');
-    if (needsRegion && !targetRegion) return t('propose.pickRegion');
-    return null;
-  }, [needsCountry, needsRegion, targetCountry, targetRegion, t]);
-
-  const handleSubmit = async () => {
-    if (disabledReason) return [];
-    const args: {
-      kind: UNResolutionKind;
-      targetCountryId?: CountryId;
-      targetRegionId?: RegionId;
-    } = { kind };
-    if (needsCountry && targetCountry) args.targetCountryId = targetCountry;
-    if (needsRegion && targetRegion) args.targetRegionId = targetRegion;
-    const errors = await onSubmit(args);
-    if (errors.length === 0) {
-      // Reset back to the default state on success so the form is ready for
-      // a follow-up proposal without an extra reload.
-      setTargetCountry('');
-      setTargetRegion('');
-    }
-    return errors;
-  };
-
+function Step({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
-    <form
-      className="flex flex-col gap-3 pt-1"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void handleSubmit();
-      }}
-    >
-      {/* Kind selector */}
-      <label className="flex flex-col gap-1 text-xs">
-        <span className="font-medium text-fg">{t('propose.kindLabel')}</span>
-        <select
-          value={kind}
-          onChange={(e) => {
-            setKind(e.target.value as UNResolutionKind);
-            // Clear stale targets when the kind changes — different kinds may
-            // accept different target shapes.
-            setTargetCountry('');
-            setTargetRegion('');
-          }}
-          className="rounded-sm border border-border bg-transparent px-2 py-1.5 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
-        >
-          {KIND_OPTIONS.map((k) => (
-            <option key={k} value={k}>
-              {t(`kind.${k}`)}
-            </option>
-          ))}
-        </select>
-        <span className="text-[11px] leading-snug text-fg-muted">
-          {t(`kindDescription.${kind}`)}
-        </span>
-      </label>
-
-      {/* Target country */}
-      {needsCountry ? (
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium text-fg">
-            {t('propose.targetCountryLabel')}
-          </span>
-          <select
-            value={targetCountry}
-            onChange={(e) => setTargetCountry(e.target.value)}
-            className="rounded-sm border border-border bg-transparent px-2 py-1.5 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
-          >
-            <option value="">{t('propose.targetPlaceholder')}</option>
-            {countries.map((c) => (
-              <option key={c.id} value={c.id}>
-                {countryName(c.id)}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-
-      {/* Target region */}
-      {needsRegion ? (
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium text-fg">
-            {t('propose.targetRegionLabel')}
-          </span>
-          <select
-            value={targetRegion}
-            onChange={(e) => setTargetRegion(e.target.value)}
-            className="rounded-sm border border-border bg-transparent px-2 py-1.5 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
-          >
-            <option value="">{t('propose.targetPlaceholder')}</option>
-            {regions.map((r) => (
-              <option key={r} value={r}>
-                {regionName(r)}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-
-      {/* Preview */}
-      <section
-        className={cn('border-t border-border pt-2 text-[11px] text-fg-muted')}
-        aria-label={t('propose.previewLabel')}
-      >
-        <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-          {t('propose.previewLabel')}
-        </h4>
-        <ul className="ml-3 list-disc space-y-0.5">
-          {meta.previewBullets.map((bk) => (
-            <li key={bk}>{t(`propose.preview.${bk}`)}</li>
-          ))}
-        </ul>
-      </section>
-
-      {/* Actions */}
-      <div className="flex items-center justify-end gap-2">
-        {onCancel ? (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-sm border border-border bg-transparent px-3 py-1.5 text-xs text-fg-muted transition hover:border-border-strong hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-          >
-            {tShared('cancel')}
-          </button>
-        ) : null}
-        <div className="flex-1">
-          <ActionButton
-            tone="primary"
-            disabledReason={disabledReason}
-            onClick={handleSubmit}
-            onErrors={onErrors}
-          >
-            {t('propose.submit')}
-          </ActionButton>
-        </div>
-      </div>
-    </form>
+    <div className="flex flex-col gap-2">
+      <h4 className="flex items-center gap-2 text-[13px] font-semibold text-fg">
+        <span className="grid h-5 w-5 place-items-center rounded-full bg-accent/20 font-mono text-[11px] text-accent">{n}</span>
+        {title}
+      </h4>
+      {children}
+    </div>
   );
 }
 
-export default UNProposeForm;
+export function UNProposeForm({
+  w,
+  isCouncil,
+  onErrors,
+  onDone,
+}: {
+  w: World;
+  isCouncil: boolean;
+  onErrors?: (errors: string[]) => void;
+  /** Called with the kind once the resolution is on the floor. */
+  onDone: (kind: UNResolutionKind) => void;
+}) {
+  const t = useTranslations('panelUN');
+  const commit = useCommit(onErrors);
+  const [kind, setKind] = useState<UNResolutionKind | null>(null);
+  const [region, setRegion] = useState<RegionId | null>(null);
+
+  const items = useMemo<PickerItem[]>(
+    () =>
+      w.others.map((c) => {
+        const rel = w.relation(c.id);
+        const name = w.nameOf(c.id);
+        return {
+          id: c.id,
+          name,
+          color: c.color,
+          subtitle: w.regionName(c.regionId),
+          trailing: <AttitudeValue attitude={rel.attitude} className="text-xs" />,
+          sort: { attitude: -rel.attitude, name },
+        };
+      }),
+    [w],
+  );
+
+  const needs = kind ? KIND_TARGET[kind] : 'none';
+  const country = needs === 'country' ? w.target : null;
+  const ready = kind !== null && (needs === 'none' || (needs === 'country' ? country !== null : region !== null));
+  const targetName = country ? w.nameOf(country.id) : needs === 'region' && region ? w.regionName(region) : null;
+
+  const submit = async () => {
+    if (!kind || !ready) return;
+    const ok = await commit({
+      type: 'proposeUNResolution',
+      kind,
+      ...(country ? { targetCountryId: country.id } : {}),
+      ...(needs === 'region' && region ? { targetRegionId: region } : {}),
+    });
+    if (ok) onDone(kind);
+  };
+
+  return (
+    <Card className="flex flex-col gap-4" data-testid="un-propose-form">
+      <Step n={1} title={t('propose.stepKind')}>
+        <ul role="radiogroup" aria-label={t('propose.stepKind')} className="flex flex-col gap-1">
+          {KINDS.map((k) => {
+            const Icon = KIND_ICON[k];
+            const locked = !isCouncil && !OPEN_KINDS.includes(k);
+            const active = kind === k;
+            return (
+              <li key={k} role="presentation">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  aria-disabled={locked}
+                  data-testid={`un-propose-kind-${k}`}
+                  onClick={() => {
+                    if (!locked) setKind(k);
+                  }}
+                  className={cn(
+                    'flex w-full items-start gap-3 rounded-xl border px-3 py-2 text-left transition-colors',
+                    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                    active
+                      ? 'border-accent/50 bg-accent/10'
+                      : locked
+                        ? 'cursor-not-allowed border-white/[0.06]'
+                        : 'border-white/[0.08] bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.07]',
+                  )}
+                >
+                  {locked ? (
+                    <Lock aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-fg-faint" />
+                  ) : (
+                    <Icon aria-hidden className={cn('mt-0.5 h-4 w-4 shrink-0', active ? 'text-accent' : 'text-fg-muted')} />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className={cn('block text-[13px] font-medium', locked ? 'text-fg-muted' : 'text-fg')}>
+                      {t(`kind.${k}`)}
+                    </span>
+                    <span className={cn('block text-[11px] leading-snug', locked ? 'text-warning' : 'text-fg-faint')}>
+                      {locked ? t('propose.councilOnly') : t(`kindDescription.${k}`)}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Step>
+
+      {kind && needs === 'country' ? (
+        <Step n={2} title={t(`propose.stepCountry.${kind}`)}>
+          {country ? (
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+              <TargetHeader
+                name={w.nameOf(country.id)}
+                color={country.color}
+                aside={<StanceChip stance={stanceOf(w.relation(country.id))} />}
+                caption={w.regionName(country.regionId)}
+                onClear={() => w.selectTarget(null)}
+              />
+            </div>
+          ) : (
+            <CountryPicker
+              label={t(`propose.stepCountry.${kind}`)}
+              testIdPrefix="un-propose-country"
+              items={items}
+              onPick={w.selectTarget}
+              sorts={[
+                { id: 'attitude', label: t('propose.sortHostile') },
+                { id: 'name', label: t('propose.sortName') },
+              ]}
+              limit={5}
+            />
+          )}
+        </Step>
+      ) : null}
+
+      {kind && needs === 'region' ? (
+        <Step n={2} title={t('propose.stepRegion')}>
+          <ul className="flex flex-col gap-1">
+            {regionsOf(w).map((id) => (
+              <li key={id}>
+                <Row
+                  testId={`un-propose-region-${id}`}
+                  leading={<MapPin aria-hidden className="h-4 w-4 text-fg-muted" />}
+                  title={w.regionName(id)}
+                  selected={region === id}
+                  onClick={() => setRegion(id)}
+                  className="py-1.5"
+                />
+              </li>
+            ))}
+          </ul>
+        </Step>
+      ) : null}
+
+      {kind ? (
+        <Step n={needs === 'none' ? 2 : 3} title={t('propose.stepReview')}>
+          <ul className="flex list-disc flex-col gap-1 pl-4 text-[11px] leading-snug text-fg-muted">
+            <li>{t('propose.reviewVote', { weeks: PLAYER_VOTING_WEEKS })}</li>
+            <li>{t('propose.reviewRule')}</li>
+            <li>{kind === 'nonProliferation' ? t('propose.reviewTreaty') : t('propose.reviewEffects')}</li>
+          </ul>
+          <Button
+            variant="primary"
+            block
+            icon={Send}
+            disabled={!ready}
+            onClick={() => void submit()}
+            data-testid="un-propose-submit"
+          >
+            {targetName
+              ? t('propose.submitTarget', { kind: t(`kind.${kind}`), target: targetName })
+              : t('propose.submit', { kind: t(`kind.${kind}`) })}
+          </Button>
+          {!ready ? (
+            <p className="text-[11px] leading-snug text-warning">
+              {needs === 'country' ? t('propose.pickCountry') : t('propose.pickRegion')}
+            </p>
+          ) : null}
+        </Step>
+      ) : null}
+    </Card>
+  );
+}

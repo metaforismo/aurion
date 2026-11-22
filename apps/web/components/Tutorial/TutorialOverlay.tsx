@@ -279,7 +279,7 @@ function useResolvedAnchor(step: TutorialAnchoredStep | null): Element | null {
 function CenteredFrame({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-bg/70 p-4 transition-opacity duration-200"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 transition-opacity duration-200"
       role="presentation"
     >
       {children}
@@ -291,7 +291,7 @@ function DimBackdrop({ children }: { children: React.ReactNode }) {
   // Backdrop click does NOT dismiss — modal-style behaviour required by spec.
   return (
     <div
-      className="fixed inset-0 z-40 bg-bg/50 transition-opacity duration-200"
+      className="fixed inset-0 z-40 bg-black/40 transition-opacity duration-200"
       role="presentation"
       aria-hidden
     >
@@ -367,7 +367,7 @@ function CenteredCard({
       tabIndex={-1}
       onKeyDown={onKeyDown}
       className={cn(
-        'relative flex w-full max-w-md flex-col gap-4 rounded-2xl border border-border bg-surface-1 p-6 text-fg shadow-2xl outline-none',
+        'relative flex w-full max-w-md flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.06] p-6 text-fg shadow-2xl outline-none',
       )}
     >
       <header className="flex items-baseline justify-between gap-3">
@@ -389,7 +389,7 @@ function CenteredCard({
         <button
           type="button"
           onClick={onSecondary}
-          className="rounded-md px-3 py-1 text-xs text-fg-faint transition hover:text-fg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-border-strong"
+          className="rounded-xl px-3 py-1 text-xs text-fg-faint transition hover:text-fg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-border-strong"
         >
           {secondaryLabel}
         </button>
@@ -397,7 +397,7 @@ function CenteredCard({
           ref={primaryRef}
           type="button"
           onClick={onPrimary}
-          className="rounded-md border border-accent bg-accent/15 px-4 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-xl border border-accent bg-accent/15 px-4 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           {primaryLabel}
         </button>

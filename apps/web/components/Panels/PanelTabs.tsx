@@ -22,8 +22,10 @@ import {
   FlaskConical,
   Globe,
   Landmark,
+  Orbit,
   Shield,
   UserSearch,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -37,7 +39,7 @@ import {
   type PanelId,
 } from '../../lib/store';
 
-import { AdvisorStrip } from './AdvisorStrip';
+import { CosmosPanel } from './CosmosPanel';
 import { DiplomacyPanel } from './DiplomacyPanel';
 import { EconomyPanel } from './EconomyPanel';
 import { MilitaryPanel } from './MilitaryPanel';
@@ -54,6 +56,7 @@ const PANEL_ICONS: Record<PanelId, LucideIcon> = {
   diplomacy: Flag,
   politics: Landmark,
   un: Globe,
+  cosmos: Orbit,
 };
 
 const PANEL_COMPONENTS: Record<
@@ -67,6 +70,7 @@ const PANEL_COMPONENTS: Record<
   diplomacy: DiplomacyPanel,
   politics: PoliticsPanel,
   un: UNPanel,
+  cosmos: CosmosPanel,
 };
 
 // Badge tone → CSS variable. Kept here so all colour decisions for the rail
@@ -100,6 +104,9 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
   const t = useTranslations('panels');
   const tRail = useTranslations('panelRail');
   const tIntro = useTranslations('panelIntro');
+  const tGlobe = useTranslations('globe');
+  const panelOpen = useGameStore((s: GameStoreState) => s.panelOpen);
+  const setPanelOpen = useGameStore((s: GameStoreState) => s.setPanelOpen);
   const selectedPanel = useGameStore((s: GameStoreState) => s.selectedPanel);
   const setSelectedPanel = useGameStore(
     (s: GameStoreState) => s.setSelectedPanel,
@@ -121,6 +128,11 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
     });
     // tRail is stable per locale; state/player/scenario are the meaningful inputs.
   }, [state, player, scenario, tRail]);
+
+  // On a phone the drawer would cover the planet, so it starts closed there.
+  useEffect(() => {
+    if (window.matchMedia('(max-width: 1023px)').matches) setPanelOpen(false);
+  }, [setPanelOpen]);
 
   const [inlineErrors, setInlineErrors] = useState<string[]>([]);
 
@@ -168,21 +180,22 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
 
   return (
     <aside
-      className={cn(
-        'flex h-full w-full flex-col overflow-hidden border border-border bg-bg',
-        className,
-      )}
+      className={cn('pointer-events-none flex min-h-0 flex-col gap-2 lg:h-full lg:flex-row lg:items-start', className)}
       aria-label={tRail('label')}
+      data-stage-inset="left"
     >
+      {/* Dock — one icon per game system. Always visible; the active system
+          opens in the drawer beside it, and clicking it again tucks the
+          drawer away so the planet has the whole screen. */}
       <nav
         role="tablist"
         aria-orientation="vertical"
         aria-label={tRail('tablistLabel')}
-        className="flex shrink-0 flex-row border-b border-border lg:flex-col lg:border-b-0 lg:border-r"
+        className="glass-panel pointer-events-auto flex shrink-0 flex-row gap-1 self-start overflow-x-auto rounded-2xl p-1.5 lg:flex-col lg:overflow-visible"
       >
         {PANEL_IDS.map((id, index) => {
           const Icon = PANEL_ICONS[id];
-          const active = id === selectedPanel;
+          const active = id === selectedPanel && panelOpen;
           const shortcut = index + 1;
           const badge = badges[id];
           return (
@@ -194,99 +207,96 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
               aria-controls={`panel-${id}`}
               aria-keyshortcuts={`${shortcut}`}
               id={`tab-${id}`}
-              onClick={() => setSelectedPanel(id)}
-              title={tRail('shortcutHint', { key: shortcut })}
+              onClick={() => {
+                if (active) setPanelOpen(false);
+                else setSelectedPanel(id);
+              }}
+              title={
+                badge
+                  ? `${t(id)} · ${badge.ariaLabel}`
+                  : `${t(id)} · ${tRail('shortcutHint', { key: shortcut })}`
+              }
               className={cn(
-                // Underline-only tab. Active: 2px bottom in accent; inactive:
-                // 1px bottom in border. On vertical (lg) layout the underline
-                // becomes a left border (2px / 1px) so the editorial line
-                // motif stays consistent.
-                'group relative flex flex-1 items-center justify-start gap-2 px-3 py-2.5 pr-7 text-left text-xs transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent lg:flex-none',
-                'border-b-2 lg:border-b-0 lg:border-l-2',
+                'group relative flex h-[52px] w-[60px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium leading-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
                 active
-                  ? 'border-accent bg-accent/[0.07] text-fg'
-                  : 'border-transparent text-fg-muted hover:text-fg',
+                  ? 'bg-accent/15 text-accent'
+                  : 'text-fg-muted hover:bg-white/[0.07] hover:text-fg',
+                id === 'cosmos' && !active && 'text-[#8ad8ff] hover:text-[#b5e6ff]',
               )}
             >
-              <span className="relative inline-flex shrink-0">
-                <Icon
-                  aria-hidden
-                  className={cn(
-                    'h-4 w-4 shrink-0',
-                    active ? 'text-accent' : 'text-fg-faint group-hover:text-fg',
-                  )}
-                />
+              <span className="relative inline-flex">
+                <Icon aria-hidden className="h-[18px] w-[18px]" />
                 {badge ? (
                   <span
-                    // Small dot anchored to the top-right of the icon. The
-                    // accessible label lives on the parent <span> so SR users
-                    // hear "ONU, 1 azione richiesta" without two tab stops.
-                    role="status"
-                    aria-label={badge.ariaLabel}
-                    className="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full ring-1 ring-bg"
+                    aria-hidden
+                    className="absolute -right-1.5 -top-1 h-2 w-2 rounded-full ring-2 ring-black/70"
                     style={{ backgroundColor: BADGE_COLOR[badge.tone] }}
                   />
                 ) : null}
               </span>
-              <span className="truncate font-medium">{t(id)}</span>
-              {/* Shortcut hint — small mono digit anchored to the bottom-right
-                  of the button. Doesn't compete with the label; readable but
-                  intentionally quiet. `aria-hidden` because the shortcut is
-                  also surfaced via aria-keyshortcuts above. */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute bottom-1 right-2 font-mono text-[10px] leading-none text-fg-faint"
-              >
-                [{shortcut}]
-              </span>
+              <span className="max-w-full truncate px-0.5">{t(id)}</span>
+              {/* The dot is decorative; the reason is read after the name. */}
+              {badge ? <span className="sr-only"> — {badge.ariaLabel}</span> : null}
+              {active ? (
+                <span aria-hidden className="absolute inset-y-2 left-0 hidden w-0.5 rounded-full bg-accent lg:block" />
+              ) : null}
             </button>
           );
         })}
       </nav>
 
-      {/* Advisor — "what should I do now?" Suggestions derive from the same
-          signals as the tab badges and navigate straight to the panel where
-          the action lives. Renders nothing when all is calm. */}
-      <AdvisorStrip onNavigate={setSelectedPanel} />
-
-      <div
-        role="tabpanel"
-        id={`panel-${selectedPanel}`}
-        aria-labelledby={`tab-${selectedPanel}`}
-        className="flex-1 overflow-y-auto"
-      >
-        {/* One-line system explainer — answers "what is this panel for?"
-            without costing more than a line of quiet text. */}
-        <p className="border-b border-border/60 px-3 py-2 text-[11px] leading-snug text-fg-faint">
-          {tIntro(selectedPanel)}
-        </p>
-        {inlineErrors.length > 0 ? (
-          <ul
-            role="alert"
-            className="m-3 flex flex-col gap-1 border-l-2 border-danger bg-transparent px-3 py-2 text-[11px] text-danger"
-          >
-            {inlineErrors.map((err, i) => (
-              <li key={`${err}-${i}`}>{err}</li>
-            ))}
-          </ul>
-        ) : null}
-        {/*
-         * Keyed wrapper restarts the `tab-fade` keyframe each time the user
-         * picks a new tab. Reduced-motion users get an instant cut via the
-         * blanket animation-duration override in globals.css.
-         */}
+      {panelOpen ? (
         <div
-          key={selectedPanel}
-          style={{
-            animation: 'tab-fade 160ms cubic-bezier(0, 0, 0.2, 1) both',
-          }}
+          className="glass-panel pointer-events-auto flex max-h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl lg:w-[23.5rem]"
+          style={{ animation: 'drawer-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both' }}
         >
-          <ActivePanel onErrors={handleErrors} />
+          <header className="flex items-start gap-3 border-b border-white/10 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[15px] font-semibold leading-tight text-fg">{t(selectedPanel)}</h2>
+              {/* One-line system explainer — answers "what is this for?". */}
+              <p className="mt-0.5 text-[11px] leading-snug text-fg-faint">{tIntro(selectedPanel)}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPanelOpen(false)}
+              aria-label={tGlobe('dock.close')}
+              title={tGlobe('dock.close')}
+              className="-mr-1 rounded-lg p-1.5 text-fg-faint transition-colors hover:bg-white/10 hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              <X aria-hidden className="h-4 w-4" />
+            </button>
+          </header>
+
+          <div
+            role="tabpanel"
+            id={`panel-${selectedPanel}`}
+            aria-labelledby={`tab-${selectedPanel}`}
+            className="thin-scroll flex-1 overflow-y-auto"
+          >
+            {inlineErrors.length > 0 ? (
+              <ul
+                role="alert"
+                className="m-3 flex flex-col gap-1 rounded-md border-l-2 border-danger bg-danger/10 px-3 py-2 text-[11px] text-danger"
+              >
+                {inlineErrors.map((err, i) => (
+                  <li key={`${err}-${i}`}>{err}</li>
+                ))}
+              </ul>
+            ) : null}
+            {/* Keyed wrapper restarts the fade each time the tab changes. */}
+            <div
+              key={selectedPanel}
+              style={{ animation: 'tab-fade 160ms cubic-bezier(0, 0, 0.2, 1) both' }}
+            >
+              <ActivePanel onErrors={handleErrors} />
+            </div>
+          </div>
         </div>
-      </div>
+      ) : null}
     </aside>
   );
 }
+
 
 // ---------------------------------------------------------------------------
 // Badge derivation. Pure function over the slices we subscribe to above so

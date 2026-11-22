@@ -39,6 +39,9 @@ test.describe('persistence', () => {
 
     await page.getByRole('button', { name: 'Menu' }).click();
     await page.getByRole('menuitem', { name: 'Salva partita' }).click();
+    // The write to IndexedDB is asynchronous: wait for its confirmation so
+    // the reload cannot race it and pick up an older autosave.
+    await expect(page.getByText('Partita salvata.')).toBeVisible();
 
     // Reload — should hydrate from IndexedDB without losing state.
     await page.reload();

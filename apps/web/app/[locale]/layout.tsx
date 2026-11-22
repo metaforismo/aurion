@@ -5,28 +5,29 @@
 import type { Metadata, Viewport } from 'next';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
-import { JetBrains_Mono, Space_Grotesk } from 'next/font/google';
+import localFont from 'next/font/local';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { routing } from '../../i18n/routing';
 import '../globals.css';
 
-// Editorial geometric sans for the UI. Slightly wider apertures than Inter,
-// which gives the geopolitical-thriller HUD a little more presence without
-// veering into "display" territory.
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+// Fonts are bundled with the app (variable woff2, latin subset) rather than
+// fetched from Google at build time: the build works offline and the game
+// never calls a font CDN.
+//
+// Space Grotesk: geometric sans for the UI. JetBrains Mono: every number that
+// changes in real time (tabular by default in globals.css).
+const spaceGrotesk = localFont({
+  src: '../fonts/space-grotesk-latin.woff2',
+  weight: '300 700',
   display: 'swap',
   variable: '--font-space-grotesk',
 });
 
-// Crisp monospace for treasury, dates, percentages — anywhere a digit
-// scrubs in real time. Tabular by default in globals.css.
-const jetBrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
+const jetBrainsMono = localFont({
+  src: '../fonts/jetbrains-mono-latin.woff2',
+  weight: '100 800',
   display: 'swap',
   variable: '--font-jetbrains-mono',
 });
@@ -70,6 +71,7 @@ export default async function LocaleLayout({
   return (
     <html
       lang={locale}
+      data-scroll-behavior="smooth"
       className={`${spaceGrotesk.variable} ${jetBrainsMono.variable} h-full`}
     >
       <body className="min-h-full bg-bg font-sans text-fg antialiased">

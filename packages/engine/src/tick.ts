@@ -8,6 +8,7 @@ import { decideAiAction } from './ai/index.js';
 import { checkWinLoss, evaluateVictory } from './checkWinLoss.js';
 import { createRng, type Rng } from './rng.js';
 import type {
+  IntelLevel,
   Country,
   CountryId,
   CumulativeStats,
@@ -33,6 +34,10 @@ import { tickUN } from './un/index.js';
 import { tickEra } from './era/index.js';
 import { recordTechCompletion, tickSpace } from './space/index.js';
 import { tickNuclear } from './nuclear/index.js';
+import { tickCosmos } from './cosmos/index.js';
+import { tickPolicies } from './policies/index.js';
+import { applyStatToCountry } from './events/index.js';
+import { evaluateCondition } from './events/conditions.js';
 
 export type TickContext = {
   /** Tech catalog from the current scenario; used to complete research and apply effects. */
@@ -75,6 +80,10 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
   // 1. Economy. Player gets `playerIncome` multiplier.
   next = stepEconomy(next, playerIncomeMul);
 
+  // 1.5. National policies: weekly upkeep and effects of the player's
+  //      standing choices. No-op when none are enacted.
+  next = tickPolicies(next);
+
   // 2. Research. Non-player nations get `aiResearchSpeed` multiplier.
   // Also handles space-prestige milestone tracking when a tech completes
   // (requires `scenario` to look up `prestigeFirst`/`prestigeFollow`).
@@ -82,6 +91,9 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
 
   // 3. Spy operations.
   next = stepSpies(next, rng, techCatalog);
+
+  // 3.5. Intelligence picture: treaties and idle agents reveal rivals.
+  next = stepIntel(next, rng);
 
   // 4. Military: advance deployment & resolve battles.
   next = stepMilitary(next, rng);
@@ -142,6 +154,9 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
   //       inside stepResearch via recordTechCompletion); kept as an
   //       explicit step so future passive milestone effects plug in here.
   if (ctx.scenario) next = tickSpace(next, ctx.scenario);
+
+  // 13.6. Cosmos: megaproject construction + the rival space race.
+  next = tickCosmos(next, { rivalSpeed: aiResearchMul });
 
   // 13.7. Nuclear tick step. Keeps `mad` flag in sync with warhead count and
   //       handles auto-warhead production (1/50 ticks) for countries that
@@ -231,6 +246,9 @@ function tickUnlockedVictories(state: GameState, scenario: Scenario): GameState 
 
 // ---------- 1. Economy ----------
 
+/** Baseline weekly GDP growth at 50% popularity. */
+export const ORGANIC_GDP_GROWTH_PER_TICK = 0.0003;
+
 function stepEconomy(state: GameState, playerIncomeMultiplier: number): GameState {
   const updated: Record<CountryId, Country> = {};
   for (const [id, country] of Object.entries(state.countries)) {
@@ -239,10 +257,15 @@ function stepEconomy(state: GameState, playerIncomeMultiplier: number): GameStat
       id === state.playerCountryId
         ? Math.round(baseIncome * playerIncomeMultiplier)
         : baseIncome;
+    // Economies grow on their own, a little faster where the government is
+    // popular and not at all under one that is collapsing (~1.6% a year at
+    // 50% popularity).
+    const confidence = clamp(country.politics.popularity / 50, 0, 1.5);
     updated[id] = {
       ...country,
       economy: {
         ...country.economy,
+        gdp: Math.round(country.economy.gdp * (1 + ORGANIC_GDP_GROWTH_PER_TICK * confidence)),
         weeklyIncome,
         treasury: country.economy.treasury + weeklyIncome,
       },
@@ -307,15 +330,11 @@ function stepResearch(
     if (tech && newPoints >= tech.cost) {
       // Complete research: append id, apply effects, clear active.
       const completed = withCompletedTech(country, tech.id);
-      const sciencePatched: ScienceState = applyTechEffectsToScience(
-        completed.science,
-        tech.effects,
-      );
       const cleared: Country = {
         ...completed,
-        science: { ...sciencePatched, activeResearch: null },
+        science: { ...completed.science, activeResearch: null },
       };
-      const newCountry: Country = applyTechEffectsToCountry(cleared, tech.effects);
+      const newCountry: Country = applyTechEffects(cleared, tech.effects);
       updatedCountries[id] = newCountry;
       updatedProgress[id] = { activeResearch: null, accumulatedPoints: 0 };
       mutated = true;
@@ -347,62 +366,17 @@ function stepResearch(
   return next;
 }
 
-function applyTechEffectsToScience(science: ScienceState, effects: TechEffect[]): ScienceState {
-  let next = { ...science };
-  for (const effect of effects) {
-    if (effect.type === 'modifyStat' && effect.stat === 'researchOutput') {
-      next = {
-        ...next,
-        researchOutput:
-          (next.researchOutput + (effect.delta || 0)) * (effect.multiplier ?? 1),
-      };
-    }
-  }
-  // Mark tech as completed (caller passes it via science.activeResearch reset path).
-  return next;
-}
-
-function applyTechEffectsToCountry(country: Country, effects: TechEffect[]): Country {
+/**
+ * Apply a finished technology's stat effects to the country that researched
+ * it. Scenario files address stats by dotted path ("science.researchOutput",
+ * "economy.gdp", "politics.popularity", …); the shared applier handles the
+ * path, the clamping and the income-as-GDP convention.
+ */
+function applyTechEffects(country: Country, effects: TechEffect[]): Country {
   let next = country;
   for (const effect of effects) {
     if (effect.type !== 'modifyStat') continue;
-    switch (effect.stat) {
-      case 'doctrineLevel':
-        next = {
-          ...next,
-          military: {
-            ...next.military,
-            doctrineLevel:
-              (next.military.doctrineLevel + (effect.delta || 0)) * (effect.multiplier ?? 1),
-          },
-        };
-        break;
-      case 'counterIntelLevel':
-        next = {
-          ...next,
-          intelligence: {
-            ...next.intelligence,
-            counterIntelLevel: clamp(
-              (next.intelligence.counterIntelLevel + (effect.delta || 0)) *
-                (effect.multiplier ?? 1),
-              0,
-              1,
-            ),
-          },
-        };
-        break;
-      case 'gdp':
-        next = {
-          ...next,
-          economy: {
-            ...next.economy,
-            gdp: (next.economy.gdp + (effect.delta || 0)) * (effect.multiplier ?? 1),
-          },
-        };
-        break;
-      default:
-        break;
-    }
+    next = applyStatToCountry(next, effect.stat, effect.delta || 0, effect.multiplier);
   }
   return next;
 }
@@ -420,6 +394,61 @@ function withCompletedTech(country: Country, techId: string): Country {
 }
 
 // ---------- 3. Spies ----------
+
+const INTEL_ORDER: readonly IntelLevel[] = ['none', 'rumors', 'partial', 'full'];
+/** Per-agent weekly chance that passive collection raises intel on one rival. */
+const PASSIVE_INTEL_CHANCE_PER_SPY = 0.006;
+
+function raiseIntel(level: IntelLevel | undefined): IntelLevel {
+  const idx = INTEL_ORDER.indexOf(level ?? 'none');
+  return INTEL_ORDER[Math.min(INTEL_ORDER.length - 1, idx + 1)] ?? 'full';
+}
+
+function withIntel(country: Country, targetId: CountryId, level: IntelLevel): Country {
+  if (country.intelligence.knownIntel[targetId] === level) return country;
+  return {
+    ...country,
+    intelligence: {
+      ...country.intelligence,
+      knownIntel: { ...country.intelligence.knownIntel, [targetId]: level },
+    },
+  };
+}
+
+/**
+ * What the player learns without running operations: allies share their
+ * books (partial), trade partners are an open secret (rumours), and idle
+ * agents slowly build a picture of the least-known rival — up to "partial";
+ * full intelligence takes operations.
+ */
+function stepIntel(state: GameState, rng: Rng): GameState {
+  const player = state.countries[state.playerCountryId];
+  if (!player) return state;
+  let next = player;
+  const rank = (id: CountryId) => INTEL_ORDER.indexOf(next.intelligence.knownIntel[id] ?? 'none');
+
+  for (const rel of Object.values(state.relations)) {
+    const other = rel.countryA === player.id ? rel.countryB : rel.countryB === player.id ? rel.countryA : null;
+    if (!other || !state.countries[other]) continue;
+    const floor: IntelLevel | null = rel.treaties.includes('alliance')
+      ? 'partial'
+      : rel.treaties.includes('tradeDeal')
+        ? 'rumors'
+        : null;
+    if (floor && rank(other) < INTEL_ORDER.indexOf(floor)) next = withIntel(next, other, floor);
+  }
+
+  const chance = Math.min(0.25, player.intelligence.spyCount * PASSIVE_INTEL_CHANCE_PER_SPY);
+  if (chance > 0 && rng.next() < chance) {
+    const candidates = Object.keys(state.countries)
+      .filter((id) => id !== player.id && rank(id) < INTEL_ORDER.indexOf('partial'))
+      .sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+    const target = candidates[0];
+    if (target) next = withIntel(next, target, raiseIntel(next.intelligence.knownIntel[target]));
+  }
+
+  return next === player ? state : { ...state, countries: { ...state.countries, [player.id]: next } };
+}
 
 function stepSpies(
   state: GameState,
@@ -456,7 +485,8 @@ function stepSpies(
       const target = getCountry(op.targetCountryId);
       if (owner && target) {
         const { newOwner, newTarget } = applySpySuccess(owner, target, op, techCatalog);
-        countriesPatch[owner.id] = newOwner;
+        // Agents who pull an operation off come back knowing more.
+        countriesPatch[owner.id] = withIntel(newOwner, target.id, raiseIntel(newOwner.intelligence.knownIntel[target.id]));
         countriesPatch[target.id] = newTarget;
       }
     }
@@ -493,7 +523,7 @@ function applySpySuccess(
       if (!owner.science.completedTechs.includes(techId)) {
         const tech = techCatalog.find((t) => t.id === techId);
         const stolen = withCompletedTech(newOwner, techId);
-        newOwner = tech ? applyTechEffectsToCountry(stolen, tech.effects) : stolen;
+        newOwner = tech ? applyTechEffects(stolen, tech.effects) : stolen;
       }
       break;
     }
@@ -599,8 +629,8 @@ function stepMilitary(state: GameState, rng: Rng): GameState {
         // Resolve a small skirmish.
         const aDoct = state.countries[a.countryId]?.military.doctrineLevel ?? 1;
         const bDoct = state.countries[b.countryId]?.military.doctrineLevel ?? 1;
-        const aPower = a.deployment.units * (1 + aDoct);
-        const bPower = b.deployment.units * (1 + bDoct);
+        const aPower = a.deployment.units * (1 + aDoct) * supportMultiplier(state.countries[a.countryId]);
+        const bPower = b.deployment.units * (1 + bDoct) * supportMultiplier(state.countries[b.countryId]);
         const total = aPower + bPower;
         if (total <= 0) continue;
         const aWinChance = aPower / total;
@@ -638,6 +668,18 @@ function stepMilitary(state: GameState, rng: Rng): GameState {
     };
   }
   return { ...state, countries: updated };
+}
+
+/**
+ * Sea and air power back up troops on the ground: a navy the size of the army
+ * adds up to 25% to combat power, an air force up to 35%.
+ */
+export function supportMultiplier(country: Country | undefined): number {
+  if (!country) return 1;
+  const army = Math.max(1, country.military.armySize);
+  const navy = Math.min(1, country.military.navy / army);
+  const air = Math.min(1, country.military.airforce / army);
+  return 1 + navy * 0.25 + air * 0.35;
 }
 
 function lookupRelation(state: GameState, a: CountryId, b: CountryId): Relation | undefined {
@@ -751,6 +793,9 @@ function simpleStableHash(s: string): number {
 
 // ---------- 8. Events ----------
 
+/** Quiet weeks guaranteed after an event before the next one may fire. */
+export const MIN_EVENT_GAP_TICKS = 12;
+
 function stepEvents(
   state: GameState,
   rng: Rng,
@@ -758,6 +803,15 @@ function stepEvents(
   eventChanceMultiplier: number,
 ): GameState {
   if (eventPool.length === 0) return state;
+
+  // Pacing: decisions stop the clock, so they must not pile up. Nothing fires
+  // while one is still waiting for an answer, and after each event the world
+  // stays quiet for a few weeks.
+  const previous = state.events[state.events.length - 1];
+  if (previous) {
+    if (previous.resolvedChoiceIndex === null) return state;
+    if (state.tick - previous.firedAtTick < MIN_EVENT_GAP_TICKS) return state;
+  }
   const fired: GameEvent[] = [];
 
   for (const def of eventPool) {
@@ -770,7 +824,12 @@ function stepEvents(
     let triggered = false;
     switch (def.trigger.type) {
       case 'periodic':
-        triggered = def.trigger.everyTicks > 0 && state.tick % def.trigger.everyTicks === 0;
+        // `tick > 0`: every period divides zero, which used to fire the
+        // whole periodic pool on the opening week.
+        triggered =
+          state.tick > 0 &&
+          def.trigger.everyTicks > 0 &&
+          state.tick % def.trigger.everyTicks === 0;
         break;
       case 'random': {
         // Difficulty-scaled random trigger probability. Clamped to [0,1].
@@ -782,8 +841,9 @@ function stepEvents(
         break;
       }
       case 'condition':
-        // Mini-DSL not implemented in Phase 1; treat as never-trigger.
-        triggered = false;
+        // Fires when the player's situation matches (see events/conditions).
+        // The event's cooldown keeps a lasting condition from repeating.
+        triggered = evaluateCondition(def.trigger.expression, state);
         break;
     }
     if (triggered) {

@@ -6,9 +6,14 @@
 //   - Mondo Contemporaneo's `mc-italy` is a FOUNDING western member, so it
 //     can't "join" — we start as `mc-vietnam` (non-aligned founding member)
 //     and have them defect to western via the engine's `joinBloc` action.
-//   - The DiplomacyPanel does NOT expose a `joinBloc` button as of Wave 9 —
-//     the action is only reachable via the engine API. We dispatch through
-//     the test cheat helper rather than wait for the UI affordance to land.
+//   - The Diplomacy panel lists every bloc with an "Entra" button
+//     (`data-testid="bloc-join-{blocId}"`) behind a confirm dialog. The spec
+//     drives that path. The panel is opened through the store so the test
+//     does not depend on the dock's markup.
+//   - A founding member sits on a roster without `country.blocId` being set,
+//     and the engine only strips a country from a bloc it is registered to.
+//     The panel therefore registers the player in the current bloc before
+//     moving it, so the old roster is left cleanly (asserted below).
 //   - The engine's `applyJoinBloc` reducer (packages/engine/src/actions/
 //     joinBloc.ts) updates `country.blocId` + the target bloc's roster but
 //     does NOT enqueue a reputation delta. The "+10 western" assertion from
@@ -53,14 +58,20 @@ test.describe('Phase 3 — bloc join', () => {
     expect(initialBlocs?.['non-aligned']?.memberCountryIds).toContain('mc-vietnam');
     expect(initialBlocs?.['western']?.memberCountryIds).not.toContain('mc-vietnam');
 
-    // Dispatch the engine action — the UI doesn't ship a "join western"
-    // button yet, so we go through `applyAction` directly. This mirrors how
-    // a future DiplomacyPanel affordance would call the same reducer.
-    const { errors } = await dispatchAction(page, {
-      type: 'joinBloc',
-      blocId: 'western',
+    // Join through the Diplomacy panel: bloc card → "Entra" → confirm.
+    await page.evaluate(() => {
+      const w = window as unknown as {
+        __aurion: { store: { getState: () => { setSelectedPanel: (id: string) => void } } };
+      };
+      w.__aurion.store.getState().setSelectedPanel('diplomacy');
     });
-    expect(errors).toEqual([]);
+    await expect(page.getByTestId('bloc-card-western')).toBeVisible();
+    await page.getByTestId('bloc-join-western').click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /^Entra$/ })
+      .click();
+    await expect(page.getByTestId('bloc-leave')).toBeVisible();
 
     // Advance a couple of ticks so any post-join engine bookkeeping (leader
     // recompute, AI defection check) runs at least once.
@@ -71,16 +82,13 @@ test.describe('Phase 3 — bloc join', () => {
     const newBloc = await readPlayerField<string>(page, ['blocId']);
     expect(newBloc).toBe('western');
 
-    // Post-condition 2: player country id is now in the western bloc roster.
-    // (Note: the engine's `applyJoinBloc` only strips the player from a
-    // *previous* bloc when `country.blocId` was set — since scenario JSON
-    // doesn't pre-populate that field, the non-aligned founding roster will
-    // still contain the player. That's a separate engine bug worth filing;
-    // we only assert what `joinBloc` currently guarantees.)
+    // Post-condition 2: the player moved rosters — in the western one, out
+    // of the non-aligned one it was a founding member of.
     const blocs = await readStateField<
       Record<string, { id: string; memberCountryIds: string[] }>
     >(page, 'blocs');
     expect(blocs?.['western']?.memberCountryIds).toContain('mc-vietnam');
+    expect(blocs?.['non-aligned']?.memberCountryIds).not.toContain('mc-vietnam');
 
     // Post-condition 3: ReputationBadges strip is rendered (the player country
     // is in a bloc-enabled scenario, so the strip should be in the HUD).

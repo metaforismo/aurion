@@ -62,7 +62,8 @@ export type VictoryConditionId =
   | 'military'
   | 'scientific'
   | 'diplomatic'
-  | 'domination';
+  | 'domination'
+  | 'ascension';
 
 export type TechBranch = 'military' | 'civil' | 'intelligence' | 'space';
 
@@ -229,7 +230,14 @@ export type SpyOperation = {
 // ---------------------------------------------------------------------------
 
 export type EventEffect =
-  | { type: 'modifyStat'; target: 'player' | CountryId; stat: string; delta: number }
+  | {
+      type: 'modifyStat';
+      target: 'player' | CountryId;
+      stat: string;
+      delta: number;
+      /** Optional scale applied before `delta` (1.05 = +5%). */
+      multiplier?: number;
+    }
   | { type: 'startResearch'; target: CountryId; techId: TechId }
   | { type: 'shiftAttitude'; with: CountryId; delta: number }
   | { type: 'spawnSpy'; against: CountryId; opType: SpyOperationType };
@@ -350,6 +358,8 @@ export type VictoryRule =
   | { kind: 'controlNCountries'; n: number }
   | { kind: 'completeTech'; techId: TechId }
   | { kind: 'allianceCoverage'; minPercent: number }
+  /** Reach at least this Kardashev rating (1 = planetary, 2 = stellar). */
+  | { kind: 'kardashev'; atLeast: number }
   | { kind: 'and'; rules: VictoryRule[] }
   | { kind: 'or'; rules: VictoryRule[] };
 
@@ -453,7 +463,11 @@ export type Action =
   | { type: 'launchTactical'; targetRegionId: RegionId }
   | { type: 'launchStrategic'; targetCountryId: CountryId }
   | { type: 'dismantleNuclear'; count: number }
-  | { type: 'acknowledgeEraTransition' };
+  | { type: 'acknowledgeEraTransition' }
+  | { type: 'startProject'; projectId: CosmosProjectId }
+  | { type: 'cancelProject'; projectId: CosmosProjectId }
+  | { type: 'enactPolicy'; policyId: PolicyId }
+  | { type: 'repealPolicy'; policyId: PolicyId };
 
 // ---------------------------------------------------------------------------
 // Top-level game state.
@@ -517,6 +531,10 @@ export type GameState = {
   spaceMilestones?: SpaceMilestoneState;
   /** Era runtime state when gameMode === 'era-paced'. */
   eraState?: EraRuntimeState;
+  /** Megaprojects, off-world expansion and Kardashev rating. */
+  cosmos?: CosmosState;
+  /** Standing national policies. */
+  policies?: PolicyState;
 };
 
 // ---------------------------------------------------------------------------
@@ -718,7 +736,7 @@ export type ActionTriggerKey =
  *   < -50 in all blocs for 5+ years.
  * - 'era-paced' — chapters with summary screens (Wave 10+).
  */
-export type GameMode = 'classic' | 'eternal' | 'dethrone' | 'era-paced';
+export type GameMode = 'classic' | 'eternal' | 'dethrone' | 'era-paced' | 'space-race';
 
 /** Cumulative metrics tracked across an Eternal/Dethrone playthrough. */
 export type CumulativeStats = {
@@ -736,6 +754,10 @@ export type DethroneStreaks = {
   outOfTop3Weeks: number;
   /** Consecutive ticks reputation has been < -50 in ALL blocs simultaneously. */
   isolationWeeks: number;
+  /** True once the player has stood on the podium (GDP top 3) at least once. */
+  everOnPodium?: boolean;
+  /** Total weeks spent on the podium — the Throne win counter. */
+  heldWeeks?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -830,4 +852,153 @@ export type EraRuntimeState = {
     /** Snapshot of cumulative stats at the transition (shown in summary). */
     statsSnapshot: CumulativeStats;
   } | null;
+};
+
+
+// ---------------------------------------------------------------------------
+// Cosmos — megaprojects, off-world expansion and the Kardashev scale
+// ---------------------------------------------------------------------------
+
+export type CosmosProjectId = string;
+
+/** Where a megaproject physically lives. Drives the map / system views. */
+export type CosmosBodyId =
+  | 'earth'
+  | 'orbit'
+  | 'moon'
+  | 'mars'
+  | 'belt'
+  | 'jupiter'
+  | 'saturn'
+  | 'sun'
+  | 'centauri';
+
+export type CosmosProjectEffects = {
+  /** Additive gain on the Kardashev rating. */
+  kardashev?: number;
+  /** Capstone: the rating becomes at least this value on completion. */
+  kardashevFloor?: number;
+  /** Permanent multiplier applied to GDP on completion. */
+  gdpMul?: number;
+  /** Flat bonus to weekly research output. */
+  research?: number;
+  /** One-off popularity bump. */
+  popularity?: number;
+  /** World prestige awarded when the player is the FIRST to finish it. */
+  prestige?: number;
+  /** People living off-world thanks to this project. */
+  colonists?: number;
+  /** Extra concurrent construction slots. */
+  slots?: number;
+};
+
+export type CosmosProjectDef = {
+  id: CosmosProjectId;
+  body: CosmosBodyId;
+  /** 0 Earth · 1 Orbit · 2 Moon · 3 Mars · 4 Outer system · 5 Sun · 6 Stars. */
+  stage: number;
+  /** Price in units (1 unit = 1% of the player's GDP at game start). */
+  cost: number;
+  durationTicks: number;
+  requires: readonly CosmosProjectId[];
+  /** Share (0..1) of the scenario's space branch that must be researched. */
+  minSpaceTechShare?: number;
+  effects: CosmosProjectEffects;
+};
+
+export type CosmosActiveProject = {
+  projectId: CosmosProjectId;
+  startedAtTick: number;
+  remainingTicks: number;
+  /** Treasury actually paid, kept for partial refunds on cancel. */
+  paid: number;
+};
+
+export type CosmosRival = {
+  completed: CosmosProjectId[];
+  /** Progress points banked toward the rival's next project. */
+  points: number;
+};
+
+export type CosmosLogEntry = {
+  tick: number;
+  countryId: CountryId;
+  projectId: CosmosProjectId;
+  /** True when nobody had completed this project before. */
+  first: boolean;
+};
+
+export type CosmosState = {
+  /** Currency value of one cost unit (1% of the player's starting GDP). */
+  unit: number;
+  /** The player's civilisation rating on the Kardashev scale. */
+  kardashev: number;
+  completed: CosmosProjectId[];
+  active: CosmosActiveProject[];
+  rivals: Record<CountryId, CosmosRival>;
+  /** First achiever per project — the space race scoreboard. */
+  firsts: Record<CosmosProjectId, CountryId>;
+  /** Most recent completions, newest last (bounded ring). */
+  log: CosmosLogEntry[];
+};
+
+
+// ---------------------------------------------------------------------------
+// National policies
+// ---------------------------------------------------------------------------
+
+export type PolicyId =
+  | 'austerity'
+  | 'stimulus'
+  | 'free_trade'
+  | 'industrial_plan'
+  | 'welfare'
+  | 'state_media'
+  | 'open_society'
+  | 'faith_accord'
+  | 'conscription'
+  | 'surveillance'
+  | 'research_grants'
+  | 'space_program';
+
+export type PolicyCategory = 'economy' | 'society' | 'security' | 'science';
+
+/** Weekly effects while a policy is enacted. Shares are fractions (0.1 = 10%). */
+export type PolicyEffects = {
+  /** Bonus (or malus) on weekly income, as a share of it. */
+  incomeMul?: number;
+  /** Weekly cost, as a share of weekly income. */
+  upkeep?: number;
+  /** Weekly compounding GDP growth. */
+  gdpGrowth?: number;
+  /** Popularity points per week. */
+  popularity?: number;
+  /** Satisfaction points per week, per faction. */
+  factions?: Partial<Record<FactionId, number>>;
+  /** Weekly compounding army growth. */
+  armyGrowth?: number;
+  /** Counter-intelligence level gained per week. */
+  counterIntel?: number;
+  /** Research output bonus. */
+  researchMul?: number;
+  /** Megaproject price delta (negative = cheaper). */
+  projectCostMul?: number;
+  /** Megaproject build-speed bonus. */
+  projectSpeed?: number;
+};
+
+export type PolicyDef = {
+  id: PolicyId;
+  category: PolicyCategory;
+  /** Policies that cannot be active together with this one. */
+  excludes: readonly PolicyId[];
+  effects: PolicyEffects;
+};
+
+export type PolicyState = {
+  active: PolicyId[];
+  /** Tick until which a repealed policy cannot be enacted again. */
+  cooldownUntil: Partial<Record<PolicyId, number>>;
+  /** Fractional megaproject build progress carried between ticks. */
+  speedCarry: number;
 };

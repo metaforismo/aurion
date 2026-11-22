@@ -26,8 +26,11 @@ import {
   getAudioManager,
   loadManifest,
   type AudioCategory,
+  type AudioId,
   type CategoryMutes,
   type CategoryVolumes,
+  type MusicOptions,
+  type PlayOptions,
 } from '../../lib/audio';
 import {
   DEFAULT_AUDIO_VOLUMES,
@@ -53,6 +56,12 @@ export type AudioContextValue = {
   setCategoryVolume: (category: AudioCategory, value: number) => void;
   /** Toggle mute on a category and persist the change (debounced). */
   setCategoryMuted: (category: AudioCategory, muted: boolean) => void;
+  /** Fire a one-shot: `useAudio().play('sfx.launch')`. Stable identity. */
+  play: (id: AudioId, opts?: PlayOptions) => void;
+  /** Crossfade to a music bed: `useAudio().playMusic('music.space')`. Stable identity. */
+  playMusic: (id: AudioId, opts?: MusicOptions) => void;
+  /** Fade the current music bed out. Stable identity. */
+  stopMusic: (opts?: Pick<MusicOptions, 'fadeMs'>) => void;
 };
 
 const AudioContext = createContext<AudioContextValue | null>(null);
@@ -184,6 +193,19 @@ export function AudioProvider({ children }: AudioProviderProps) {
     [manager, schedulePersist],
   );
 
+  const play = useCallback(
+    (id: AudioId, opts?: PlayOptions) => manager.play(id, opts),
+    [manager],
+  );
+  const playMusic = useCallback(
+    (id: AudioId, opts?: MusicOptions) => manager.playMusic(id, opts),
+    [manager],
+  );
+  const stopMusic = useCallback(
+    (opts?: Pick<MusicOptions, 'fadeMs'>) => manager.stopMusic(opts),
+    [manager],
+  );
+
   const value = useMemo<AudioContextValue>(
     () => ({
       manager,
@@ -192,8 +214,21 @@ export function AudioProvider({ children }: AudioProviderProps) {
       hydrating,
       setCategoryVolume,
       setCategoryMuted,
+      play,
+      playMusic,
+      stopMusic,
     }),
-    [manager, volumes, mutes, hydrating, setCategoryVolume, setCategoryMuted],
+    [
+      manager,
+      volumes,
+      mutes,
+      hydrating,
+      setCategoryVolume,
+      setCategoryMuted,
+      play,
+      playMusic,
+      stopMusic,
+    ],
   );
 
   return <AudioContext.Provider value={value}>{children}</AudioContext.Provider>;

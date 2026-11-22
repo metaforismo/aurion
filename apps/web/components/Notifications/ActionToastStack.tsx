@@ -196,7 +196,7 @@ export function ActionToastStack() {
               transition: 'margin-top 200ms cubic-bezier(0, 0, 0.2, 1)',
             }}
             className={cn(
-              'pointer-events-auto rounded-sm border border-border bg-bg px-3 py-2 text-xs font-medium',
+              'pointer-events-auto rounded-lg border border-white/10 bg-bg px-3 py-2 text-xs font-medium',
               TONE_CLASS[v.toast.tone ?? 'success'],
             )}
           >

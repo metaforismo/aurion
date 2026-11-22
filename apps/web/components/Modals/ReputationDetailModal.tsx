@@ -65,7 +65,7 @@ export function ReputationDetailModal({ onClose }: ReputationDetailModalProps) {
     >
       <div className="flex flex-col gap-5">
         <section className="flex flex-col gap-3">
-          <h3 className="border-b border-border pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+          <h3 className="border-b border-white/10 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
             {tModal('currentLabel')}
           </h3>
           {reputation ? (
@@ -90,7 +90,7 @@ export function ReputationDetailModal({ onClose }: ReputationDetailModalProps) {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h3 className="border-b border-border pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+          <h3 className="border-b border-white/10 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
             {tModal('historyLabel')}
           </h3>
           {deltas.length === 0 ? (
@@ -181,7 +181,7 @@ function ReputationBar({ label, value }: { label: string; value: number }) {
           {formatSigned(value)}
         </span>
       </div>
-      <div className="relative h-2 w-full overflow-hidden rounded-full bg-surface-2">
+      <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/[0.09]">
         {/* zero baseline marker */}
         <span
           aria-hidden

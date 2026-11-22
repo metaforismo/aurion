@@ -32,6 +32,8 @@ import { applyLaunchTactical } from './launchTactical.js';
 import { applyLaunchStrategic } from './launchStrategic.js';
 import { applyDismantleNuclear } from './dismantleNuclear.js';
 import { ensureRelation } from './helpers.js';
+import { applyCancelProject, applyStartProject } from '../cosmos/index.js';
+import { applyEnactPolicy, applyRepealPolicy } from '../policies/index.js';
 import { maybeTriggerFromAction } from '../un/index.js';
 
 export {
@@ -81,7 +83,7 @@ export function applyAction(
       result = applyInvest(state, action, actor);
       break;
     case 'deploySpy':
-      result = applyDeploySpy(state, action, actor, difficulty);
+      result = applyDeploySpy(state, action, actor, difficulty, techCatalog);
       break;
     case 'startResearch':
       result = applyStartResearch(state, action, actor, techCatalog);
@@ -114,6 +116,18 @@ export function applyAction(
       result = applyAcknowledgeEraTransition(state, action, actor);
       break;
     // Phase 3 Wave 10: nuclear actions.
+    case 'startProject':
+      result = applyStartProject(state, action, actor, techCatalog);
+      break;
+    case 'cancelProject':
+      result = applyCancelProject(state, action, actor);
+      break;
+    case 'enactPolicy':
+      result = applyEnactPolicy(state, action, actor);
+      break;
+    case 'repealPolicy':
+      result = applyRepealPolicy(state, action, actor);
+      break;
     case 'launchTactical':
       result = applyLaunchTactical(state, action, actor, scenario);
       break;

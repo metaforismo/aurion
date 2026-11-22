@@ -1,8 +1,8 @@
 // i18n smoke: switching from /it to /en flips both URL and visible strings.
 //
-// The language switcher renders one button per locale (`it`, `en` — lower-
-// case glyphs). Pressing the inactive locale flips the URL and the visible
-// home strings. The current locale's button is `aria-pressed="true"`.
+// The language switch (top right on every menu page) renders one button per
+// locale whose accessible name is the bare code ("it", "en"). The current
+// locale's button is `aria-pressed="true"`.
 
 import { expect, test } from '@playwright/test';
 
@@ -12,8 +12,11 @@ test.describe('i18n', () => {
 
     // Italian baseline.
     await expect(page.getByRole('link', { name: 'Nuova partita' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'it', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
 
-    // The switcher renders the locale codes lowercased ("it" / "en").
     await page.getByRole('button', { name: 'en', exact: true }).click();
 
     // URL should now start with /en.
@@ -21,8 +24,15 @@ test.describe('i18n', () => {
 
     await expect(page.getByRole('link', { name: 'New game' })).toBeVisible();
     // Italian variant should be gone.
-    await expect(page.getByRole('link', { name: 'Nuova partita' })).toHaveCount(
-      0,
-    );
+    await expect(page.getByRole('link', { name: 'Nuova partita' })).toHaveCount(0);
+  });
+
+  test('the new-game flow and the codex are translated', async ({ page }) => {
+    await page.goto('/en/new');
+    await expect(page.getByText('Step 1 of 5')).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'Odyssey' })).toBeVisible();
+
+    await page.goto('/en/guida');
+    await expect(page.getByRole('heading', { name: 'How to play', level: 1 })).toBeVisible();
   });
 });

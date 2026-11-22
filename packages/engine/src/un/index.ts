@@ -37,7 +37,7 @@ export { evaluateActionTrigger, evaluatePeriodicTriggers };
 export const DEFAULT_VOTING_DURATION_TICKS = 4;
 
 /** Per-tick chance that an eligible AI permanent member proposes a resolution. */
-export const AI_PROPOSAL_CHANCE_PER_TICK = 0.05;
+export const AI_PROPOSAL_CHANCE_PER_TICK = 0.02;
 
 /** Min cumulative-stat-driven heuristic floor for AI proposing (placeholder for political capital). */
 const AI_PROPOSAL_MIN_GDP = 50_000_000_000;

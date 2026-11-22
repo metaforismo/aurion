@@ -70,7 +70,7 @@ export function VictoryToast() {
       }}
       className={cn(
         'fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)]',
-        'rounded-md border border-border border-l-2 border-l-accent bg-bg',
+        'rounded-xl border border-white/10 border-l-2 border-l-accent bg-bg',
       )}
     >
       <div className="flex items-start gap-3 px-4 py-3">
@@ -92,7 +92,7 @@ export function VictoryToast() {
           type="button"
           onClick={dismiss}
           aria-label={tCommon('close')}
-          className="rounded-sm border border-transparent p-1 text-fg-muted transition hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          className="rounded-lg border border-transparent p-1 text-fg-muted transition hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

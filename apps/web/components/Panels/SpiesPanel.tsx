@@ -1,694 +1,304 @@
-// Intelligence / Spies system panel.
-//
-// Progressive-disclosure layout:
-//   - PanelHero: count of active operations + a "X spies" quick-stat.
-//   - Primary action ("Lancia operazione") opens the composer inline; the
-//     sticky footer mirrors the CTA.
-//   - Collapsed details: full intel summary (by country), composer once
-//     open, active ops list — all live inside a single <Disclosure>.
-
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
-import type {
-  CountryId,
-  EconomySectors,
-  FactionId,
-  IntelLevel,
-  SpyOperation,
-  SpyOperationType,
-  SpyPayload,
-  TechId,
-} from '@aurion/engine';
+// Intelligence panel — the agents on hand, what is known about the country
+// selected on the globe, the operations that can be run against it, and the
+// record of those already in the field or concluded.
+
+import type { IntelLevel, SpyOperation } from '@aurion/engine';
+import { Check, Eye, ShieldAlert, UserSearch, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
 import { cn } from '../../lib/cn';
+import { percent } from '../../lib/format';
+import { useGameStore } from '../../lib/store';
+import { Card, Chip, EmptyState, Meter, Row, SectionTitle, Stat, type Tone } from '../ui';
+
+import { CountryPicker, type PickerItem } from './diplomacy/CountryPicker';
+import { Fact, PanelLink, StanceChip, TargetHeader } from './diplomacy/parts';
 import {
-  selectPlayerCountry,
-  useGameStore,
-  type GameStoreState,
-} from '../../lib/store';
-import { ScenarioId } from '../../lib/scenarios';
-import { ActionButton } from './shared/ActionButton';
-import { Disclosure } from './shared/Disclosure';
-import { EmptyState } from './shared/EmptyState';
-import { PanelHero } from './shared/PanelHero';
-import { StatBar } from './shared/StatBar';
-import { StickyFooter } from './shared/StickyFooter';
-import { useScenarioMessages } from './shared/useScenarioMessages';
+  cash,
+  knowsFigures,
+  stanceOf,
+  useWorld,
+  type World,
+} from './diplomacy/world';
+import { Composer, OP_ICON } from './spies/Composer';
+import { INTEL_EDGE, INTEL_LEVELS } from './spies/ops';
 
-// ---------------------------------------------------------------------------
-// Probability helpers — mirror packages/engine/src/actions/deploySpy.ts so the
-// composer can show a live preview without round-tripping the engine.
-// ---------------------------------------------------------------------------
+/** Price of one agent (engine: `invest` → intel, COST_PER_SPY). */
+const AGENT_COST = 50_000_000;
 
-const INTEL_LEVEL_BONUS: Record<IntelLevel, number> = {
-  none: 0,
-  rumors: 0.05,
-  partial: 0.15,
-  full: 0.25,
+const INTEL_TONE: Record<IntelLevel, Tone> = {
+  none: 'neutral',
+  rumors: 'warning',
+  partial: 'info',
+  full: 'success',
 };
 
-const SPY_TYPE_BASE_SUCCESS: Record<SpyOperationType, number> = {
-  steal_tech: 0.5,
-  sabotage: 0.55,
-  propaganda: 0.65,
-  destabilize: 0.4,
-  assassinate: 0.3,
-};
-
-const SPY_TYPE_BASE_DETECTION: Record<SpyOperationType, number> = {
-  steal_tech: 0.25,
-  sabotage: 0.35,
-  propaganda: 0.2,
-  destabilize: 0.4,
-  assassinate: 0.55,
-};
-
-const SPY_TYPES: readonly SpyOperationType[] = [
-  'steal_tech',
-  'sabotage',
-  'propaganda',
-  'destabilize',
-  'assassinate',
-];
-
-const SABOTAGE_TARGETS: readonly (keyof EconomySectors | 'military' | 'science')[] = [
-  'agriculture',
-  'industry',
-  'services',
-  'tech',
-  'military',
-  'science',
-];
-
-const FACTION_IDS: readonly FactionId[] = [
-  'army',
-  'business',
-  'religious',
-  'populist',
-  'reformist',
-];
-
-const INTEL_ICON: Record<IntelLevel, string> = {
-  none: '?',
-  rumors: '~',
-  partial: '*',
-  full: '!',
-};
-
-const INTEL_TONE: Record<IntelLevel, string> = {
-  none: 'text-fg-faint border-border',
-  rumors: 'text-warning border-warning',
-  partial: 'text-info border-info',
-  full: 'text-success border-success',
-};
-
-// Map intel level to a numeric score for "average intel" hero summary.
-const INTEL_SCORE: Record<IntelLevel, number> = {
-  none: 0,
-  rumors: 1,
-  partial: 2,
-  full: 3,
-};
-
-function clampProb(p: number): number {
-  if (!Number.isFinite(p)) return 0;
-  if (p < 0.01) return 0.01;
-  if (p > 0.99) return 0.99;
-  return p;
-}
-
-function computeProbabilities(args: {
-  intel: IntelLevel;
-  counterIntel: number;
-  type: SpyOperationType;
-}): { success: number; detection: number } {
-  const intelBonus = INTEL_LEVEL_BONUS[args.intel];
-  const baseS = SPY_TYPE_BASE_SUCCESS[args.type];
-  const baseD = SPY_TYPE_BASE_DETECTION[args.type];
-  return {
-    success: clampProb(baseS + intelBonus - args.counterIntel * 0.4),
-    detection: clampProb(baseD + args.counterIntel * 0.4 - intelBonus),
-  };
-}
-
-const DEFAULT_DURATION_TICKS: Record<SpyOperationType, number> = {
-  steal_tech: 12,
-  sabotage: 8,
-  propaganda: 10,
-  destabilize: 14,
-  assassinate: 16,
-};
-
-// ---------------------------------------------------------------------------
-
-export function SpiesPanel({
-  onErrors,
-}: {
-  onErrors?: (errors: string[]) => void;
-}) {
+export function SpiesPanel({ onErrors }: { onErrors?: (errors: string[]) => void }) {
   const t = useTranslations('panelSpies');
-  const tShared = useTranslations('panelShared');
-  const fmt = useFormatter();
+  const w = useWorld();
 
-  const player = useGameStore(selectPlayerCountry);
-  const state = useGameStore((s: GameStoreState) => s.state);
-  const scenario = useGameStore((s: GameStoreState) => s.scenario);
-  const applyAction = useGameStore((s: GameStoreState) => s.applyAction);
+  const items = useMemo<PickerItem[]>(() => {
+    if (!w) return [];
+    return w.others.map((c) => {
+      const level = w.intelOn(c.id);
+      const running = w.state.spyOperations.filter(
+        (op) => op.ownerCountryId === w.player.id && op.targetCountryId === c.id && op.status === 'active',
+      ).length;
+      const name = w.nameOf(c.id);
+      return {
+        id: c.id,
+        name,
+        color: c.color,
+        subtitle: running > 0 ? t('list.running', { n: running }) : w.regionName(c.regionId),
+        trailing: <Chip tone={INTEL_TONE[level]}>{t(`intelChip.${level}`)}</Chip>,
+        sort: { intel: INTEL_LEVELS.indexOf(level), name },
+      };
+    });
+  }, [w, t]);
 
-  const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
-  const { t: tScenario } = useScenarioMessages(scenarioId);
+  if (!w) return null;
 
-  const [composerOpen, setComposerOpen] = useState(false);
-
-  if (!player || !state) {
-    return (
-      <div className="p-4">
-        <EmptyState>{tShared('noPlayer')}</EmptyState>
-      </div>
-    );
-  }
-
-  const intel = player.intelligence;
-  // Player's own active operations (engine stores all spy ops in one list).
-  const activeOps = state.spyOperations.filter(
-    (op) => op.ownerCountryId === player.id && op.status === 'active',
-  );
-
-  const otherCountries = Object.values(state.countries).filter(
-    (c) => c.id !== player.id,
-  );
-
-  // Average intel score across observed countries (0..3 scale), rendered as a
-  // qualitative level — "rumors", "partial", etc. Defaults to "none" when no
-  // countries are tracked yet.
-  const observedCountries = otherCountries.filter(
-    (c) => (intel.knownIntel[c.id] ?? 'none') !== 'none',
-  );
-  const avgIntelScore =
-    observedCountries.length > 0
-      ? observedCountries.reduce(
-          (acc, c) => acc + INTEL_SCORE[intel.knownIntel[c.id] ?? 'none'],
-          0,
-        ) / observedCountries.length
-      : 0;
-  const avgIntelLevel: IntelLevel =
-    avgIntelScore >= 2.5
-      ? 'full'
-      : avgIntelScore >= 1.5
-        ? 'partial'
-        : avgIntelScore >= 0.5
-          ? 'rumors'
-          : 'none';
+  const mine = w.state.spyOperations.filter((op) => op.ownerCountryId === w.player.id);
+  const active = mine.filter((op) => op.status === 'active');
+  // Concluded operations, plus foreign ones caught on the player's soil.
+  const reports = w.state.spyOperations
+    .filter(
+      (op) =>
+        op.status !== 'active' &&
+        (op.ownerCountryId === w.player.id || (op.targetCountryId === w.player.id && op.status === 'detected')),
+    )
+    .sort((a, b) => b.startedAtTick + b.durationTicks - (a.startedAtTick + a.durationTicks));
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      {/* Hero — active operations as the BIG number. */}
-      <PanelHero
-        title={t('title')}
-        value={fmt.number(activeOps.length)}
-        valueTone={activeOps.length > 0 ? 'warning' : 'muted'}
-        quickStats={[
-          { label: t('spyCount'), value: fmt.number(intel.spyCount) },
-          { label: t('heroAvgIntel'), value: t(`intel.${avgIntelLevel}`) },
-        ]}
-      />
+    <div className="flex flex-col gap-4 p-4" data-testid="spies-panel">
+      <Network w={w} inField={active.length} />
 
-      {/* Composer is treated as a top-level surface when open — it's the
-          actionable primary path the hero promised. When closed, the sticky
-          footer at the bottom is the only "Launch operation" affordance. */}
-      {composerOpen ? (
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('composer.title')}
-          </div>
-          <SpyComposer
-            ownerId={player.id}
-            counterIntelByCountry={Object.fromEntries(
-              Object.values(state.countries).map((c) => [
-                c.id,
-                c.intelligence.counterIntelLevel,
-              ]),
-            )}
-            knownIntel={intel.knownIntel}
-            otherCountries={otherCountries.map((c) => ({
-              id: c.id,
-              name: tScenario(c.nameKey),
-              completedTechs: c.science.completedTechs,
-            }))}
-            playerCompletedTechs={player.science.completedTechs}
-            tScenario={tScenario}
-            onSubmit={async (payload) => {
-              const errors = await applyAction({
-                type: 'deploySpy',
-                op: payload,
-              });
-              if (errors.length === 0) setComposerOpen(false);
-              return errors;
-            }}
-            onCancel={() => setComposerOpen(false)}
-            onErrors={onErrors}
-          />
-        </div>
-      ) : null}
+      {w.target ? (
+        <section aria-label={t('dossier.label', { name: w.nameOf(w.target.id) })} className="flex flex-col gap-2" data-testid="spy-dossier">
+          <Dossier w={w} />
+          <SectionTitle>{t('composer.title')}</SectionTitle>
+          <Composer key={w.target.id} w={w} target={w.target} onErrors={onErrors} />
+        </section>
+      ) : (
+        <EmptyState icon={UserSearch} title={t('pick.title')}>
+          {t('pick.body')}
+        </EmptyState>
+      )}
 
-      {/* Collapsed details — counter-intel meter, active ops list, full
-          country-by-country intel summary. */}
-      <Disclosure summary={tShared('moreDetails')} trailing={t('details')}>
-        <StatBar
-          label={t('counterIntel')}
-          value={intel.counterIntelLevel * 100}
-          max={100}
-          valueLabel={fmt.number(intel.counterIntelLevel, {
-            style: 'percent',
-            maximumFractionDigits: 0,
-          })}
-          tone="info"
-        />
-
-        {/* Active ops list */}
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <div className="flex items-baseline justify-between">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-              {t('active.title')}
-            </div>
-            <span className="text-[11px] font-mono text-fg-faint">
-              {activeOps.length}
-            </span>
-          </div>
-          {activeOps.length === 0 ? (
-            <EmptyState>{t('active.empty')}</EmptyState>
-          ) : (
-            <ul className="flex flex-col divide-y divide-border">
-              {activeOps.map((op) => (
-                <li key={op.id}>
-                  <SpyOpCard
-                    op={op}
-                    targetName={tScenario(
-                      state.countries[op.targetCountryId]?.nameKey ?? null,
-                    )}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* Intel summary by country */}
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('intelSummary.title')}
-          </div>
-          <ul className="grid grid-cols-1 divide-y divide-border text-xs">
-            {otherCountries.map((c) => {
-              const lvl = (intel.knownIntel[c.id] ?? 'none') as IntelLevel;
-              return (
-                <li
-                  key={c.id}
-                  className="flex items-center justify-between gap-2 py-1.5"
-                >
-                  <span className="text-fg">{tScenario(c.nameKey)}</span>
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em]',
-                      INTEL_TONE[lvl]
-                        .split(' ')
-                        .filter((c) => c.startsWith('text-'))
-                        .join(' '),
-                    )}
-                    aria-label={t(`intel.${lvl}`)}
-                    title={t(`intel.${lvl}`)}
-                  >
-                    <span aria-hidden>{INTEL_ICON[lvl]}</span>
-                    <span>{t(`intel.${lvl}`)}</span>
-                  </span>
-                </li>
-              );
-            })}
+      <section aria-label={t('active.title')} className="flex flex-col gap-2">
+        <SectionTitle aside={active.length}>{t('active.title')}</SectionTitle>
+        {active.length === 0 ? (
+          <EmptyState>{t('active.empty')}</EmptyState>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {active.map((op) => (
+              <ActiveOp key={op.id} w={w} op={op} />
+            ))}
           </ul>
-        </div>
-      </Disclosure>
+        )}
+      </section>
 
-      {/* Sticky primary action — pinned "Lancia operazione" so the player
-          always has a single click to start a spy op even with the panel
-          scrolled to the intel summary. When the composer is already open
-          we hide the pin to avoid having two CTAs fighting. */}
-      {!composerOpen ? (
-        <StickyFooter>
-          <ActionButton
-            tone="primary"
-            onClick={async () => {
-              setComposerOpen(true);
-              return [];
-            }}
-            onErrors={onErrors}
-          >
-            {t('composer.open')}
-          </ActionButton>
-        </StickyFooter>
-      ) : null}
+      <section aria-label={t('reports.title')} className="flex flex-col gap-2">
+        <SectionTitle aside={reports.length}>{t('reports.title')}</SectionTitle>
+        {reports.length === 0 ? (
+          <EmptyState>{t('reports.empty')}</EmptyState>
+        ) : (
+          <ul className="flex flex-col gap-1" aria-live="polite">
+            {reports.slice(0, 8).map((op) => (
+              <Report key={op.id} w={w} op={op} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section aria-label={t('list.title')} className="flex flex-col gap-2">
+        <SectionTitle aside={w.others.length}>{t('list.title')}</SectionTitle>
+        <CountryPicker
+          label={t('list.title')}
+          testIdPrefix="spy-country"
+          items={items}
+          selectedId={w.target?.id ?? null}
+          onPick={w.selectTarget}
+          sorts={[
+            { id: 'intel', label: t('list.sortIntel') },
+            { id: 'name', label: t('list.sortName') },
+          ]}
+          limit={6}
+        />
+      </section>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Composer
-// ---------------------------------------------------------------------------
-
-function SpyComposer({
-  ownerId,
-  counterIntelByCountry,
-  knownIntel,
-  otherCountries,
-  playerCompletedTechs,
-  tScenario,
-  onSubmit,
-  onCancel,
-  onErrors,
-}: {
-  ownerId: CountryId;
-  counterIntelByCountry: Record<CountryId, number>;
-  knownIntel: Record<CountryId, IntelLevel>;
-  otherCountries: { id: CountryId; name: string; completedTechs: TechId[] }[];
-  playerCompletedTechs: TechId[];
-  tScenario: (key: string | null | undefined) => string;
-  onSubmit: (op: Omit<SpyOperation, 'id' | 'status' | 'progressTicks' | 'startedAtTick'>) => Promise<string[]>;
-  onCancel: () => void;
-  onErrors?: (errors: string[]) => void;
-}) {
+/** Hero: agents on hand, agents in the field, and the home defences. */
+function Network({ w, inField }: { w: World; inField: number }) {
   const t = useTranslations('panelSpies');
-  const tShared = useTranslations('panelShared');
-  const fmt = useFormatter();
-
-  // Eligible targets: every other country with intel >= rumors.
-  const eligibleTargets = useMemo(
-    () =>
-      otherCountries.filter((c) => {
-        const lvl = knownIntel[c.id] ?? 'none';
-        return lvl !== 'none';
-      }),
-    [otherCountries, knownIntel],
-  );
-
-  const [type, setType] = useState<SpyOperationType>('steal_tech');
-  const [target, setTarget] = useState<CountryId>('');
-  // Per-type payload sub-state.
-  const [stealTechId, setStealTechId] = useState<TechId>('');
-  const [sabotageTarget, setSabotageTarget] =
-    useState<keyof EconomySectors | 'military' | 'science'>('industry');
-  const [propagandaFaction, setPropagandaFaction] = useState<FactionId | ''>('');
-  const [assassinateRoleKey, setAssassinateRoleKey] =
-    useState<string>('role.head_of_state');
-
-  const playerCompletedSet = useMemo(
-    () => new Set(playerCompletedTechs),
-    [playerCompletedTechs],
-  );
-
-  const targetCountry = otherCountries.find((c) => c.id === target);
-  const stealableTechs = useMemo(
-    () =>
-      targetCountry
-        ? targetCountry.completedTechs.filter((t) => !playerCompletedSet.has(t))
-        : [],
-    [targetCountry, playerCompletedSet],
-  );
-
-  // Prediction
-  const intelLvl = (knownIntel[target] ?? 'none') as IntelLevel;
-  const counterIntel =
-    target && counterIntelByCountry[target] !== undefined
-      ? counterIntelByCountry[target]
-      : 0;
-
-  const probs = useMemo(
-    () => computeProbabilities({ intel: intelLvl, counterIntel, type }),
-    [intelLvl, counterIntel, type],
-  );
-
-  const buildPayload = (): SpyPayload | null => {
-    switch (type) {
-      case 'steal_tech':
-        if (!stealTechId) return null;
-        return { kind: 'steal_tech', techId: stealTechId };
-      case 'sabotage':
-        return { kind: 'sabotage', targetSector: sabotageTarget };
-      case 'propaganda':
-        return {
-          kind: 'propaganda',
-          targetFaction: propagandaFaction === '' ? null : propagandaFaction,
-        };
-      case 'destabilize':
-        return { kind: 'destabilize' };
-      case 'assassinate':
-        return { kind: 'assassinate', targetRoleKey: assassinateRoleKey };
-    }
-  };
-
-  const payloadInvalid = type === 'steal_tech' && !stealTechId;
-  const noTarget = !target;
-  const disabledReason = noTarget
-    ? t('composer.pickTarget')
-    : payloadInvalid
-      ? t('composer.pickPayload')
-      : null;
-
-  const handleSubmit = async () => {
-    const payload = buildPayload();
-    if (!payload || noTarget) return [];
-    const op: Omit<SpyOperation, 'id' | 'status' | 'progressTicks' | 'startedAtTick'> = {
-      type,
-      ownerCountryId: ownerId,
-      targetCountryId: target,
-      payload,
-      durationTicks: DEFAULT_DURATION_TICKS[type],
-      successProbability: probs.success,
-      detectionRisk: probs.detection,
-    };
-    return onSubmit(op);
-  };
+  const setSelectedPanel = useGameStore((s) => s.setSelectedPanel);
+  const intel = w.player.intelligence;
+  // The engine shifts 0.4 of the defender's counter-intelligence onto the odds.
+  const shield = Math.round(intel.counterIntelLevel * 40);
 
   return (
-    <div className="flex flex-col gap-2">
-      <label className="text-xs text-fg" htmlFor="spy-type">
-        {t('composer.type')}
-      </label>
-      <select
-        id="spy-type"
-        value={type}
-        onChange={(e) => setType(e.target.value as SpyOperationType)}
-        className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
-      >
-        {SPY_TYPES.map((sType) => (
-          <option key={sType} value={sType}>
-            {t(`type.${sType}`)}
-          </option>
-        ))}
-      </select>
-
-      <label className="text-xs text-fg" htmlFor="spy-target">
-        {t('composer.target')}
-      </label>
-      <select
-        id="spy-target"
-        value={target}
-        onChange={(e) => setTarget(e.target.value)}
-        className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
-      >
-        <option value="">{t('composer.targetPlaceholder')}</option>
-        {eligibleTargets.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-          </option>
-        ))}
-      </select>
-      {eligibleTargets.length === 0 ? (
-        <p className="text-[11px] text-warning">{t('composer.noEligibleTargets')}</p>
-      ) : null}
-
-      {/* Payload sub-form */}
-      {type === 'steal_tech' && target ? (
-        <>
-          <label className="text-xs text-fg" htmlFor="spy-tech">
-            {t('composer.stealTech')}
-          </label>
-          <select
-            id="spy-tech"
-            value={stealTechId}
-            onChange={(e) => setStealTechId(e.target.value)}
-            className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
-          >
-            <option value="">{t('composer.stealTechPlaceholder')}</option>
-            {stealableTechs.map((id) => (
-              <option key={id} value={id}>
-                {tScenario(`tech.${id.replace(/^tech_/, '').split('_').join('.')}`) || id}
-              </option>
-            ))}
-          </select>
-          {stealableTechs.length === 0 ? (
-            <p className="text-[11px] text-fg-faint">{t('composer.noStealable')}</p>
-          ) : null}
-        </>
-      ) : null}
-
-      {type === 'sabotage' ? (
-        <>
-          <label className="text-xs text-fg" htmlFor="spy-sabotage">
-            {t('composer.sabotageTarget')}
-          </label>
-          <select
-            id="spy-sabotage"
-            value={sabotageTarget}
-            onChange={(e) =>
-              setSabotageTarget(e.target.value as keyof EconomySectors | 'military' | 'science')
-            }
-            className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
-          >
-            {SABOTAGE_TARGETS.map((s) => (
-              <option key={s} value={s}>
-                {t(`sabotage.${s}`)}
-              </option>
-            ))}
-          </select>
-        </>
-      ) : null}
-
-      {type === 'propaganda' ? (
-        <>
-          <label className="text-xs text-fg" htmlFor="spy-faction">
-            {t('composer.propagandaFaction')}
-          </label>
-          <select
-            id="spy-faction"
-            value={propagandaFaction}
-            onChange={(e) =>
-              setPropagandaFaction((e.target.value || '') as FactionId | '')
-            }
-            className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
-          >
-            <option value="">{t('composer.propagandaAny')}</option>
-            {FACTION_IDS.map((f) => (
-              <option key={f} value={f}>
-                {t(`faction.${f}`)}
-              </option>
-            ))}
-          </select>
-        </>
-      ) : null}
-
-      {type === 'assassinate' ? (
-        <>
-          <label className="text-xs text-fg" htmlFor="spy-role">
-            {t('composer.assassinateRole')}
-          </label>
-          <input
-            id="spy-role"
-            type="text"
-            value={assassinateRoleKey}
-            onChange={(e) => setAssassinateRoleKey(e.target.value)}
-            className="rounded-sm border border-border bg-transparent px-2 py-1 font-mono text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
-          />
-        </>
-      ) : null}
-
-      {/* Live prediction */}
-      {target ? (
-        <div className="grid grid-cols-2 gap-2 border-t border-border pt-2">
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-              {t('composer.successPreview')}
-            </div>
-            <div className="font-mono text-sm text-success numeric-tabular">
-              {fmt.number(probs.success, { style: 'percent', maximumFractionDigits: 0 })}
-            </div>
-          </div>
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-              {t('composer.detectionPreview')}
-            </div>
-            <div className="font-mono text-sm text-danger numeric-tabular">
-              {fmt.number(probs.detection, { style: 'percent', maximumFractionDigits: 0 })}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="flex gap-2">
-        <ActionButton
-          tone="primary"
-          disabledReason={disabledReason}
-          onClick={handleSubmit}
-          onErrors={onErrors}
-          className="flex-1"
-        >
-          {t('composer.submit')}
-        </ActionButton>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-sm border border-border bg-transparent px-3 py-2 text-xs text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-        >
-          {tShared('cancel')}
-        </button>
+    <section
+      aria-label={t('network.label')}
+      className="rounded-xl border border-[#5cc8ff]/30 bg-gradient-to-br from-[#5cc8ff]/[0.10] via-transparent to-accent/[0.04] p-4"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <Stat
+          size="lg"
+          tone={intel.spyCount > 0 ? 'neutral' : 'warning'}
+          label={t('network.agents')}
+          value={intel.spyCount}
+          hint={t('network.agentsHint')}
+        />
+        <Chip tone={inField > 0 ? 'info' : 'neutral'} icon={Eye}>
+          {t('network.inField', { n: inField })}
+        </Chip>
       </div>
-    </div>
-  );
-}
-
-function SpyOpCard({
-  op,
-  targetName,
-}: {
-  op: SpyOperation;
-  targetName: string;
-}) {
-  const t = useTranslations('panelSpies');
-  const fmt = useFormatter();
-  const ratio = op.durationTicks > 0 ? op.progressTicks / op.durationTicks : 0;
-  const remaining = Math.max(0, op.durationTicks - op.progressTicks);
-
-  return (
-    <div className="flex flex-col gap-1 py-2">
-      <div className="flex items-baseline justify-between">
-        <span className="text-xs font-medium text-fg">
-          {t(`type.${op.type}`)} → {targetName || op.targetCountryId}
-        </span>
-        <span className="font-mono numeric-tabular text-[11px] text-fg-faint">
-          {t('active.eta', { ticks: remaining })}
-        </span>
-      </div>
-      <StatBar
-        label={t('active.progressLabel')}
-        value={op.progressTicks}
-        max={op.durationTicks}
-        valueLabel={`${op.progressTicks} / ${op.durationTicks}`}
+      <Meter
+        className="mt-3"
         tone="info"
-        className="mt-1"
+        value={intel.counterIntelLevel}
+        label={t('network.counterIntel')}
+        valueLabel={percent(intel.counterIntelLevel, w.locale)}
       />
-      <div className="mt-1 flex justify-between text-[11px] text-fg-faint">
-        <span>
-          {t('active.success')}:{' '}
-          <span className="text-success numeric-tabular">
-            {fmt.number(op.successProbability, {
-              style: 'percent',
-              maximumFractionDigits: 0,
-            })}
-          </span>
-        </span>
-        <span>
-          {t('active.detection')}:{' '}
-          <span className="text-danger numeric-tabular">
-            {fmt.number(op.detectionRisk, {
-              style: 'percent',
-              maximumFractionDigits: 0,
-            })}
-          </span>
-        </span>
+      <p className="mt-2 text-[11px] leading-snug text-fg-faint">{t('network.counterIntelHint', { points: shield })}</p>
+      <p className="mt-2 border-t border-white/10 pt-2 text-[11px] leading-snug text-fg-muted">
+        {t('network.recruit', { cost: cash(AGENT_COST, w.locale, 0) })}{' '}
+        <PanelLink onClick={() => setSelectedPanel('economy')}>{t('network.toEconomy')}</PanelLink>
+      </p>
+    </section>
+  );
+}
+
+/** What is known about the selected country, and what that knowledge is worth. */
+function Dossier({ w }: { w: World }) {
+  const t = useTranslations('panelSpies');
+  const target = w.target;
+  if (!target) return null;
+  const level = w.intelOn(target.id);
+  const step = INTEL_LEVELS.indexOf(level);
+  const known = knowsFigures(level);
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <TargetHeader
+        name={w.nameOf(target.id)}
+        color={target.color}
+        aside={<StanceChip stance={stanceOf(w.relation(target.id))} />}
+        caption={`${w.tScenario(target.capitalKey)} · ${w.regionName(target.regionId)}`}
+        onClear={() => w.selectTarget(null)}
+      />
+      <div>
+        <div className="mb-1.5 flex items-baseline justify-between text-[11px]">
+          <span className="text-fg-muted">{t('dossier.intel')}</span>
+          <span className="font-semibold text-fg">{t(`intel.${level}`)}</span>
+        </div>
+        <ol className="grid grid-cols-4 gap-1" aria-label={t('dossier.intelScale')}>
+          {INTEL_LEVELS.map((l, i) => (
+            <li
+              key={l}
+              aria-current={l === level ? 'step' : undefined}
+              className={cn(
+                'rounded-md px-1 py-1 text-center text-[10px] font-medium',
+                i <= step && step > 0 ? 'bg-[#5cc8ff]/20 text-[#8ad8ff]' : i === 0 && step === 0 ? 'bg-white/10 text-fg-muted' : 'bg-white/[0.04] text-fg-faint',
+              )}
+            >
+              {t(`intel.${l}`)}
+            </li>
+          ))}
+        </ol>
+        <p className="mt-2 text-[11px] leading-snug text-fg-muted">{t(`intelDetail.${level}`)}</p>
+        {level !== 'full' ? (
+          <p className="mt-1.5 text-[11px] leading-snug text-fg-faint">{t('dossier.howToLearn')}</p>
+        ) : null}
       </div>
-      {/* unused-variable guard for `ratio` (kept for future visualizations). */}
-      <span className="hidden" data-ratio={ratio.toFixed(2)} />
-    </div>
+      <dl className="flex flex-col gap-1 border-t border-white/10 pt-2.5">
+        <Fact label={t('dossier.edge')} tone="info" words={INTEL_EDGE[level] === 0}>
+          {t('dossier.edgeValue', { points: INTEL_EDGE[level] })}
+        </Fact>
+        <Fact label={t('dossier.defences')} words={!known}>
+          {known ? percent(target.intelligence.counterIntelLevel, w.locale) : t('dossier.unknown')}
+        </Fact>
+        <Fact label={t('dossier.techs')} words={!known}>
+          {known ? target.science.completedTechs.length : t('dossier.unknown')}
+        </Fact>
+      </dl>
+    </Card>
+  );
+}
+
+function ActiveOp({ w, op }: { w: World; op: SpyOperation }) {
+  const t = useTranslations('panelSpies');
+  const Icon = OP_ICON[op.type];
+  const left = Math.max(0, op.durationTicks - op.progressTicks);
+  return (
+    <li>
+      <Card tone="info" data-testid="spy-active-op" className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-fg">
+            <Icon aria-hidden className="h-4 w-4 shrink-0 text-[#8ad8ff]" />
+            <span className="truncate">{t('active.line', { op: t(`type.${op.type}`), name: w.nameOf(op.targetCountryId) })}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => w.selectTarget(op.targetCountryId)}
+            className="shrink-0 rounded text-[11px] text-fg-faint underline-offset-2 hover:text-fg hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            {t('active.show')}
+          </button>
+        </div>
+        <Meter
+          tone="info"
+          value={op.durationTicks > 0 ? op.progressTicks / op.durationTicks : 0}
+          label={t('active.eta', { weeks: left })}
+          valueLabel={`${op.progressTicks}/${op.durationTicks}`}
+        />
+        <p className="flex gap-3 font-mono text-[11px]">
+          <span className="text-success">
+            {t('composer.successShort')} {percent(op.successProbability, w.locale)}
+          </span>
+          <span className="text-[#ff8a7d]">
+            {t('composer.detectionShort')} {percent(op.detectionRisk, w.locale)}
+          </span>
+        </p>
+      </Card>
+    </li>
+  );
+}
+
+function Report({ w, op }: { w: World; op: SpyOperation }) {
+  const t = useTranslations('panelSpies');
+  const foreign = op.ownerCountryId !== w.player.id;
+  const weeksAgo = Math.max(0, w.state.tick - (op.startedAtTick + op.durationTicks));
+  // An exposed operation may still have worked; only a stolen technology
+  // leaves proof the player can check.
+  const gotTech =
+    op.payload.kind === 'steal_tech' && w.player.science.completedTechs.includes(op.payload.techId);
+  const verdict = foreign
+    ? t('reports.caught', { name: w.nameOf(op.ownerCountryId), op: t(`type.${op.type}`) })
+    : op.status === 'completed'
+      ? t('reports.completed', { op: t(`type.${op.type}`), name: w.nameOf(op.targetCountryId) })
+      : op.status === 'failed'
+        ? t('reports.failed', { op: t(`type.${op.type}`), name: w.nameOf(op.targetCountryId) })
+        : gotTech
+          ? t('reports.detectedButDone', { op: t(`type.${op.type}`), name: w.nameOf(op.targetCountryId) })
+          : t('reports.detected', { op: t(`type.${op.type}`), name: w.nameOf(op.targetCountryId) });
+  const Icon = foreign ? ShieldAlert : op.status === 'completed' ? Check : op.status === 'failed' ? X : Eye;
+  const tone = foreign ? 'text-[#8ad8ff]' : op.status === 'completed' ? 'text-success' : op.status === 'failed' ? 'text-fg-faint' : 'text-[#ff8a7d]';
+  return (
+    <li>
+      <Row
+        testId="spy-report"
+        leading={<Icon aria-hidden className={cn('h-4 w-4', tone)} />}
+        title={<span className="whitespace-normal text-[12px] leading-snug">{verdict}</span>}
+        subtitle={t('reports.when', { weeks: weeksAgo })}
+        className="py-1.5"
+      />
+    </li>
   );
 }
 

@@ -1,391 +1,233 @@
-// United Nations resolution card.
-//
-// Renders a single UNResolution: kind icon + title, time-remaining, target,
-// vote tallies (yes / no / abstain) with progress chips, and — when the
-// player is a council voter on an open resolution — the Vote buttons
-// (yes / no / abstain, plus an extra red Veto for permanent council members).
-//
-// Pure presentational + dispatch: it never reaches into the engine itself,
-// only the store's `applyAction`. The parent UNPanel wires up `onErrors`.
-
 'use client';
 
+// One UN resolution: what it says, who tabled it against whom, how long the
+// vote stays open, how the votes stand, what each outcome brings — and the
+// ballot, when the player has not cast theirs yet.
+
+import type { UNResolution, UNVote } from '@aurion/engine';
+import { Check, ChevronDown, Minus, ShieldX, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import {
-  AlertTriangle,
-  Ban,
-  HeartHandshake,
-  Leaf,
-  Megaphone,
-  Shield,
-  Stamp,
-  type LucideIcon,
-} from 'lucide-react';
-import type {
-  CountryId,
-  UNResolution,
-  UNResolutionKind,
-  UNVote,
-} from '@aurion/engine';
+import { useState } from 'react';
 
 import { cn } from '../../lib/cn';
-import { ActionButton } from './shared/ActionButton';
-import { Section } from './shared/Section';
+import { useGameStore } from '../../lib/store';
+import { Button, Card, Chip, Meter, type Tone } from '../ui';
 
-// ---------------------------------------------------------------------------
-// Static metadata (icons + per-status tones).
-// ---------------------------------------------------------------------------
+import { Fact } from './diplomacy/parts';
+import { useCommit, type World } from './diplomacy/world';
+import { KIND_ICON, tallyOf, useEffectLines, useResolutionText } from './un/shared';
 
-const KIND_ICON: Record<UNResolutionKind, LucideIcon> = {
-  sanctions: Ban,
-  peacekeeping: Shield,
-  recognition: Stamp,
-  humanitarian: HeartHandshake,
-  climate: Leaf,
-  nonProliferation: AlertTriangle,
-  condemnation: Megaphone,
+const STATUS_TONE: Record<UNResolution['status'], Tone> = {
+  voting: 'info',
+  passed: 'success',
+  failed: 'neutral',
+  vetoed: 'danger',
 };
 
-// Editorial pass: each resolution shows status via a 2px left rule + a
-// status-coloured chip in the header — never a tinted surface fill.
-const STATUS_RULE: Record<UNResolution['status'], string> = {
-  voting: 'border-l-2 border-warning',
-  passed: 'border-l-2 border-success',
-  failed: 'border-l-2 border-border',
-  vetoed: 'border-l-2 border-danger',
+const VOTE_FILL: Record<UNVote, string> = {
+  yes: 'bg-success',
+  no: 'bg-[#ff5d4d]',
+  abstain: 'bg-white/40',
+  veto: 'bg-warning',
 };
 
-const STATUS_CHIP: Record<UNResolution['status'], string> = {
-  voting: 'text-warning',
-  passed: 'text-success',
-  failed: 'text-fg-faint',
-  vetoed: 'text-danger',
-};
-
-// Per-vote chip styling. Veto pills reuse the danger token; abstain stays neutral.
-const VOTE_CHIP_TONE: Record<UNVote, string> = {
-  yes: 'border-success text-success',
-  no: 'border-danger text-danger',
-  abstain: 'border-border text-fg-muted',
-  veto: 'border-danger text-danger',
-};
-
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
-
-export type UNResolutionCardProps = {
-  resolution: UNResolution;
-  /** Current game tick — used to compute the "weeks remaining" countdown. */
-  currentTick: number;
-  /** Player country id — controls whether the Vote panel is shown. */
-  playerCountryId: CountryId;
-  /** Council member ids from the active scenario; empty when ONU is disabled. */
-  councilMemberIds: readonly CountryId[];
-  /** Lookup: country id → translated display name (from the scenario bundle). */
-  countryName: (id: CountryId) => string;
-  /** Lookup: region id → translated display name. */
-  regionName: (id: string) => string;
-  /**
-   * Scenario message getter for resolving `un.<scenario>.<kind>.title` /
-   * `*.description` keys that live in the side-car bundle. Returns the raw
-   * key on miss; the card falls back to a generic per-kind label.
-   */
-  tScenario: (key: string | undefined | null) => string;
-  /** Forwarded so the Vote / Veto buttons can surface engine errors. */
-  onErrors?: (errors: string[]) => void;
-  /** Vote dispatcher. Always returns the engine's i18n-key error array. */
-  onVote: (resolutionId: string, vote: UNVote) => Promise<string[]>;
-  /**
-   * Optional confirm hook used by the Veto button — caller decides whether
-   * to gate it behind a confirm modal (typically yes, given the rep cost).
-   */
-  onVeto?: (resolutionId: string) => void;
-};
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+const VOTES: readonly UNVote[] = ['yes', 'no', 'abstain', 'veto'];
 
 export function UNResolutionCard({
+  w,
   resolution,
-  currentTick,
-  playerCountryId,
-  councilMemberIds,
-  countryName,
-  regionName,
-  tScenario,
+  isCouncil,
   onErrors,
-  onVote,
-  onVeto,
-}: UNResolutionCardProps) {
+}: {
+  w: World;
+  resolution: UNResolution;
+  /** Council members may veto. */
+  isCouncil: boolean;
+  onErrors?: (errors: string[]) => void;
+}) {
   const t = useTranslations('panelUN');
+  const confirm = useGameStore((s) => s.confirm);
+  const commit = useCommit(onErrors);
+  const text = useResolutionText(w)(resolution);
+  const effectLines = useEffectLines(w);
+  const [showVotes, setShowVotes] = useState(false);
 
   const Icon = KIND_ICON[resolution.kind];
-  const isVoting = resolution.status === 'voting';
+  const voting = resolution.status === 'voting';
+  const myVote = resolution.votes[w.player.id];
+  const total = Object.keys(w.state.countries).length;
+  const tally = tallyOf(resolution, total);
+  const weeksLeft = Math.max(0, resolution.votingClosesAtTick - w.state.tick);
+  const span = Math.max(1, resolution.votingClosesAtTick - resolution.proposedAtTick);
+  const onPass = effectLines(resolution, resolution.effects.onPass);
+  const onFail = effectLines(resolution, resolution.effects.onFail);
+  const passText =
+    onPass.length > 0
+      ? onPass.join(' ')
+      : resolution.kind === 'nonProliferation'
+        ? t('effects.treaty')
+        : t('effects.none');
+  const target = resolution.targetCountryId
+    ? w.nameOf(resolution.targetCountryId)
+    : resolution.targetRegionId
+      ? w.regionName(resolution.targetRegionId)
+      : null;
 
-  // Council membership flags — used to gate the Vote / Veto panel.
-  const playerIsCouncil = councilMemberIds.includes(playerCountryId);
-  const playerHasVoted = resolution.votes[playerCountryId] !== undefined;
-
-  // Time-remaining is reported in weeks (= ticks) so it matches the rest of
-  // the HUD's vocabulary. Negative values clamp to 0 for the "closing now"
-  // edge case where the engine hasn't yet flipped the status.
-  const remainingTicks = Math.max(
-    0,
-    resolution.votingClosesAtTick - currentTick,
-  );
-
-  // Tally the votes. Veto is folded into the "no" column for the chip
-  // breakdown but also surfaces explicitly as a separate badge below.
-  const tally = countVotes(resolution.votes);
-
-  const targetLine = resolveTargetLabel(resolution, countryName, regionName);
+  const cast = (vote: UNVote) => commit({ type: 'voteUN', resolutionId: resolution.id, vote });
+  const veto = () =>
+    confirm({
+      titleKey: 'panelUN.confirm.veto.title',
+      descriptionKey: 'panelUN.confirm.veto.description',
+      confirmKey: 'panelUN.vote.veto',
+      cancelKey: 'common.cancel',
+      tone: 'danger',
+      onConfirm: async () => {
+        await cast('veto');
+      },
+    });
 
   return (
-    <article
-      className={cn(
-        'flex flex-col gap-2 py-3 pl-3 transition',
-        STATUS_RULE[resolution.status],
-      )}
+    <Card
+      tone={voting && myVote === undefined ? 'info' : 'neutral'}
+      data-testid={`un-resolution-${resolution.id}`}
+      data-status={resolution.status}
+      className="flex flex-col gap-3"
     >
-      {/* Header: kind icon + title + status pill. */}
-      <header className="flex items-start gap-2">
-        <Icon
-          aria-hidden
-          className={cn('mt-0.5 h-4 w-4 shrink-0', STATUS_CHIP[resolution.status])}
-        />
-        <div className="flex flex-1 flex-col gap-0.5">
-          <h3 className="text-sm font-semibold leading-tight text-fg">
-            {resolveScenarioKey(
-              tScenario,
-              resolution.titleKey,
-              fallbackKindTitle(resolution),
-            )}
-          </h3>
-          <p className="text-[11px] leading-snug text-fg-muted">
-            {resolveScenarioKey(tScenario, resolution.descriptionKey, '')}
-          </p>
-        </div>
-        <span
-          className={cn(
-            'shrink-0 font-mono text-[10px] uppercase tracking-[0.14em]',
-            STATUS_CHIP[resolution.status],
-          )}
-        >
-          {t(`status.${resolution.status}`)}
+      <div className="flex items-start gap-3">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/[0.07] text-fg-muted">
+          <Icon aria-hidden className="h-4 w-4" />
         </span>
-      </header>
-
-      {/* Meta row: target country / region + countdown (only while voting). */}
-      <dl className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[11px] text-fg-muted">
-        {targetLine ? (
-          <div className="flex items-baseline gap-1">
-            <dt className="uppercase tracking-wider text-fg-faint">
-              {t('target.label')}
-            </dt>
-            <dd className="font-mono text-fg">{targetLine}</dd>
-          </div>
-        ) : null}
-        <div className="flex items-baseline gap-1">
-          <dt className="uppercase tracking-wider text-fg-faint">
-            {t('proposer')}
-          </dt>
-          <dd className="font-mono text-fg">
-            {countryName(resolution.proposerCountryId)}
-          </dd>
+        <div className="min-w-0 flex-1">
+          <h4 className="text-[13px] font-semibold leading-tight text-fg">{text.title}</h4>
+          {text.title !== t(`kind.${resolution.kind}`) ? (
+            <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+              {t(`kind.${resolution.kind}`)}
+            </p>
+          ) : null}
         </div>
-        {isVoting ? (
-          <div className="flex items-baseline gap-1">
-            <dt className="uppercase tracking-wider text-fg-faint">
-              {t('votingClosesAt')}
-            </dt>
-            <dd className="font-mono text-warning">
-              {t('weeksRemaining', { n: remainingTicks })}
-            </dd>
-          </div>
+        <Chip tone={STATUS_TONE[resolution.status]}>{t(`status.${resolution.status}`)}</Chip>
+      </div>
+      {text.description ? <p className="text-[11px] leading-snug text-fg-muted">{text.description}</p> : null}
+
+      <dl className="flex flex-col gap-1">
+        <Fact label={t('card.proposer')} words>{w.nameOf(resolution.proposerCountryId)}</Fact>
+        {target ? (
+          <Fact label={t('card.target')} words>
+            {target}
+          </Fact>
         ) : null}
       </dl>
 
-      {/* Tally chips — yes / no / abstain (+ veto if any). */}
-      <ul
-        className="flex flex-wrap gap-1.5 text-[10px] font-mono uppercase"
-        aria-label={t('tally.label')}
-      >
-        <TallyChip vote="yes" count={tally.yes} label={t('vote.yes')} />
-        <TallyChip vote="no" count={tally.no} label={t('vote.no')} />
-        <TallyChip
-          vote="abstain"
-          count={tally.abstain}
-          label={t('vote.abstain')}
+      {voting ? (
+        <Meter
+          tone="info"
+          value={(w.state.tick - resolution.proposedAtTick) / span}
+          label={t('card.closes')}
+          valueLabel={t('weeksRemaining', { n: weeksLeft })}
         />
-        {tally.veto > 0 ? (
-          <TallyChip vote="veto" count={tally.veto} label={t('vote.veto')} />
-        ) : null}
-      </ul>
-
-      {/* Voting controls — only when player is a council voter, on an open
-          resolution, and hasn't voted yet. */}
-      {isVoting && playerIsCouncil && !playerHasVoted ? (
-        <div className="grid grid-cols-3 gap-1.5">
-          <ActionButton
-            tone="primary"
-            onClick={() => onVote(resolution.id, 'yes')}
-            onErrors={onErrors}
-          >
-            {t('vote.yes')}
-          </ActionButton>
-          <ActionButton
-            tone="neutral"
-            onClick={() => onVote(resolution.id, 'no')}
-            onErrors={onErrors}
-          >
-            {t('vote.no')}
-          </ActionButton>
-          <ActionButton
-            tone="neutral"
-            onClick={() => onVote(resolution.id, 'abstain')}
-            onErrors={onErrors}
-          >
-            {t('vote.abstain')}
-          </ActionButton>
-          {/* Veto: shown only for permanent council members. The spec asks for
-              a confirm step because the reputation hit is significant. */}
-          {onVeto ? (
-            <div className="col-span-3">
-              <ActionButton
-                tone="danger"
-                onClick={() => onVeto(resolution.id)}
-                onErrors={onErrors}
-                hint={t('vote.vetoHint')}
-              >
-                {t('vote.veto')}
-              </ActionButton>
-            </div>
-          ) : null}
-        </div>
       ) : null}
 
-      {/* "Already voted" hint when applicable. */}
-      {isVoting && playerIsCouncil && playerHasVoted ? (
-        <p className="text-[11px] italic text-fg-faint">
-          {t('alreadyVoted', {
-            vote: t(`vote.${resolution.votes[playerCountryId] ?? 'abstain'}`),
-          })}
-        </p>
-      ) : null}
-      {isVoting && !playerIsCouncil ? (
-        <p className="text-[11px] italic text-fg-faint">
-          {t('notCouncilMember')}
-        </p>
-      ) : null}
-
-      {/* Per-country vote pills (collapsible). */}
-      {Object.keys(resolution.votes).length > 0 || councilMemberIds.length > 0 ? (
-        <Section
-          title={
-            <span className="text-[11px] font-semibold uppercase tracking-wider">
-              {t('detailedVotes')}
-            </span>
-          }
-          defaultOpen={false}
-          trailing={`${Object.keys(resolution.votes).length} / ${councilMemberIds.length}`}
+      <div>
+        <div
+          className="flex h-2 overflow-hidden rounded-full bg-white/10"
+          role="img"
+          aria-label={t('tally.aria', { yes: tally.yes, no: tally.no, abstain: tally.abstain, veto: tally.veto })}
         >
-          <ul className="flex flex-wrap gap-1.5">
-            {(councilMemberIds.length > 0
-              ? councilMemberIds
-              : (Object.keys(resolution.votes) as CountryId[])
-            ).map((cid) => {
-              const v = resolution.votes[cid];
-              return (
-                <li
-                  key={cid}
-                  className={cn(
-                    'flex items-center gap-1 rounded-sm border bg-transparent px-2 py-0.5 text-[10px] font-mono uppercase',
-                    v ? VOTE_CHIP_TONE[v] : 'border-border text-fg-faint',
-                  )}
-                >
-                  <span className="truncate">{countryName(cid)}</span>
-                  <span aria-hidden>·</span>
-                  <span>{v ? t(`vote.${v}`) : t('vote.pending')}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </Section>
+          {VOTES.map((v) =>
+            tally[v] > 0 ? (
+              <span key={v} className={cn('h-full', VOTE_FILL[v])} style={{ width: `${(tally[v] / total) * 100}%` }} />
+            ) : null,
+          )}
+        </div>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-fg-muted">
+          {VOTES.filter((v) => v !== 'veto' || tally.veto > 0).map((v) => (
+            <span key={v} className="inline-flex items-center gap-1">
+              <span aria-hidden className={cn('h-2 w-2 rounded-full', VOTE_FILL[v])} />
+              {t(`vote.${v}`)} <span className="numeric-tabular text-fg">{tally[v]}</span>
+            </span>
+          ))}
+          {voting && tally.pending > 0 ? <span className="text-fg-faint">{t('tally.pending', { n: tally.pending })}</span> : null}
+        </div>
+        <button
+          type="button"
+          aria-expanded={showVotes}
+          onClick={() => setShowVotes((v) => !v)}
+          className="mt-1.5 inline-flex items-center gap-1 rounded text-[11px] font-medium text-fg-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {t('detailedVotes')}
+          <ChevronDown aria-hidden className={cn('h-3.5 w-3.5 transition-transform', showVotes && 'rotate-180')} />
+        </button>
+        {showVotes ? (
+          <dl className="mt-1.5 flex flex-col gap-1.5 text-[11px] leading-snug">
+            {VOTES.filter((v) => tally[v] > 0).map((v) => (
+              <div key={v}>
+                <dt className="font-semibold text-fg">{t(`vote.${v}`)}</dt>
+                <dd className="text-fg-muted">
+                  {Object.entries(resolution.votes)
+                    .filter(([, vote]) => vote === v)
+                    .map(([id]) => w.nameOf(id))
+                    .join(', ')}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-1.5 border-t border-white/10 pt-2.5 text-[11px] leading-snug">
+        {voting ? (
+          <>
+            <p className="text-fg-muted">
+              <span className="font-semibold text-success">{t('effects.ifPassed')}</span> {passText}
+            </p>
+            {onFail.length > 0 ? (
+              <p className="text-fg-muted">
+                <span className="font-semibold text-[#ff8a7d]">{t('effects.ifFailed')}</span> {onFail.join(' ')}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          // Closed: only the outcome that actually applied.
+          <p className="text-fg-muted">
+            <span className="font-semibold text-fg">{t('effects.applied')}</span>{' '}
+            {resolution.status === 'passed'
+              ? passText
+              : resolution.status === 'failed' && onFail.length > 0
+                ? onFail.join(' ')
+                : t('effects.nothing')}
+          </p>
+        )}
+      </div>
+
+      {voting ? (
+        myVote === undefined ? (
+          <div className="flex flex-col gap-2" role="group" aria-label={t('vote.label')}>
+            <div className="grid grid-cols-3 gap-2">
+              <Button size="sm" icon={Check} onClick={() => void cast('yes')} data-testid="un-vote-yes">
+                {t('vote.yes')}
+              </Button>
+              <Button size="sm" icon={X} onClick={() => void cast('no')} data-testid="un-vote-no">
+                {t('vote.no')}
+              </Button>
+              <Button size="sm" icon={Minus} onClick={() => void cast('abstain')} data-testid="un-vote-abstain">
+                {t('vote.abstain')}
+              </Button>
+            </div>
+            {isCouncil ? (
+              <Button size="sm" variant="danger" icon={ShieldX} onClick={veto} data-testid="un-vote-veto">
+                {t('vote.vetoCta')}
+              </Button>
+            ) : null}
+            <p className="text-[11px] leading-snug text-fg-faint">{t('vote.rules')}</p>
+          </div>
+        ) : (
+          <p role="status" className="text-[11px] text-fg-muted" data-testid="un-voted">
+            {t('alreadyVoted', { vote: t(`vote.${myVote}`) })}
+          </p>
+        )
+      ) : myVote !== undefined ? (
+        <p className="text-[11px] text-fg-faint">{t('youVoted', { vote: t(`vote.${myVote}`) })}</p>
       ) : null}
-
-    </article>
+    </Card>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function countVotes(
-  votes: Record<CountryId, UNVote>,
-): Record<UNVote, number> {
-  const out: Record<UNVote, number> = { yes: 0, no: 0, abstain: 0, veto: 0 };
-  for (const v of Object.values(votes)) out[v] += 1;
-  return out;
-}
-
-function resolveTargetLabel(
-  resolution: UNResolution,
-  countryName: (id: CountryId) => string,
-  regionName: (id: string) => string,
-): string | null {
-  if (resolution.targetCountryId) return countryName(resolution.targetCountryId);
-  if (resolution.targetRegionId) return regionName(resolution.targetRegionId);
-  return null;
-}
-
-/**
- * Resolve a scenario-defined key (e.g. `un.gf.condemnation.title`) through
- * the scenario side-car bundle. The side-car getter returns the raw key on
- * miss, in which case we degrade to the supplied generic fallback so the
- * card never renders a dangling i18n key in front of the player.
- */
-function resolveScenarioKey(
-  tScenario: (key: string | undefined | null) => string,
-  key: string | undefined,
-  fallback: string,
-): string {
-  if (!key) return fallback;
-  const value = tScenario(key);
-  if (!value || value === key) return fallback;
-  return value;
-}
-
-function fallbackKindTitle(resolution: UNResolution): string {
-  return resolution.kind;
-}
-
-// ---------------------------------------------------------------------------
-// Tally chip — small visual element used in the header strip.
-// ---------------------------------------------------------------------------
-
-function TallyChip({
-  vote,
-  count,
-  label,
-}: {
-  vote: UNVote;
-  count: number;
-  label: string;
-}) {
-  return (
-    <li
-      className={cn(
-        'flex items-center gap-1 rounded-sm border bg-transparent px-2 py-0.5',
-        VOTE_CHIP_TONE[vote],
-      )}
-    >
-      <span aria-hidden>{label}</span>
-      <span className="numeric-tabular font-semibold">{count}</span>
-    </li>
-  );
-}
-
-export default UNResolutionCard;

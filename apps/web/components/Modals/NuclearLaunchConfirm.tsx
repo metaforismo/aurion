@@ -176,7 +176,7 @@ function Step1({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-sm border border-border bg-transparent px-4 py-2 text-xs font-semibold text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+            className="rounded-lg border border-white/10 bg-transparent px-4 py-2.5 text-sm font-semibold text-fg transition hover:border-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {t('step1.cancel')}
           </button>
@@ -186,10 +186,10 @@ function Step1({
             disabled={continueDisabled}
             aria-disabled={continueDisabled}
             className={cn(
-              'rounded-sm border bg-transparent px-4 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
+              'rounded-lg border bg-transparent px-4 py-2.5 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
               continueDisabled
-                ? 'cursor-not-allowed border-border text-fg-faint'
-                : 'border-border text-danger hover:border-danger',
+                ? 'cursor-not-allowed border-white/10 text-fg-faint'
+                : 'border-white/10 text-danger hover:border-danger',
             )}
           >
             {continueLabel}
@@ -206,7 +206,7 @@ function Step1({
           <li>{t(`step1.consequence.${kind}.warChain`)}</li>
           <li>{t(`step1.consequence.${kind}.aftermath`)}</li>
         </ul>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-y border-border py-2 text-xs">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-y border-white/10 py-2 text-xs">
           <dt className="font-semibold uppercase tracking-[0.14em] text-fg-muted">
             {t('step1.targetLabel')}
           </dt>
@@ -277,7 +277,7 @@ function Step2({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-sm border border-border bg-transparent px-4 py-2 text-xs font-semibold text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+            className="rounded-lg border border-white/10 bg-transparent px-4 py-2.5 text-sm font-semibold text-fg transition hover:border-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {t('step2.cancel')}
           </button>
@@ -287,10 +287,10 @@ function Step2({
             disabled={!match}
             aria-disabled={!match}
             className={cn(
-              'rounded-sm border px-4 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
+              'rounded-lg border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
               match
-                ? 'border-danger bg-danger text-bg'
-                : 'cursor-not-allowed border-border bg-transparent text-fg-faint',
+                ? 'border-danger bg-danger text-black'
+                : 'cursor-not-allowed border-white/10 bg-transparent text-fg-faint',
             )}
           >
             {t('step2.confirm')}
@@ -302,7 +302,7 @@ function Step2({
         <p className={cn('font-semibold leading-relaxed', tone('danger'))}>
           {t('step2.body')}
         </p>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-y border-border py-2 text-xs">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-y border-white/10 py-2 text-xs">
           <dt className="font-semibold uppercase tracking-[0.14em] text-fg-muted">
             {t('step2.targetLabel')}
           </dt>
@@ -330,12 +330,12 @@ function Step2({
             onChange={(e) => setTyped(e.target.value)}
             aria-invalid={mismatch || undefined}
             className={cn(
-              'rounded-sm border bg-transparent px-3 py-2 font-mono text-sm text-fg outline-none transition focus:border-accent',
+              'rounded-lg border bg-transparent px-3 py-2 font-mono text-sm text-fg outline-none transition focus:border-accent',
               match
                 ? 'border-danger'
                 : mismatch
                   ? 'border-danger'
-                  : 'border-border',
+                  : 'border-white/10',
             )}
           />
           {mismatch ? (

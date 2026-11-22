@@ -16,6 +16,8 @@ import type {
 } from './types.js';
 import { initBlocs } from './blocs/index.js';
 import { initReputation } from './reputation/index.js';
+import { initCosmos } from './cosmos/index.js';
+import { initPolicies } from './policies/index.js';
 import { initSpaceMilestones } from './space/index.js';
 import { initUN } from './un/index.js';
 import { initEraState } from './era/index.js';
@@ -260,5 +262,5 @@ export function createGame(scenario: Scenario, options: CreateGameOptions): Game
     ...(eraState !== undefined ? { eraState } : {}),
     ...(spaceMilestones !== undefined ? { spaceMilestones } : {}),
   };
-  return state;
+  return { ...state, cosmos: initCosmos(state), policies: initPolicies() };
 }

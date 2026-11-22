@@ -1194,6 +1194,12 @@
         "kind": "controlNCountries",
         "n": 4
       }
+    },
+    {
+      "id": "ascension",
+      "nameKey": "victory.ascension.name",
+      "descriptionKey": "victory.ascension.description",
+      "rule": { "kind": "kardashev", "atLeast": 1 }
     }
   ],
   "difficulties": [

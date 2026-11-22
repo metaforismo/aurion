@@ -65,12 +65,15 @@ export function AudioVolumeButton() {
     <div ref={containerRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          audio.play(open ? 'sfx.panel-close' : 'sfx.panel-open');
+          setOpen((v) => !v);
+        }}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={t('volumeButton')}
         className={cn(
-          'flex h-8 w-8 items-center justify-center rounded-sm transition-colors',
+          'flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
           open ? 'text-accent' : 'text-fg-muted hover:text-accent',
         )}
       >
@@ -101,7 +104,7 @@ function VolumePopover() {
       role="dialog"
       aria-modal={false}
       aria-labelledby={titleId}
-      className="glass-surface absolute right-0 z-30 mt-2 w-64 rounded-lg border border-border-strong bg-surface-1/95 p-3 shadow-2xl backdrop-blur"
+      className="glass-surface absolute right-0 z-30 mt-2 w-64 rounded-lg glass-panel p-3 "
     >
       <h3
         id={titleId}
@@ -157,10 +160,14 @@ function VolumeRow({
   const handleSlider = (e: ChangeEvent<HTMLInputElement>) => {
     const next = Number(e.target.value) / 100;
     audio.setCategoryVolume(category, next);
+    // Audible preview of the new SFX level while dragging (throttled so a
+    // drag doesn't machine-gun the sample).
+    if (category === 'sfx') audio.play('sfx.click', { minIntervalMs: 140 });
   };
 
   const handleMute = (e: ChangeEvent<HTMLInputElement>) => {
     audio.setCategoryMuted(category, e.target.checked);
+    if (category === 'sfx' && !e.target.checked) audio.play('sfx.click');
   };
 
   return (
@@ -187,7 +194,7 @@ function VolumeRow({
         disabled={muted}
         aria-label={label}
         className={cn(
-          'h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-2 accent-accent transition',
+          'h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/[0.09] accent-accent transition',
           muted && 'cursor-not-allowed opacity-50',
         )}
       />

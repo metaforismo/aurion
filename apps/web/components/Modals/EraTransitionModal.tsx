@@ -67,7 +67,7 @@ export function EraTransitionModal() {
         <button
           type="button"
           onClick={handleAcknowledge}
-          className="rounded-sm border border-accent bg-accent px-4 py-2 text-xs font-semibold text-bg transition hover:border-accent-strong hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          className="rounded-lg border border-accent bg-accent px-4 py-2.5 text-sm font-semibold text-black transition hover:border-accent-strong hover:bg-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           {t('continue')}
         </button>
@@ -121,7 +121,7 @@ function StatsSnapshotList({
 
   return (
     <ul
-      className="grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm"
+      className="grid grid-cols-2 gap-3 border-t border-white/10 pt-3 text-sm"
       aria-label={t('ariaLabel')}
     >
       <StatItem label={t('ticksPlayed')} value={`${ticks}`} />

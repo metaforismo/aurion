@@ -19,10 +19,19 @@ const requestedBrowsers = (process.env.PWBROWSERS ?? 'chromium')
   .map((s) => s.trim())
   .filter(Boolean);
 
+// Use an already-installed Chromium instead of the build this Playwright
+// version would download (handy in sandboxes and CI images that ship one).
+const chromiumPath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+
 const allProjects = [
   {
     name: 'chromium',
-    use: { ...devices['Desktop Chrome'] },
+    use: {
+      ...devices['Desktop Chrome'],
+      ...(chromiumPath
+        ? { launchOptions: { executablePath: chromiumPath, args: ['--no-sandbox'] } }
+        : {}),
+    },
   },
   {
     name: 'firefox',

@@ -1,409 +1,241 @@
-// Economy system panel.
-// Reads the player country's economy slice and dispatches:
-//   - setTaxRate (debounced via slider commit)
-//   - invest (target: 'infra' | 'economy')
-//
-// Layout follows the progressive-disclosure pattern:
-//   - PanelHero shows the BIG treasury value + a weekly-income delta chip
-//     and inline quick-stats (PIL, Aliquota).
-//   - Primary actions ("Investi" + "Cambia aliquota") sit just under the
-//     hero, with the existing sticky footer pinning the most common CTA.
-//   - All secondary surfaces (sector composition bars, tax slider, invest
-//     composer, income sparkline) live inside <Disclosure> blocks that
-//     default to collapsed.
-
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { EconomySectors } from '@aurion/engine';
+// Economy panel. Leads with the treasury and what it moves by each week,
+// explains where that income comes from, then offers the two levers the
+// engine has: the tax rate and investments.
+
+import { AlertTriangle, ChevronRight, Rocket, TrendingDown, TrendingUp } from 'lucide-react';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { useMemo } from 'react';
+import {
+  COSMOS_PROJECTS,
+  effectiveProjectCost,
+  getProjectStatus,
+  type EconomySectors,
+  type InvestTarget,
+} from '@aurion/engine';
 
 import { cn } from '../../lib/cn';
+import { money, percent } from '../../lib/format';
+import { selectActiveDifficulty, selectPlayerCountry, useGameStore } from '../../lib/store';
+import { Card, Chip, Row, SectionTitle } from '../ui';
+
+import { IncomeBreakdownCard } from './economy/IncomeBreakdownCard';
+import { IncomeTrend } from './economy/IncomeTrend';
+import { InvestCard } from './economy/InvestCard';
+import { TaxCard } from './economy/TaxCard';
+import { useIncomeHistory } from './economy/history';
 import {
-  selectPlayerCountry,
-  useGameStore,
-  type GameStoreState,
-} from '../../lib/store';
-import { ActionButton } from './shared/ActionButton';
-import { Disclosure } from './shared/Disclosure';
-import { EmptyState } from './shared/EmptyState';
-import { PanelHero } from './shared/PanelHero';
-import { StatBar } from './shared/StatBar';
-import { StickyFooter } from './shared/StickyFooter';
+  SERVICES_SECTOR_BONUS,
+  TECH_SECTOR_BONUS,
+  gdpRank,
+  incomeBreakdown,
+  investPreview,
+} from './economy/model';
+import { signedMoney } from './economy/money';
+import { useEngineAction } from './economy/useEngineAction';
 
-const SECTOR_KEYS: readonly (keyof EconomySectors)[] = [
-  'agriculture',
-  'industry',
-  'services',
-  'tech',
-];
+/** Weeks the treasury may stay negative before the game is lost (checkWinLoss.ts). */
+const LOSS_NEGATIVE_TREASURY_WEEKS = 26;
 
-const SECTOR_TONES: Record<keyof EconomySectors, 'positive' | 'warning' | 'info' | 'neutral'> = {
-  agriculture: 'positive',
-  industry: 'warning',
-  services: 'info',
-  tech: 'neutral',
+const SECTORS: readonly (keyof EconomySectors)[] = ['agriculture', 'industry', 'services', 'tech'];
+// One hue, four steps: sectors are a composition, not a state.
+const SECTOR_FILL: Record<keyof EconomySectors, string> = {
+  agriculture: 'bg-white/25',
+  industry: 'bg-white/45',
+  services: 'bg-white/70',
+  tech: 'bg-white',
 };
 
-export function EconomyPanel({
-  onErrors,
-}: {
-  onErrors?: (errors: string[]) => void;
-}) {
+export function EconomyPanel({ onErrors }: { onErrors?: (errors: string[]) => void }) {
   const t = useTranslations('panelEconomy');
-  const tShared = useTranslations('panelShared');
+  const tCosmos = useTranslations('cosmos');
+  const locale = useLocale();
   const fmt = useFormatter();
-
+  const state = useGameStore((s) => s.state);
+  const scenario = useGameStore((s) => s.scenario);
   const player = useGameStore(selectPlayerCountry);
-  const applyAction = useGameStore((s: GameStoreState) => s.applyAction);
+  const difficulty = useGameStore(selectActiveDifficulty);
+  const setSelectedPanel = useGameStore((s) => s.setSelectedPanel);
+  const history = useIncomeHistory();
+  const run = useEngineAction('panelEconomy', onErrors);
 
-  // Local pending rate scrubbed by the slider. We reset it via the React
-  // "derived state" pattern — when the engine-committed taxRate changes, we
-  // drop our pending value (no useEffect needed; this avoids cascading renders).
-  const engineTaxRate = player?.economy.taxRate ?? 0;
-  const [pendingRate, setPendingRate] = useState<number | null>(null);
-  const [lastSeenEngineRate, setLastSeenEngineRate] = useState<number>(engineTaxRate);
-  if (lastSeenEngineRate !== engineTaxRate) {
-    setLastSeenEngineRate(engineTaxRate);
-    if (pendingRate !== null) setPendingRate(null);
-  }
+  const incomeMul = difficulty?.modifiers.playerIncome ?? 1;
+  const lossTolerance = difficulty?.modifiers.lossToleranceWeeks ?? 1;
 
-  const [investAmount, setInvestAmount] = useState<string>('');
+  const breakdown = useMemo(
+    () => (state && player ? incomeBreakdown(player, state, incomeMul) : null),
+    [state, player, incomeMul],
+  );
 
-  // Debounce slider commits: only dispatch after the user has stopped
-  // scrubbing for ~250ms. Keeps the engine from re-running per pixel.
-  const debounceRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (pendingRate === null) return undefined;
-    if (debounceRef.current !== null) {
-      window.clearTimeout(debounceRef.current);
-    }
-    const target = pendingRate;
-    debounceRef.current = window.setTimeout(() => {
-      void applyAction({ type: 'setTaxRate', rate: target }).then((errors) => {
-        if (errors.length > 0) onErrors?.(errors);
-      });
-    }, 250);
-    return () => {
-      if (debounceRef.current !== null) {
-        window.clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
-    };
-  }, [pendingRate, applyAction, onErrors]);
+  // Megaprojects are the big one-off expense: show what is being built and
+  // the cheapest one the player could start next.
+  const megaprojects = useMemo(() => {
+    if (!state?.cosmos) return null;
+    const techs = scenario?.techTree ?? [];
+    const next = COSMOS_PROJECTS.filter((def) => getProjectStatus(state, def, techs).status === 'available')
+      .map((def) => ({ def, price: effectiveProjectCost(state, def) }))
+      .sort((a, b) => a.price - b.price)[0];
+    return { building: state.cosmos.active.length, next };
+  }, [state, scenario]);
 
-  // Naive linear projection: weeklyIncome scales ~ linearly with taxRate.
-  // We extrapolate from the current ratio (income/taxRate) so the preview
-  // matches whatever the engine currently models. This is an *informational*
-  // estimate only — the engine remains source of truth.
-  const liveRate = pendingRate ?? engineTaxRate;
-  const projectedIncome = useMemo(() => {
-    if (!player) return 0;
-    const e = player.economy;
-    if (e.taxRate <= 0) return e.weeklyIncome;
-    const ratio = e.weeklyIncome / e.taxRate;
-    return ratio * liveRate;
-  }, [player, liveRate]);
+  if (!state || !player || !breakdown) return null;
 
-  if (!player) {
-    return (
-      <div className="p-4">
-        <EmptyState>{tShared('noPlayer')}</EmptyState>
-      </div>
-    );
-  }
+  const { treasury, gdp, taxRate, sectors } = player.economy;
+  const rank = gdpRank(state);
+  const net = breakdown.net;
 
-  const economy = player.economy;
-  const ratePctLabel = fmt.number(liveRate / 100, { style: 'percent' });
-
-  const treasury = economy.treasury;
-  const investAmountNum = Number(investAmount);
-  const investAmountInvalid =
-    investAmount === '' ||
-    !Number.isFinite(investAmountNum) ||
-    investAmountNum <= 0;
-  const investAmountTooHigh = investAmountNum > treasury;
-
-  const investHelpText = investAmountInvalid
-    ? null
-    : investAmountTooHigh
-      ? tShared('insufficientTreasury')
-      : null;
-
-  const handleInvest = (target: 'infra' | 'economy') => async () => {
-    if (investAmountInvalid || investAmountTooHigh) return;
-    const errors = await applyAction({
-      type: 'invest',
-      target,
-      amount: investAmountNum,
-    });
-    if (errors.length > 0) {
-      onErrors?.(errors);
-    } else {
-      setInvestAmount('');
-    }
-  };
+  const redWeeks = state._loseStreaks?.negativeTreasuryWeeks ?? 0;
+  const redLimit = Math.ceil(LOSS_NEGATIVE_TREASURY_WEEKS * lossTolerance);
+  const runway = net < 0 && treasury > 0 ? Math.floor(treasury / -net) : null;
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      {/* Progressive-disclosure hero: BIG treasury value, weekly-income delta
-          chip, quick-stats (PIL + aliquota). The 4 sector bars, tax slider
-          and sparkline live below in a collapsed <Disclosure>. */}
-      <PanelHero
-        title={t('title')}
-        value={fmt.number(treasury)}
-        valueTone="success"
-        delta={{
-          value: economy.weeklyIncome,
-          label: t('weeklyDelta', {
-            value: fmt.number(economy.weeklyIncome, {
-              maximumFractionDigits: 0,
-            }),
-          }),
-        }}
-        quickStats={[
-          { label: t('gdp'), value: fmt.number(economy.gdp) },
-          { label: t('taxRate'), value: `${Math.round(economy.taxRate)}%` },
-        ]}
-      />
-
-      {/* Collapsed secondary content — sectors, fiscal policy, investments,
-          income trend. Keeps the rail tidy on first open. */}
-      <Disclosure summary={tShared('moreDetails')} trailing={t('details')}>
-        {/* Sectors. We highlight the dominant share with `text-fg`; the
-            smaller shares fade to `text-fg-muted` so the eye snaps to the
-            economy's centre of gravity at a glance. */}
-        <div className="flex flex-col gap-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('sectors.title')}
-          </div>
-          <ul className="flex flex-col gap-2">
-            {(() => {
-              const dominant = SECTOR_KEYS.reduce<keyof EconomySectors>(
-                (best, k) =>
-                  economy.sectors[k] > economy.sectors[best] ? k : best,
-                SECTOR_KEYS[0]!,
-              );
-              return SECTOR_KEYS.map((s) => (
-                <li key={s}>
-                  <StatBar
-                    label={
-                      <span className={s === dominant ? 'text-fg' : 'text-fg-muted'}>
-                        {t(`sectors.${s}`)}
-                      </span>
-                    }
-                    value={economy.sectors[s] * 100}
-                    max={100}
-                    valueLabel={fmt.number(economy.sectors[s], { style: 'percent', maximumFractionDigits: 1 })}
-                    tone={SECTOR_TONES[s]}
-                    ariaLabel={t(`sectors.${s}`)}
-                  />
-                </li>
-              ));
-            })()}
-          </ul>
+    <div className="flex flex-col gap-4 p-4" data-testid="economy-panel">
+      {/* ---- Treasury ---------------------------------------------------- */}
+      <section
+        aria-label={t('hero.treasury')}
+        className="rounded-xl border border-accent/25 bg-gradient-to-br from-accent/[0.09] via-transparent to-transparent p-4"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
+            {t('hero.treasury')}
+          </h3>
+          <Chip tone={net < 0 ? 'danger' : 'success'} icon={net < 0 ? TrendingDown : TrendingUp}>
+            <span className="numeric-tabular font-mono" data-testid="economy-net-income">
+              {signedMoney(net, locale)}
+            </span>{' '}
+            {t('perWeek')}
+          </Chip>
         </div>
+        <p
+          className={cn(
+            'numeric-tabular mt-2 font-mono text-4xl font-semibold leading-none',
+            treasury < 0 ? 'text-[#ff8a7d]' : 'text-fg',
+          )}
+          data-testid="economy-treasury"
+        >
+          {money(treasury, locale, 2)}
+        </p>
+        <div className="mt-3">
+          <IncomeTrend samples={history} />
+        </div>
+        <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-white/10 pt-3 text-center">
+          <div>
+            <dt className="text-[10px] uppercase tracking-wider text-fg-faint">{t('hero.gdp')}</dt>
+            <dd className="numeric-tabular font-mono text-sm text-fg">{money(gdp, locale)}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-wider text-fg-faint">{t('hero.rank')}</dt>
+            <dd className={cn('numeric-tabular font-mono text-sm', rank.rank === 1 ? 'text-accent' : 'text-fg')}>
+              {t('hero.rankValue', { rank: rank.rank, total: rank.total })}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-wider text-fg-faint">{t('hero.taxRate')}</dt>
+            <dd className="numeric-tabular font-mono text-sm text-fg">{Math.round(taxRate)}%</dd>
+          </div>
+        </dl>
+      </section>
 
-        {/* Fiscal policy — tax rate slider */}
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('tax.title')}
+      {treasury < 0 ? (
+        <Card tone="danger" role="alert" className="flex gap-2.5">
+          <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-[#ff8a7d]" />
+          <p className="text-xs leading-relaxed text-fg">
+            {t('warning.inTheRed', { weeks: redWeeks, left: Math.max(0, redLimit - redWeeks), limit: redLimit })}
+          </p>
+        </Card>
+      ) : runway !== null ? (
+        <Card tone="warning" className="flex gap-2.5">
+          <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <p className="text-xs leading-relaxed text-fg">{t('warning.runway', { weeks: runway, limit: redLimit })}</p>
+        </Card>
+      ) : null}
+
+      {/* ---- Where the money comes from ---------------------------------- */}
+      <section aria-label={t('sources.title')} className="flex flex-col gap-2">
+        <SectionTitle aside={t('perWeek')}>{t('sources.title')}</SectionTitle>
+        <IncomeBreakdownCard
+          breakdown={breakdown}
+          taxRate={taxRate}
+          onOpenDiplomacy={() => setSelectedPanel('diplomacy')}
+        />
+      </section>
+
+      {/* ---- Tax rate ---------------------------------------------------- */}
+      <section aria-label={t('tax.title')} className="flex flex-col gap-2">
+        <SectionTitle>{t('tax.title')}</SectionTitle>
+        <TaxCard
+          rate={taxRate}
+          currentNet={net}
+          projectNet={(rate) => incomeBreakdown(player, state, incomeMul, { taxRate: rate }).net}
+          onApply={(rate) => run({ type: 'setTaxRate', rate })}
+        />
+      </section>
+
+      {/* ---- Investments ------------------------------------------------- */}
+      <section aria-label={t('invest.title')} className="flex flex-col gap-2">
+        <SectionTitle>{t('invest.title')}</SectionTitle>
+        <p className="-mt-1 text-[11px] leading-snug text-fg-faint">{t('invest.intro')}</p>
+        <InvestCard
+          player={player}
+          preview={(target: InvestTarget, amount: number) => investPreview(player, state, incomeMul, target, amount)}
+          onInvest={(target, amount) => run({ type: 'invest', target, amount }, 'sfx.coin')}
+        />
+      </section>
+
+      {/* ---- Sector mix -------------------------------------------------- */}
+      <section aria-label={t('sectors.title')} className="flex flex-col gap-2">
+        <SectionTitle>{t('sectors.title')}</SectionTitle>
+        <Card>
+          <div className="flex h-2 gap-px overflow-hidden rounded-full" aria-hidden>
+            {SECTORS.map((id) => (
+              <div key={id} className={SECTOR_FILL[id]} style={{ width: `${sectors[id] * 100}%` }} />
+            ))}
           </div>
-          <div className="flex items-center justify-between text-xs text-fg">
-            <label htmlFor="economy-tax-rate" className="font-medium">
-              {t('tax.label')}
-            </label>
-            <span className="font-mono numeric-tabular text-fg">
-              {ratePctLabel}
-            </span>
-          </div>
-          <input
-            id="economy-tax-rate"
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={liveRate}
-            onChange={(e) => setPendingRate(Number(e.target.value))}
-            className="w-full accent-accent"
-          />
-          <p className="text-[11px] text-fg-faint">
-            {t('tax.preview', {
-              income: fmt.number(projectedIncome, { maximumFractionDigits: 2 }),
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+            {SECTORS.map((id) => (
+              <div key={id} className="flex items-center gap-2">
+                <span aria-hidden className={cn('h-2 w-2 shrink-0 rounded-full', SECTOR_FILL[id])} />
+                <dt className="min-w-0 flex-1 truncate text-[12px] text-fg-muted">{t(`sectors.${id}`)}</dt>
+                <dd className="numeric-tabular font-mono text-[12px] text-fg">{percent(sectors[id], locale)}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 border-t border-white/10 pt-2 text-[11px] leading-snug text-fg-faint">
+            {t('sectors.note', {
+              services: fmt.number(SERVICES_SECTOR_BONUS * 10, { maximumFractionDigits: 1 }),
+              tech: fmt.number(TECH_SECTOR_BONUS * 10, { maximumFractionDigits: 1 }),
             })}
           </p>
-        </div>
+        </Card>
+      </section>
 
-        {/* Investments — amount input + 2 invest buttons. */}
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('invest.title')}
-          </div>
-          <label htmlFor="economy-invest-amount" className="text-xs text-fg">
-            {t('invest.amountLabel')}
-          </label>
-          <input
-            id="economy-invest-amount"
-            inputMode="decimal"
-            type="number"
-            min={0}
-            step={1}
-            placeholder="0"
-            value={investAmount}
-            onChange={(e) => setInvestAmount(e.target.value)}
-            className={cn(
-              'rounded-sm border bg-transparent px-2 py-1 font-mono numeric-tabular text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent',
-              investAmountTooHigh ? 'border-danger' : 'border-border',
-            )}
-            aria-invalid={investAmountTooHigh || undefined}
-            aria-describedby={investHelpText ? 'economy-invest-help' : undefined}
+      {/* ---- Megaprojects ------------------------------------------------ */}
+      {megaprojects ? (
+        <section aria-label={t('mega.title')} className="flex flex-col gap-2">
+          <SectionTitle>{t('mega.title')}</SectionTitle>
+          <Row
+            testId="economy-open-cosmos"
+            onClick={() => setSelectedPanel('cosmos')}
+            leading={<Rocket aria-hidden className="h-4 w-4 text-[#8ad8ff]" />}
+            title={t('mega.building', { n: megaprojects.building })}
+            subtitle={
+              // Project names are long: let this line wrap instead of cutting the price off.
+              <span className="whitespace-normal">
+                {megaprojects.next
+                  ? t('mega.next', {
+                      name: tCosmos(`projects.${megaprojects.next.def.id}.name`),
+                      // Keep "€" and the figure on one line.
+                      price: money(megaprojects.next.price, locale).replace(' ', '\u00a0'),
+                    })
+                  : t('mega.none')}
+              </span>
+            }
+            trailing={<ChevronRight aria-hidden className="h-4 w-4 text-fg-faint" />}
           />
-          {investHelpText ? (
-            <p
-              id="economy-invest-help"
-              className="text-[11px] text-danger"
-              role="status"
-            >
-              {investHelpText}
-            </p>
-          ) : null}
-          <div className="grid grid-cols-2 gap-2">
-            <ActionButton
-              tone="primary"
-              cost={investAmount ? fmt.number(investAmountNum) : null}
-              disabledReason={
-                investAmountInvalid
-                  ? tShared('enterAmount')
-                  : investAmountTooHigh
-                    ? tShared('insufficientTreasury')
-                    : null
-              }
-              onClick={handleInvest('infra')}
-              onErrors={onErrors}
-            >
-              {t('invest.infra')}
-            </ActionButton>
-            <ActionButton
-              tone="primary"
-              cost={investAmount ? fmt.number(investAmountNum) : null}
-              disabledReason={
-                investAmountInvalid
-                  ? tShared('enterAmount')
-                  : investAmountTooHigh
-                    ? tShared('insufficientTreasury')
-                    : null
-              }
-              onClick={handleInvest('economy')}
-              onErrors={onErrors}
-            >
-              {t('invest.economy')}
-            </ActionButton>
-          </div>
-        </div>
-
-        {/* Income trend (recent weekly income — derived from rolling history) */}
-        <div className="flex flex-col gap-1 border-t border-border pt-3">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('history.title')}
-          </div>
-          <IncomeSparkline weeklyIncome={economy.weeklyIncome} />
-          <p className="text-[11px] text-fg-faint">{t('history.note')}</p>
-        </div>
-      </Disclosure>
-
-      {/* Sticky primary action — duplicates the "Invest in economy" button
-          above so it's always reachable without scrolling. Disabled until the
-          player has entered a valid amount; the helper hint explains why. */}
-      <StickyFooter
-        hint={
-          investAmountInvalid
-            ? tShared('stickyAction.economyHint')
-            : null
-        }
-      >
-        <ActionButton
-          tone="primary"
-          cost={investAmount ? fmt.number(investAmountNum) : null}
-          disabledReason={
-            investAmountInvalid
-              ? tShared('enterAmount')
-              : investAmountTooHigh
-                ? tShared('insufficientTreasury')
-                : null
-          }
-          onClick={handleInvest('economy')}
-          onErrors={onErrors}
-        >
-          {t('invest.economy')}
-        </ActionButton>
-      </StickyFooter>
+        </section>
+      ) : null}
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-/**
- * Inline sparkline — keeps a small ring buffer in component state of recent
- * weeklyIncome samples observed while this panel is mounted. We can't access
- * historical engine snapshots without a dedicated selector, so this is a
- * "live" trace that grows as the player watches the panel.
- */
-function IncomeSparkline({ weeklyIncome }: { weeklyIncome: number }) {
-  const t = useTranslations('panelEconomy');
-  const [history, setHistory] = useState<number[]>([weeklyIncome]);
-  const lastSampleRef = useRef<number>(weeklyIncome);
-
-  useEffect(() => {
-    if (lastSampleRef.current === weeklyIncome) return;
-    lastSampleRef.current = weeklyIncome;
-    setHistory((prev) => {
-      const next = [...prev, weeklyIncome];
-      return next.length > 12 ? next.slice(next.length - 12) : next;
-    });
-  }, [weeklyIncome]);
-
-  if (history.length < 2) {
-    return (
-      <p className="text-[11px] text-fg-faint">{t('history.empty')}</p>
-    );
-  }
-
-  const min = Math.min(...history);
-  const max = Math.max(...history);
-  const range = max - min || 1;
-  const w = 200;
-  const h = 36;
-  const stepX = w / Math.max(history.length - 1, 1);
-  const points = history
-    .map((v, i) => {
-      const y = h - ((v - min) / range) * h;
-      const x = i * stepX;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(' ');
-
-  const trendingUp =
-    history[history.length - 1]! >= history[0]!;
-
-  return (
-    <svg
-      viewBox={`0 0 ${w} ${h}`}
-      className="h-9 w-full"
-      role="img"
-      aria-label={t('history.label')}
-    >
-      <polyline
-        fill="none"
-        stroke={trendingUp ? 'var(--color-success)' : 'var(--color-danger)'}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points={points}
-      />
-    </svg>
   );
 }
 

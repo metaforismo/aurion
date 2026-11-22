@@ -89,7 +89,7 @@ export function NuclearStrikeIncomingModal({
         <button
           type="button"
           onClick={dismiss}
-          className="rounded-sm border border-danger bg-transparent px-4 py-2 text-xs font-semibold text-danger transition hover:border-danger focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          className="rounded-lg border border-danger bg-transparent px-4 py-2.5 text-sm font-semibold text-danger transition hover:border-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           {t('dismiss')}
         </button>

@@ -1,355 +1,326 @@
-// Politics system panel.
-//
-// Progressive-disclosure layout:
-//   - PanelHero: popularity as the BIG number, semantic colour band (success
-//     ≥ 60, warning ≥ 30, danger below). Quick-stats: faction count + avg
-//     satisfaction.
-//   - Primary action: "Placate weakest faction" pinned in the sticky footer.
-//   - Collapsed: popularity dial, government type, full faction breakdown
-//     with per-row placate buttons, and the recent-events log.
-
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
-import { useMemo } from 'react';
-import type {
-  EventDefinition,
-  EventTag,
-  FactionId,
-  GameEvent,
-  GovernmentType,
-} from '@aurion/engine';
+// Internal politics panel. Leads with popularity — the number that ends the
+// game when it collapses — and where it is heading, then the government,
+// the national policies, and the five factions whose mood drives it all.
+
+import { AlertTriangle, Landmark, Newspaper, TrendingDown, TrendingUp } from 'lucide-react';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { useMemo, useState } from 'react';
+import type { EventTag, FactionId } from '@aurion/engine';
 
 import { cn } from '../../lib/cn';
+import { money } from '../../lib/format';
+import type { ScenarioId } from '../../lib/scenarios';
+import { selectActiveDifficulty, selectPlayerCountry, useGameStore } from '../../lib/store';
+import { Card, Chip, EmptyState, SectionTitle, type Tone } from '../ui';
+
+import { PoliciesSection } from './PoliciesSection';
+import { useEngineAction } from './economy/useEngineAction';
+import { FactionCard } from './politics/FactionCard';
 import {
-  selectPlayerCountry,
-  useGameStore,
-  type GameStoreState,
-} from '../../lib/store';
-import { ScenarioId } from '../../lib/scenarios';
-import { ActionButton } from './shared/ActionButton';
-import { Disclosure } from './shared/Disclosure';
-import { EmptyState } from './shared/EmptyState';
-import { PanelHero } from './shared/PanelHero';
-import { StatBar } from './shared/StatBar';
-import { StickyFooter } from './shared/StickyFooter';
+  FACTIONS,
+  GOVERNMENT_BONUS,
+  HOSTILE_THRESHOLD,
+  LOSS_ALL_FACTIONS_HOSTILE_WEEKS,
+  LOSS_LOW_POPULARITY_WEEKS,
+  LOW_POPULARITY_THRESHOLD,
+  PLACATE_BOOST,
+  PLACATE_COST,
+  factionDrift,
+  factionMood,
+  influenceShare,
+  lossLimit,
+  mostUrgentFaction,
+  policiesFor,
+  popularityOutlook,
+} from './politics/model';
 import { useScenarioMessages } from './shared/useScenarioMessages';
 
-const FACTION_IDS: readonly FactionId[] = [
-  'army',
-  'business',
-  'religious',
-  'populist',
-  'reformist',
-];
+/** Events with one of these tags are listed as political news. */
+const POLITICAL_TAGS: ReadonlySet<EventTag> = new Set<EventTag>(['politics', 'faction', 'social']);
+const NEWS_LIMIT = 8;
+/** Below this the panel starts warning, well before the real threshold. */
+const UNEASY_POPULARITY = 25;
 
-// Mirror engine's PLACATE_COST so we can show the cost in the UI without
-// importing engine internals (only constants — pure data).
-const PLACATE_COST = 100_000_000;
-
-const GOVERNMENT_LABEL: Record<GovernmentType, string> = {
-  democracy: 'panelPolitics.government.democracy',
-  autocracy: 'panelPolitics.government.autocracy',
-  oligarchy: 'panelPolitics.government.oligarchy',
-  theocracy: 'panelPolitics.government.theocracy',
-  monarchy: 'panelPolitics.government.monarchy',
-};
-
-/**
- * Tags this panel cares about. Any event whose definition carries at least
- * one of these tags shows up in the "Recent political events" list. Update
- * this set rather than reach into event ids.
- */
-const POLITICS_TAGS: ReadonlySet<EventTag> = new Set<EventTag>([
-  'politics',
-  'faction',
-  'social',
-]);
-
-export function PoliticsPanel({
-  onErrors,
-}: {
-  onErrors?: (errors: string[]) => void;
-}) {
+export function PoliticsPanel({ onErrors }: { onErrors?: (errors: string[]) => void }) {
   const t = useTranslations('panelPolitics');
-  const tShared = useTranslations('panelShared');
-  const tRoot = useTranslations();
+  const locale = useLocale();
   const fmt = useFormatter();
-
+  const state = useGameStore((s) => s.state);
+  const scenario = useGameStore((s) => s.scenario);
   const player = useGameStore(selectPlayerCountry);
-  const state = useGameStore((s: GameStoreState) => s.state);
-  const scenario = useGameStore((s: GameStoreState) => s.scenario);
-  const applyAction = useGameStore((s: GameStoreState) => s.applyAction);
+  const difficulty = useGameStore(selectActiveDifficulty);
+  const { t: tScenario } = useScenarioMessages((scenario?.id as ScenarioId | undefined) ?? null);
+  const run = useEngineAction('panelPolitics', onErrors);
+  const [busy, setBusy] = useState<FactionId | null>(null);
+  const [announcement, setAnnouncement] = useState('');
 
-  const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
-  const { t: tScenario } = useScenarioMessages(scenarioId);
-
-  // Build a lookup of definitionId -> tags from the scenario's eventPool so
-  // we can filter the recent-events log by the EventTag taxonomy. Falls back
-  // to an empty tag list when an event id is missing from the pool (defensive
-  // — keeps the panel usable mid-hot-reload).
-  const tagsByDefinitionId = useMemo<Map<string, readonly EventTag[]>>(() => {
-    const map = new Map<string, readonly EventTag[]>();
-    if (!scenario) return map;
-    for (const def of scenario.eventPool as readonly EventDefinition[]) {
-      map.set(def.id, def.tags ?? []);
-    }
-    return map;
-  }, [scenario]);
-
-  // Politics-related events: keep any whose definition carries a tag in
-  // POLITICS_TAGS. Cap to the most recent 8 for readability.
-  const politicalEvents = useMemo<GameEvent[]>(() => {
-    if (!state) return [];
+  const news = useMemo(() => {
+    if (!state || !scenario) return [];
+    const byId = new Map(scenario.eventPool.map((def) => [def.id, def]));
     return state.events
-      .filter((ev) => {
-        const tags = tagsByDefinitionId.get(ev.definitionId) ?? [];
-        return tags.some((tag) => POLITICS_TAGS.has(tag));
-      })
-      .slice(-8)
+      .map((event) => ({ event, def: byId.get(event.definitionId) }))
+      .filter(({ def }) => def?.tags?.some((tag) => POLITICAL_TAGS.has(tag)))
+      .slice(-NEWS_LIMIT)
       .reverse();
-  }, [state, tagsByDefinitionId]);
+  }, [state, scenario]);
 
-  if (!player || !state) {
-    return (
-      <div className="p-4">
-        <EmptyState>{tShared('noPlayer')}</EmptyState>
-      </div>
-    );
-  }
+  if (!state || !player) return null;
 
-  const politics = player.politics;
+  const { popularity, factions, governmentType } = player.politics;
   const treasury = player.economy.treasury;
+  const tolerance = difficulty?.modifiers.lossToleranceWeeks ?? 1;
+  const mood = factionMood(player);
+  const outlook = popularityOutlook(player, state, mood);
+  const hostile = FACTIONS.filter((id) => factions[id].satisfaction < HOSTILE_THRESHOLD).length;
+  const urgent = mostUrgentFaction(player);
+  const canAfford = treasury >= PLACATE_COST;
 
-  const handlePlacate = (factionId: FactionId) => async () => {
-    const errors = await applyAction({ type: 'placateFaction', factionId });
-    return errors;
+  const popLimit = lossLimit(LOSS_LOW_POPULARITY_WEEKS, tolerance);
+  const popWeeks = state._loseStreaks?.lowPopularityWeeks ?? 0;
+  const hostileLimit = lossLimit(LOSS_ALL_FACTIONS_HOSTILE_WEEKS, tolerance);
+  const hostileWeeks = state._loseStreaks?.allFactionsAngryWeeks ?? 0;
+  const inCrisis = popularity < LOW_POPULARITY_THRESHOLD;
+  const allHostile = hostile === FACTIONS.length;
+
+  const standing: { tone: Tone; key: 'crisis' | 'uneasy' | 'steady' | 'strong' } = inCrisis
+    ? { tone: 'danger', key: 'crisis' }
+    : popularity < UNEASY_POPULARITY
+      ? { tone: 'warning', key: 'uneasy' }
+      : popularity < 60
+        ? { tone: 'neutral', key: 'steady' }
+        : { tone: 'success', key: 'strong' };
+
+  const pct = (n: number) => `${Math.round(n)}%`;
+  const weekly = fmt.number(outlook.weekly, { maximumFractionDigits: 1, signDisplay: 'exceptZero' });
+  const rising = outlook.weekly >= 0.05;
+  const falling = outlook.weekly <= -0.05;
+
+  const placate = async (id: FactionId) => {
+    const before = factions[id].satisfaction;
+    setBusy(id);
+    const ok = await run({ type: 'placateFaction', factionId: id }, 'sfx.coin');
+    setBusy(null);
+    if (ok) {
+      setAnnouncement(
+        t('placate.done', { name: t(`faction.${id}.name`), value: pct(Math.min(100, before + PLACATE_BOOST)) }),
+      );
+    }
   };
 
-  // Pick a semantic tone for the popularity readout itself. The dial uses the
-  // accent token unconditionally so the gauge stays visually anchored.
-  const popularityTone =
-    politics.popularity >= 60
-      ? 'success'
-      : politics.popularity >= 30
-        ? 'warning'
-        : 'danger';
-
-  // Find the weakest faction so the sticky CTA can target it directly.
-  let weakestId: FactionId = FACTION_IDS[0]!;
-  let weakestSat = Infinity;
-  let satTotal = 0;
-  for (const fid of FACTION_IDS) {
-    const sat = politics.factions[fid]?.satisfaction ?? 100;
-    satTotal += sat;
-    if (sat < weakestSat) {
-      weakestSat = sat;
-      weakestId = fid;
-    }
-  }
-  const avgSat = satTotal / FACTION_IDS.length;
-  const cantAfford = treasury < PLACATE_COST;
+  const governmentNudges = Object.entries(GOVERNMENT_BONUS[governmentType]) as [FactionId, number][];
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      {/* Hero — popularity as the BIG number with semantic colour. */}
-      <PanelHero
-        title={t('title')}
-        value={`${Math.round(politics.popularity)}%`}
-        valueTone={popularityTone}
-        quickStats={[
-          { label: t('heroFactions'), value: FACTION_IDS.length },
-          {
-            label: t('heroAvgSatisfaction'),
-            value: `${Math.round(avgSat)}%`,
-          },
-        ]}
-      />
+    <div className="flex flex-col gap-4 p-4" data-testid="politics-panel">
+      {/* ---- Popularity -------------------------------------------------- */}
+      <section
+        aria-label={t('hero.popularity')}
+        className={cn(
+          'rounded-xl border bg-gradient-to-br via-transparent to-transparent p-4',
+          inCrisis ? 'border-[#ff5d4d]/40 from-[#ff5d4d]/[0.12]' : 'border-accent/25 from-accent/[0.09]',
+        )}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
+            {t('hero.popularity')}
+          </h3>
+          <Chip tone={standing.tone}>{t(`standing.${standing.key}`)}</Chip>
+        </div>
+        <div className="mt-2 flex items-end gap-3">
+          <span
+            className={cn(
+              'numeric-tabular font-mono text-4xl font-semibold leading-none',
+              inCrisis ? 'text-[#ff8a7d]' : standing.tone === 'warning' ? 'text-warning' : 'text-fg',
+            )}
+            data-testid="politics-popularity"
+          >
+            {pct(popularity)}
+          </span>
+          <span
+            className={cn(
+              'flex items-center gap-1 pb-1 font-mono text-[11px]',
+              rising ? 'text-success' : falling ? 'text-[#ff8a7d]' : 'text-fg-faint',
+            )}
+          >
+            {rising ? <TrendingUp aria-hidden className="h-3.5 w-3.5" /> : null}
+            {falling ? <TrendingDown aria-hidden className="h-3.5 w-3.5" /> : null}
+            {t('hero.weekly', { points: weekly })}
+          </span>
+        </div>
 
-      {/* Collapsed details — popularity dial, government type, factions,
-          political events. */}
-      <Disclosure summary={tShared('moreDetails')} trailing={t('details')}>
-        {/* Popularity dial */}
-        <div className="flex flex-col items-center gap-2 pb-3">
-          <PopularityDial value={politics.popularity} />
-          <div className="text-center">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-              {t('popularity')}
-            </div>
-            <div
-              className={cn(
-                'numeric-tabular font-mono text-2xl',
-                popularityTone === 'success'
-                  ? 'text-success'
-                  : popularityTone === 'warning'
-                    ? 'text-warning'
-                    : 'text-danger',
-              )}
+        {/* Gauge: the red stretch is the zone that topples the government. */}
+        <div
+          role="meter"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(popularity)}
+          aria-label={t('hero.popularity')}
+          className="relative mt-3 h-2 rounded-full bg-white/10"
+        >
+          <div
+            aria-hidden
+            className="absolute inset-y-0 left-0 rounded-l-full bg-[#ff5d4d]/35"
+            style={{ width: `${LOW_POPULARITY_THRESHOLD}%` }}
+          />
+          <div
+            aria-hidden
+            className={cn(
+              'absolute inset-y-0 left-0 rounded-full transition-[width] duration-500',
+              inCrisis ? 'bg-[#ff5d4d]' : standing.tone === 'warning' ? 'bg-warning' : 'bg-accent',
+            )}
+            style={{ width: `${Math.max(1.5, popularity)}%` }}
+          />
+          <div
+            aria-hidden
+            className="absolute -inset-y-1 w-0.5 rounded-full bg-fg/80"
+            style={{ left: `${Math.max(0, Math.min(100, outlook.settlesAt))}%` }}
+          />
+        </div>
+        <div className="mt-1 flex justify-between font-mono text-[10px] text-fg-faint" aria-hidden>
+          <span className="text-[#ff8a7d]">{t('hero.crisisMark', { pct: LOW_POPULARITY_THRESHOLD })}</span>
+          <span>100%</span>
+        </div>
+        <p className="mt-2 text-[11px] leading-snug text-fg-muted">
+          {t('hero.settles', { pct: pct(outlook.settlesAt) })}
+        </p>
+
+        <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-white/10 pt-3 text-center">
+          <div>
+            <dt className="text-[10px] uppercase tracking-wider text-fg-faint">{t('hero.government')}</dt>
+            <dd className="truncate text-sm text-fg">{t(`government.${governmentType}.name`)}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-wider text-fg-faint">{t('hero.mood')}</dt>
+            <dd className="numeric-tabular font-mono text-sm text-fg">{pct(mood)}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-wider text-fg-faint">{t('hero.hostile')}</dt>
+            <dd
+              className={cn('numeric-tabular font-mono text-sm', hostile > 0 ? 'text-[#ff8a7d]' : 'text-fg')}
+              data-testid="politics-hostile"
             >
-              {Math.round(politics.popularity)}%
-            </div>
+              {hostile}/{FACTIONS.length}
+            </dd>
           </div>
-        </div>
+        </dl>
+      </section>
 
-        {/* Government type */}
-        <div className="flex items-center justify-between border-t border-border pt-3">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('governmentType')}
+      {/* ---- How this ends the game -------------------------------------- */}
+      <Card
+        tone={inCrisis || allHostile ? 'danger' : popularity < UNEASY_POPULARITY || hostile >= 3 ? 'warning' : 'neutral'}
+        role={inCrisis || allHostile ? 'alert' : undefined}
+        data-testid="politics-danger"
+      >
+        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
+          <AlertTriangle aria-hidden className="h-3.5 w-3.5" />
+          {t('danger.title')}
+        </p>
+        <ul className="mt-2 flex flex-col gap-2 text-[12px] leading-snug">
+          <li className={inCrisis ? 'text-fg' : 'text-fg-muted'}>
+            {inCrisis
+              ? t('danger.popularityActive', {
+                  pct: LOW_POPULARITY_THRESHOLD,
+                  weeks: popWeeks,
+                  left: Math.max(0, popLimit - popWeeks),
+                })
+              : t('danger.popularity', { pct: LOW_POPULARITY_THRESHOLD, weeks: popLimit })}
+          </li>
+          <li className={allHostile ? 'text-fg' : 'text-fg-muted'}>
+            {allHostile
+              ? t('danger.factionsActive', {
+                  pct: HOSTILE_THRESHOLD,
+                  weeks: hostileWeeks,
+                  left: Math.max(0, hostileLimit - hostileWeeks),
+                })
+              : t('danger.factions', { pct: HOSTILE_THRESHOLD, weeks: hostileLimit, hostile })}
+          </li>
+        </ul>
+      </Card>
+
+      {/* ---- Government -------------------------------------------------- */}
+      <section aria-label={t('government.title')} className="flex flex-col gap-2">
+        <SectionTitle>{t('government.title')}</SectionTitle>
+        <Card className="flex gap-3">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/[0.06] text-fg-muted">
+            <Landmark aria-hidden className="h-4 w-4" />
           </span>
-          <span className="font-mono text-xs text-fg">
-            {tRoot(GOVERNMENT_LABEL[politics.governmentType])}
-          </span>
-        </div>
-
-        {/* Factions */}
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('factions.title')}
-          </div>
-          <ul className="flex flex-col divide-y divide-border">
-            {FACTION_IDS.map((fid) => {
-              const f = politics.factions[fid];
-              return (
-                <li
-                  key={fid}
-                  className="flex flex-col gap-2 py-3"
-                >
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-xs font-medium text-fg">
-                      {t(`faction.${fid}`)}
-                    </span>
-                    <span className="numeric-tabular font-mono text-[11px] text-fg-faint">
-                      {t('factions.influence', { n: Math.round(f.influence) })}
-                    </span>
-                  </div>
-                  <StatBar
-                    label={t('factions.satisfaction')}
-                    value={f.satisfaction}
-                    valueLabel={`${Math.round(f.satisfaction)}%`}
-                    tone={
-                      f.satisfaction >= 60
-                        ? 'positive'
-                        : f.satisfaction >= 30
-                          ? 'warning'
-                          : 'danger'
-                    }
-                  />
-                  <ActionButton
-                    tone="primary"
-                    cost={fmt.number(PLACATE_COST)}
-                    disabledReason={
-                      cantAfford ? tShared('insufficientTreasury') : null
-                    }
-                    onClick={handlePlacate(fid)}
-                    onErrors={onErrors}
-                  >
-                    {t('factions.placate')}
-                  </ActionButton>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-
-        {/* Recent political events */}
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <div className="flex items-baseline justify-between">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-              {t('events.title')}
-            </div>
-            <span className="text-[11px] font-mono text-fg-faint">
-              {politicalEvents.length}
-            </span>
-          </div>
-          {politicalEvents.length === 0 ? (
-            <EmptyState>{t('events.empty')}</EmptyState>
-          ) : (
-            <ul className="flex flex-col divide-y divide-border text-xs">
-              {politicalEvents.map((ev, i) => (
-                <li
-                  key={`${ev.definitionId}-${ev.firedAtTick}-${i}`}
-                  className="flex items-baseline justify-between gap-2 py-1.5"
-                >
-                  <span className="truncate text-fg">
-                    {tScenario(`event.${ev.definitionId}.name`) || ev.definitionId}
-                  </span>
-                  <span className="numeric-tabular font-mono text-[10px] text-fg-faint">
-                    {t('events.atTick', { tick: ev.firedAtTick })}
-                  </span>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-fg">{t(`government.${governmentType}.name`)}</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-fg-muted">{t(`government.${governmentType}.desc`)}</p>
+            <ul className="mt-2 flex flex-wrap gap-1">
+              {governmentNudges.map(([id, delta]) => (
+                <li key={id}>
+                  <Chip tone={delta > 0 ? 'success' : 'danger'}>
+                    {t(`faction.${id}.name`)}{' '}
+                    {fmt.number(delta, { maximumFractionDigits: 2, signDisplay: 'always' })}
+                  </Chip>
                 </li>
               ))}
             </ul>
-          )}
-        </div>
-      </Disclosure>
+            <p className="mt-1.5 text-[10px] text-fg-faint">{t('government.nudgeNote')}</p>
+          </div>
+        </Card>
+      </section>
 
-      {/* Sticky primary action — placate the *least* satisfied faction. This
-          is the most common political action and the one most likely to keep
-          popularity from cratering, so it's the right pin. */}
-      <StickyFooter
-        hint={
-          cantAfford ? tShared('insufficientTreasury') : null
-        }
-      >
-        <ActionButton
-          tone="primary"
-          cost={fmt.number(PLACATE_COST)}
-          disabledReason={cantAfford ? tShared('insufficientTreasury') : null}
-          onClick={handlePlacate(weakestId)}
-          onErrors={onErrors}
-        >
-          {`${t('factions.placate')}: ${t(`faction.${weakestId}`)}`}
-        </ActionButton>
-      </StickyFooter>
+      {/* ---- National policies ------------------------------------------- */}
+      <PoliciesSection onErrors={onErrors} />
+
+      {/* ---- Factions ---------------------------------------------------- */}
+      <section aria-label={t('factions.title')} className="flex flex-col gap-2">
+        <SectionTitle aside={t('factions.count', { n: FACTIONS.length })}>{t('factions.title')}</SectionTitle>
+        <p className="-mt-1 text-[11px] leading-snug text-fg-faint">
+          {t('factions.intro', { cost: money(PLACATE_COST, locale), points: PLACATE_BOOST })}
+        </p>
+        {canAfford ? null : (
+          <p className="text-[11px] leading-snug text-warning" data-testid="politics-cannot-afford">
+            {t('placate.blocked', { cost: money(PLACATE_COST, locale), treasury: money(treasury, locale) })}
+          </p>
+        )}
+        <ul className="flex flex-col gap-2">
+          {FACTIONS.map((id) => (
+            <FactionCard
+              key={id}
+              id={id}
+              satisfaction={factions[id].satisfaction}
+              share={influenceShare(player, id)}
+              drift={factionDrift(player, state, id)}
+              government={governmentType}
+              policies={state.policies ? policiesFor(id) : null}
+              urgent={id === urgent}
+              canAfford={canAfford}
+              busy={busy === id}
+              onPlacate={() => void placate(id)}
+            />
+          ))}
+        </ul>
+        <p role="status" aria-live="polite" className={announcement ? 'text-[11px] text-success' : 'sr-only'}>
+          {announcement}
+        </p>
+      </section>
+
+      {/* ---- Political news ---------------------------------------------- */}
+      <section aria-label={t('news.title')} className="flex flex-col gap-2">
+        <SectionTitle aside={news.length > 0 ? String(news.length) : undefined}>{t('news.title')}</SectionTitle>
+        {news.length === 0 ? (
+          <EmptyState icon={Newspaper}>{t('news.empty')}</EmptyState>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {news.map(({ event, def }, i) => (
+              <li
+                key={`${event.definitionId}-${event.firedAtTick}-${i}`}
+                className="flex items-baseline justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2"
+              >
+                <span className="min-w-0 truncate text-[13px] text-fg">{tScenario(def?.nameKey)}</span>
+                <span className="numeric-tabular shrink-0 font-mono text-[11px] text-fg-faint">
+                  {t('news.week', { week: event.firedAtTick })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
-  );
-}
-
-/**
- * Simple SVG semicircle "dial" gauge for popularity. The active arc uses the
- * brand accent token so the gauge harmonises with the rest of the HUD; the
- * track uses the standard border token. Colour intent (good / bad) lives on
- * the numeric readout above, not on the dial itself.
- */
-function PopularityDial({ value }: { value: number }) {
-  const t = useTranslations('panelPolitics');
-  const clamped = Math.max(0, Math.min(100, value));
-  const angle = (clamped / 100) * Math.PI; // 0..π
-  const r = 50;
-  const cx = 60;
-  const cy = 60;
-  // arc from (cx-r, cy) to (cx + r*cos(π-angle), cy - r*sin(π-angle)) but we
-  // want angle starting from left side going clockwise. Simpler: compute end
-  // point with angle from -π (left) to 0 (right).
-  const endX = cx + r * Math.cos(Math.PI - angle);
-  const endY = cy - r * Math.sin(Math.PI - angle);
-  const largeArc = angle > Math.PI / 2 ? 1 : 0;
-
-  return (
-    <svg
-      viewBox="0 0 120 70"
-      className="h-20 w-32"
-      role="img"
-      aria-label={t('popularity')}
-    >
-      {/* background arc */}
-      <path
-        d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-        fill="none"
-        stroke="var(--color-border)"
-        strokeWidth="6"
-        strokeLinecap="round"
-      />
-      {clamped > 0 ? (
-        <path
-          d={`M ${cx - r} ${cy} A ${r} ${r} 0 ${largeArc} 1 ${endX.toFixed(2)} ${endY.toFixed(2)}`}
-          fill="none"
-          stroke="var(--color-accent)"
-          strokeWidth="6"
-          strokeLinecap="round"
-        />
-      ) : null}
-    </svg>
   );
 }
 

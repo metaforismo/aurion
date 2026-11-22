@@ -1,26 +1,23 @@
-// Phase 3 spec §1420 — `game-mode-pick.spec.ts`:
-//   wizard → step 5 → seleziona Eternal → conferma → state.gameMode === 'eternal'
+// Game mode pick: the new-game flow starts with the mode ("what do I want
+// to do?"). Picking Odissea (engine id `eternal`) must end up in the running
+// game as `state.gameMode === 'eternal'`; picking Campagna as `classic`.
 //
-// The existing phase3 suite (`phase3.spec.ts`) verifies HUD visibility for the
-// VictoryCounter chip when Eternal is selected. This spec layers two more
-// signals on top:
-//   1) the game-mode picker (step 5) is actually reachable + selectable;
-//   2) `state.gameMode === 'eternal'` is persisted in the running engine
-//      state — surfaced via the `window.__aurion` test hook so the assertion
-//      is unambiguous and does not depend on UI rendering quirks.
+// Two signals per case:
+//   1) the HUD: the victory counter chip only exists in the open-ended mode;
+//   2) the engine state, read through the `window.__aurion` test hook so the
+//      assertion does not depend on how the HUD formats anything.
 
 import { expect, test } from '@playwright/test';
 
 import { dismissAllEventModals, startNewGame, waitForPlayReady } from './fixtures';
 import { readStateField, waitForStore } from './helpers/phase3';
 
-test.describe('Phase 3 — game mode picker', () => {
-  test('step 5 lets the player pick Eternal and the engine records it', async ({
+test.describe('game mode picker', () => {
+  test('picking Odissea in step 1 records gameMode eternal', async ({
     page,
   }) => {
-    // Drive the wizard the same way as the existing helpers: scenario,
-    // country, victory, difficulty, then game mode. The fixture clicks the
-    // localised card label ("Eterna" in IT) so we hit the actual user path.
+    // The fixture walks the real flow: mode card first, then world, nation
+    // and difficulty (Odissea has no victory step).
     const saveId = await startNewGame(page, {
       locale: 'it',
       scenarioId: 'mondo-contemporaneo',
@@ -47,10 +44,10 @@ test.describe('Phase 3 — game mode picker', () => {
     expect(gameMode).toBe('eternal');
   });
 
-  test('picking Classic does NOT mount the VictoryCounter chip', async ({
+  test('picking Campagna records gameMode classic and shows no victory counter', async ({
     page,
   }) => {
-    // Negative case: same wizard, Classic mode, no chip.
+    // Negative case: same flow in Campaign mode, no chip.
     await startNewGame(page, {
       locale: 'it',
       scenarioId: 'mondo-contemporaneo',

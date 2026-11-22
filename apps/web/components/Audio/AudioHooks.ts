@@ -9,11 +9,62 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+
+import type { AudioId, MusicId, PlayOptions } from '../../lib/audio';
 
 import { useGameStore } from '../../lib/store';
 
 import { useAudioOptional } from './AudioProvider';
+
+// ---------------------------------------------------------------------------
+// useSfx — the one-liner for components that just want to make a noise:
+//
+//   const sfx = useSfx();
+//   <button onClick={() => { sfx('sfx.click'); ... }} onPointerEnter={() => sfx('sfx.hover')} />
+//
+// Safe outside an <AudioProvider> (no-op). The returned function is stable.
+// Mutes, per-id throttling and missing files are all handled by the manager.
+// ---------------------------------------------------------------------------
+
+export function useSfx(): (id: AudioId, opts?: PlayOptions) => void {
+  const audio = useAudioOptional();
+  const manager = audio?.manager ?? null;
+  return useCallback(
+    (id: AudioId, opts?: PlayOptions) => {
+      manager?.play(id, opts);
+    },
+    [manager],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// useMusic — declaratively select the music bed for as long as the calling
+// component is mounted. Changing `id` crossfades; `null` fades to silence.
+// On unmount the bed fades out (only if it is still the selected one).
+//
+// Don't combine with useGameplayMusic() in the same tree — pass that hook an
+// `override` instead (e.g. 'music.space' while the orbit view is open).
+// ---------------------------------------------------------------------------
+
+export function useMusic(id: MusicId | null, options: { fadeMs?: number } = {}): void {
+  const audio = useAudioOptional();
+  const manager = audio?.manager ?? null;
+  const fadeMs = options.fadeMs;
+
+  useEffect(() => {
+    if (!manager) return;
+    if (id) manager.playMusic(id, { fadeMs });
+    else manager.stopMusic({ fadeMs });
+  }, [manager, id, fadeMs]);
+
+  useEffect(() => {
+    if (!manager) return;
+    return () => {
+      manager.stopMusic({ fadeMs: 600 });
+    };
+  }, [manager]);
+}
 
 // ---------------------------------------------------------------------------
 // Tick SFX — subtle clock-tock per N game ticks. Off by default; pass
@@ -101,78 +152,89 @@ export function useNotificationSfx(): void {
 // Gameplay music — long-running bed selector.
 //
 // State machine:
+//   override set (e.g. 'music.space')        → that bed
 //   playing + tension <= TENSION_THRESHOLD  → music.gameplay
 //   playing + tension > TENSION_THRESHOLD   → music.tension
-//   won                                      → sfx.victory (one-shot, music stops)
-//   lost                                     → sfx.defeat  (one-shot, music stops)
+//   won                                      → sfx.victory sting, then music.victory
+//   lost                                     → sfx.defeat  (one-shot, music fades out)
 //
-// We stop the previous bed before starting the next one so the two never
-// overlap. The threshold matches the spec ("worldTension > 70").
+// Beds crossfade through `manager.playMusic()`, so they never hard-cut. The
+// threshold matches the spec ("worldTension > 70").
 // ---------------------------------------------------------------------------
 
 const TENSION_THRESHOLD = 70;
+/** Hysteresis so a tension value hovering around the threshold doesn't flap. */
+const TENSION_RELEASE = 62;
 
-type MusicTrack = 'music.gameplay' | 'music.tension' | null;
+type MusicTrack = MusicId | null;
 
-function pickTrack(
-  winLoss: 'playing' | 'won' | 'lost' | undefined,
-  tension: number,
-): MusicTrack {
-  if (winLoss !== 'playing') return null;
-  return tension > TENSION_THRESHOLD ? 'music.tension' : 'music.gameplay';
-}
+export type UseGameplayMusicOptions = {
+  /**
+   * Bed to play instead of the tension-driven choice while the run is still
+   * `playing` — e.g. `'music.space'` while the orbit / Moon / Mars view is
+   * open. `null` / omitted = automatic.
+   */
+  override?: MusicId | null;
+};
 
-export function useGameplayMusic(): void {
+export function useGameplayMusic(options: UseGameplayMusicOptions = {}): void {
   const audio = useAudioOptional();
+  const manager = audio?.manager ?? null;
+  const override = options.override ?? null;
   const winLoss = useGameStore((s) => s.state?.winLoss);
   const tension = useGameStore((s) => s.state?.worldTension ?? 0);
   const currentTrackRef = useRef<MusicTrack>(null);
+  const tenseRef = useRef(false);
   const endStingFiredRef = useRef<'won' | 'lost' | null>(null);
 
   useEffect(() => {
-    if (!audio) return;
+    if (!manager) return;
 
     // End-of-game stings: fire exactly once when the run resolves.
-    if (winLoss === 'won' && endStingFiredRef.current !== 'won') {
-      endStingFiredRef.current = 'won';
-      audio.manager.stopAll('music');
-      currentTrackRef.current = null;
-      audio.manager.play('sfx.victory');
+    if (winLoss === 'won') {
+      if (endStingFiredRef.current !== 'won') {
+        endStingFiredRef.current = 'won';
+        manager.play('sfx.victory');
+        // The victory bed swells in underneath the fanfare.
+        manager.playMusic('music.victory', { fadeMs: 4000 });
+        currentTrackRef.current = 'music.victory';
+      }
       return;
     }
-    if (winLoss === 'lost' && endStingFiredRef.current !== 'lost') {
-      endStingFiredRef.current = 'lost';
-      audio.manager.stopAll('music');
-      currentTrackRef.current = null;
-      audio.manager.play('sfx.defeat');
+    if (winLoss === 'lost') {
+      if (endStingFiredRef.current !== 'lost') {
+        endStingFiredRef.current = 'lost';
+        manager.stopMusic({ fadeMs: 1200 });
+        currentTrackRef.current = null;
+        manager.play('sfx.defeat');
+      }
       return;
     }
     // Reset the latch when the game flips back to playing (shouldn't happen
     // mid-run, but keeps the hook composable with future restart flows).
-    if (winLoss === 'playing') {
-      endStingFiredRef.current = null;
-    }
+    endStingFiredRef.current = null;
 
-    const desired = pickTrack(winLoss, tension);
+    let desired: MusicTrack = null;
+    if (winLoss === 'playing') {
+      if (tension > TENSION_THRESHOLD) tenseRef.current = true;
+      else if (tension < TENSION_RELEASE) tenseRef.current = false;
+      desired = override ?? (tenseRef.current ? 'music.tension' : 'music.gameplay');
+    }
     if (desired === currentTrackRef.current) return;
 
-    if (currentTrackRef.current) {
-      audio.manager.stop(currentTrackRef.current);
-    }
-    if (desired) {
-      audio.manager.playLoop(desired);
-    }
+    if (desired) manager.playMusic(desired);
+    else manager.stopMusic();
     currentTrackRef.current = desired;
-  }, [audio, winLoss, tension]);
+  }, [manager, winLoss, tension, override]);
 
   // Stop the music when the consumer unmounts (route change, etc.).
   useEffect(() => {
-    if (!audio) return;
+    if (!manager) return;
     return () => {
       if (currentTrackRef.current) {
-        audio.manager.stop(currentTrackRef.current);
+        manager.stop(currentTrackRef.current);
         currentTrackRef.current = null;
       }
     };
-  }, [audio]);
+  }, [manager]);
 }

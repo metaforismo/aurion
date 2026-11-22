@@ -4,7 +4,7 @@
 // single source of truth: the wizard reads from `listScenarios()`, lazy
 // imports happen only when the player commits to a scenario.
 
-import type { Scenario } from '@aurion/engine';
+import { COSMOS_EVENTS, type Scenario } from '@aurion/engine';
 
 /**
  * Closed enumeration of scenario ids that may appear in the registry. Adding
@@ -165,6 +165,9 @@ export async function loadScenario(id: ScenarioId): Promise<Scenario> {
       `${id} (file missing or invalid: ${err instanceof Error ? err.message : String(err)})`,
     );
   }
+
+  // Space-age events are scenario-independent: every world gets them.
+  scenario = { ...scenario, eventPool: [...scenario.eventPool, ...COSMOS_EVENTS] };
 
   scenarioCache.set(id, scenario);
   return scenario;
