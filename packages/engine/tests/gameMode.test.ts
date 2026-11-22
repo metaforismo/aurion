@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../src/createGame.js';
 import {
+  DETHRONE_CLIMB_WEEKS,
+  DETHRONE_HOLD_TO_WIN_WEEKS,
   DETHRONE_OUT_OF_TOP3_WEEKS,
   checkWinLoss,
 } from '../src/checkWinLoss.js';
@@ -165,10 +167,44 @@ describe('gameMode: dethrone', () => {
     expect(streaks.outOfTop3Weeks).toBe(3);
   });
 
-  it('triggers loss after DETHRONE_OUT_OF_TOP3_WEEKS streak', () => {
+  const fallenGame = (everOnPodium: boolean) => {
+    const scenario = makePhase3Scenario();
+    const s = createGame(scenario, {
+      seed: 'dethrone-loss',
+      victory: 'economic',
+      playerCountryId: 'aurion',
+      gameMode: 'dethrone',
+    });
+    return {
+      ...s,
+      _dethroneStreaks: { outOfTop3Weeks: 0, isolationWeeks: 0, everOnPodium, heldWeeks: everOnPodium ? 1 : 0 },
+      countries: {
+        ...s.countries,
+        aurion: { ...s.countries.aurion!, economy: { ...s.countries.aurion!.economy, gdp: 1 } },
+      },
+    };
+  };
+  const weeksUntilLoss = (start: ReturnType<typeof fallenGame>, max: number) => {
+    let s = start as ReturnType<typeof checkWinLoss>;
+    for (let i = 1; i <= max; i++) {
+      s = checkWinLoss(s);
+      if (s.winLoss === 'lost') return i;
+    }
+    return null;
+  };
+
+  it('dethrones a player who falls off the podium for DETHRONE_OUT_OF_TOP3_WEEKS', () => {
+    expect(weeksUntilLoss(fallenGame(true), DETHRONE_CLIMB_WEEKS + 5)).toBe(DETHRONE_OUT_OF_TOP3_WEEKS);
+  });
+
+  it('gives a player who never reached the podium the longer climb deadline', () => {
+    expect(weeksUntilLoss(fallenGame(false), DETHRONE_CLIMB_WEEKS + 5)).toBe(DETHRONE_CLIMB_WEEKS);
+  });
+
+  it('is won after DETHRONE_HOLD_TO_WIN_WEEKS on the podium', () => {
     const scenario = makePhase3Scenario();
     let s = createGame(scenario, {
-      seed: 'dethrone-loss',
+      seed: 'dethrone-win',
       victory: 'economic',
       playerCountryId: 'aurion',
       gameMode: 'dethrone',
@@ -177,14 +213,16 @@ describe('gameMode: dethrone', () => {
       ...s,
       countries: {
         ...s.countries,
-        aurion: { ...s.countries.aurion!, economy: { ...s.countries.aurion!.economy, gdp: 1 } },
+        aurion: { ...s.countries.aurion!, economy: { ...s.countries.aurion!.economy, gdp: 1e18 } },
       },
     };
-    for (let i = 0; i < DETHRONE_OUT_OF_TOP3_WEEKS + 5; i++) {
+    let weeks = 0;
+    while (s.winLoss === 'playing' && weeks < DETHRONE_HOLD_TO_WIN_WEEKS + 5) {
       s = checkWinLoss(s);
-      if (s.winLoss === 'lost') break;
+      weeks += 1;
     }
-    expect(s.winLoss).toBe('lost');
+    expect(s.winLoss).toBe('won');
+    expect(weeks).toBe(DETHRONE_HOLD_TO_WIN_WEEKS);
   });
 
   it('resets streak when player re-enters top 3', () => {

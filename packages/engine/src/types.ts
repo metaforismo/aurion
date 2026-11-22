@@ -230,7 +230,14 @@ export type SpyOperation = {
 // ---------------------------------------------------------------------------
 
 export type EventEffect =
-  | { type: 'modifyStat'; target: 'player' | CountryId; stat: string; delta: number }
+  | {
+      type: 'modifyStat';
+      target: 'player' | CountryId;
+      stat: string;
+      delta: number;
+      /** Optional scale applied before `delta` (1.05 = +5%). */
+      multiplier?: number;
+    }
   | { type: 'startResearch'; target: CountryId; techId: TechId }
   | { type: 'shiftAttitude'; with: CountryId; delta: number }
   | { type: 'spawnSpy'; against: CountryId; opType: SpyOperationType };
@@ -458,7 +465,9 @@ export type Action =
   | { type: 'dismantleNuclear'; count: number }
   | { type: 'acknowledgeEraTransition' }
   | { type: 'startProject'; projectId: CosmosProjectId }
-  | { type: 'cancelProject'; projectId: CosmosProjectId };
+  | { type: 'cancelProject'; projectId: CosmosProjectId }
+  | { type: 'enactPolicy'; policyId: PolicyId }
+  | { type: 'repealPolicy'; policyId: PolicyId };
 
 // ---------------------------------------------------------------------------
 // Top-level game state.
@@ -524,6 +533,8 @@ export type GameState = {
   eraState?: EraRuntimeState;
   /** Megaprojects, off-world expansion and Kardashev rating. */
   cosmos?: CosmosState;
+  /** Standing national policies. */
+  policies?: PolicyState;
 };
 
 // ---------------------------------------------------------------------------
@@ -743,6 +754,10 @@ export type DethroneStreaks = {
   outOfTop3Weeks: number;
   /** Consecutive ticks reputation has been < -50 in ALL blocs simultaneously. */
   isolationWeeks: number;
+  /** True once the player has stood on the podium (GDP top 3) at least once. */
+  everOnPodium?: boolean;
+  /** Total weeks spent on the podium — the Throne win counter. */
+  heldWeeks?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -925,4 +940,65 @@ export type CosmosState = {
   firsts: Record<CosmosProjectId, CountryId>;
   /** Most recent completions, newest last (bounded ring). */
   log: CosmosLogEntry[];
+};
+
+
+// ---------------------------------------------------------------------------
+// National policies
+// ---------------------------------------------------------------------------
+
+export type PolicyId =
+  | 'austerity'
+  | 'stimulus'
+  | 'free_trade'
+  | 'industrial_plan'
+  | 'welfare'
+  | 'state_media'
+  | 'open_society'
+  | 'faith_accord'
+  | 'conscription'
+  | 'surveillance'
+  | 'research_grants'
+  | 'space_program';
+
+export type PolicyCategory = 'economy' | 'society' | 'security' | 'science';
+
+/** Weekly effects while a policy is enacted. Shares are fractions (0.1 = 10%). */
+export type PolicyEffects = {
+  /** Bonus (or malus) on weekly income, as a share of it. */
+  incomeMul?: number;
+  /** Weekly cost, as a share of weekly income. */
+  upkeep?: number;
+  /** Weekly compounding GDP growth. */
+  gdpGrowth?: number;
+  /** Popularity points per week. */
+  popularity?: number;
+  /** Satisfaction points per week, per faction. */
+  factions?: Partial<Record<FactionId, number>>;
+  /** Weekly compounding army growth. */
+  armyGrowth?: number;
+  /** Counter-intelligence level gained per week. */
+  counterIntel?: number;
+  /** Research output bonus. */
+  researchMul?: number;
+  /** Megaproject price delta (negative = cheaper). */
+  projectCostMul?: number;
+  /** Megaproject build-speed bonus. */
+  projectSpeed?: number;
+};
+
+export type PolicyDef = {
+  id: PolicyId;
+  category: PolicyCategory;
+  /** Policies that cannot be active together with this one. */
+  excludes: readonly PolicyId[];
+  effects: PolicyEffects;
+};
+
+export type PolicyState = {
+  active: PolicyId[];
+  /** Tick until which a repealed policy cannot be enacted again. */
+  cooldownUntil: Partial<Record<PolicyId, number>>;
+  /** Fractional megaproject build progress carried between ticks. */
+  speedCarry: number;
 };

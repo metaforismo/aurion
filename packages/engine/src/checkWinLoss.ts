@@ -27,6 +27,10 @@ export const LOSS_ALL_FACTIONS_ANGRY_WEEKS = 12;
 
 /** Dethrone-mode: weeks out of GDP top-3 before game over. */
 export const DETHRONE_OUT_OF_TOP3_WEEKS = 260;
+/** Throne: weeks allowed to reach the podium for the first time (10 years). */
+export const DETHRONE_CLIMB_WEEKS = 520;
+/** Throne: total weeks on the podium needed to win (10 years). */
+export const DETHRONE_HOLD_TO_WIN_WEEKS = 520;
 
 /** Dethrone-mode: weeks of isolation (rep < -50 in all blocs) before game over. */
 export const DETHRONE_ISOLATION_WEEKS = 260;
@@ -131,6 +135,14 @@ export function checkWinLoss(
       // declared era. The run is recognised as a win regardless of the
       // selected victory condition (it's a chapter-completion victory).
       winLoss = 'won';
+    } else if (
+      state.gameMode === 'dethrone' &&
+      (getDethroneStreaks(withStreaksState).heldWeeks ?? 0) >= DETHRONE_HOLD_TO_WIN_WEEKS
+    ) {
+      // Throne: ten years on the podium, in total, and the crown is yours.
+      winLoss = 'won';
+    } else if (state.gameMode === 'dethrone') {
+      // The selected victory condition does not apply in this mode.
     } else if (state.gameMode === 'space-race') {
       // Space Race: one goal, one clock. First civilisation to finish the
       // planetary grid (Kardashev Type I) wins; if a rival closes it first
@@ -176,6 +188,10 @@ function updateDethroneStreaks(state: GameState): GameState {
   const playerIdx = sortedGdp.findIndex((s) => s.id === state.playerCountryId);
   const inTop3 = playerIdx >= 0 && playerIdx < 3;
   next.outOfTop3Weeks = inTop3 ? 0 : prev.outOfTop3Weeks + 1;
+  if (inTop3) {
+    next.everOnPodium = true;
+    next.heldWeeks = (prev.heldWeeks ?? 0) + 1;
+  }
 
   // Isolation streak: rep < -50 in all blocs simultaneously.
   if (state.reputation) {
@@ -198,7 +214,10 @@ function updateDethroneStreaks(state: GameState): GameState {
 function isDethroneLoss(state: GameState, isolationEnabled: boolean): boolean {
   if (state.gameMode !== 'dethrone') return false;
   const streaks = getDethroneStreaks(state);
-  if (streaks.outOfTop3Weeks >= DETHRONE_OUT_OF_TOP3_WEEKS) return true;
+  // Before the first podium the clock is the (longer) climb deadline; once
+  // the player has been up there, falling off for five years ends the run.
+  const limit = streaks.everOnPodium ? DETHRONE_OUT_OF_TOP3_WEEKS : DETHRONE_CLIMB_WEEKS;
+  if (streaks.outOfTop3Weeks >= limit) return true;
   if (
     isolationEnabled &&
     state.reputation &&

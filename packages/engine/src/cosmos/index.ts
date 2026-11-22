@@ -30,6 +30,7 @@ import type {
   GameState,
   TechDefinition,
 } from '../types.js';
+import { policyModifiers } from '../policies/index.js';
 import { COSMOS_PROJECTS, KARDASHEV_START, getCosmosProject } from './projects.js';
 
 export { COSMOS_PROJECTS, KARDASHEV_START, getCosmosProject };
@@ -110,9 +111,16 @@ export function cosmosSlots(cosmos: CosmosState): number {
   return slots;
 }
 
-/** Currency price of a project for this save. */
+/** List price of a project for this save, before policy discounts. */
 export function projectCost(cosmos: CosmosState, def: CosmosProjectDef): number {
   return Math.round(def.cost * cosmos.unit);
+}
+
+/** What the player actually pays right now (policies applied). */
+export function effectiveProjectCost(state: GameState, def: CosmosProjectDef): number {
+  const cosmos = state.cosmos ?? initCosmos(state);
+  const mul = Math.max(0.5, 1 + policyModifiers(state).projectCostMul);
+  return Math.round(projectCost(cosmos, def) * mul);
 }
 
 /** People living off-world. */
@@ -168,7 +176,7 @@ export function getProjectStatus(
   }
   return {
     status: 'available',
-    affordable: (player?.economy.treasury ?? 0) >= projectCost(cosmos, def),
+    affordable: (player?.economy.treasury ?? 0) >= effectiveProjectCost(state, def),
     slotFree: cosmos.active.length < cosmosSlots(cosmos),
   };
 }
@@ -211,7 +219,7 @@ export function applyStartProject(
 
   const player = state.countries[countryId];
   if (!player) return { state, errors: ['errors.country.notFound'] };
-  const price = projectCost(cosmos, def);
+  const price = effectiveProjectCost(withCosmos, def);
   return {
     state: {
       ...state,
@@ -296,15 +304,25 @@ function advancePlayerProjects(state: GameState): GameState {
   const cosmos = state.cosmos;
   if (!cosmos || cosmos.active.length === 0) return state;
 
+  // Policies can speed construction up: the fractional part is carried so a
+  // 25% bonus means exactly one extra week of work every four.
+  const speed = 1 + policyModifiers(state).projectSpeed + (state.policies?.speedCarry ?? 0);
+  const work = Math.floor(speed);
+  const carry = speed - work;
+
   const stillActive = [];
   const finished: CosmosProjectDef[] = [];
   for (const a of cosmos.active) {
-    const remaining = a.remainingTicks - 1;
+    const remaining = a.remainingTicks - work;
     const def = getCosmosProject(a.projectId);
     if (remaining <= 0 && def) finished.push(def);
     else if (def) stillActive.push({ ...a, remainingTicks: remaining });
   }
-  let next: GameState = { ...state, cosmos: { ...cosmos, active: stillActive } };
+  let next: GameState = {
+    ...state,
+    cosmos: { ...cosmos, active: stillActive },
+    ...(state.policies ? { policies: { ...state.policies, speedCarry: carry } } : {}),
+  };
   for (const def of finished) next = completeForPlayer(next, def);
   return next;
 }

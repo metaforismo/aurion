@@ -34,6 +34,8 @@ import { tickEra } from './era/index.js';
 import { recordTechCompletion, tickSpace } from './space/index.js';
 import { tickNuclear } from './nuclear/index.js';
 import { tickCosmos } from './cosmos/index.js';
+import { tickPolicies } from './policies/index.js';
+import { applyStatToCountry } from './events/index.js';
 
 export type TickContext = {
   /** Tech catalog from the current scenario; used to complete research and apply effects. */
@@ -75,6 +77,10 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
 
   // 1. Economy. Player gets `playerIncome` multiplier.
   next = stepEconomy(next, playerIncomeMul);
+
+  // 1.5. National policies: weekly upkeep and effects of the player's
+  //      standing choices. No-op when none are enacted.
+  next = tickPolicies(next);
 
   // 2. Research. Non-player nations get `aiResearchSpeed` multiplier.
   // Also handles space-prestige milestone tracking when a tech completes
@@ -235,6 +241,9 @@ function tickUnlockedVictories(state: GameState, scenario: Scenario): GameState 
 
 // ---------- 1. Economy ----------
 
+/** Baseline weekly GDP growth at 50% popularity. */
+export const ORGANIC_GDP_GROWTH_PER_TICK = 0.0003;
+
 function stepEconomy(state: GameState, playerIncomeMultiplier: number): GameState {
   const updated: Record<CountryId, Country> = {};
   for (const [id, country] of Object.entries(state.countries)) {
@@ -243,10 +252,15 @@ function stepEconomy(state: GameState, playerIncomeMultiplier: number): GameStat
       id === state.playerCountryId
         ? Math.round(baseIncome * playerIncomeMultiplier)
         : baseIncome;
+    // Economies grow on their own, a little faster where the government is
+    // popular and not at all under one that is collapsing (~1.6% a year at
+    // 50% popularity).
+    const confidence = clamp(country.politics.popularity / 50, 0, 1.5);
     updated[id] = {
       ...country,
       economy: {
         ...country.economy,
+        gdp: Math.round(country.economy.gdp * (1 + ORGANIC_GDP_GROWTH_PER_TICK * confidence)),
         weeklyIncome,
         treasury: country.economy.treasury + weeklyIncome,
       },
@@ -311,15 +325,11 @@ function stepResearch(
     if (tech && newPoints >= tech.cost) {
       // Complete research: append id, apply effects, clear active.
       const completed = withCompletedTech(country, tech.id);
-      const sciencePatched: ScienceState = applyTechEffectsToScience(
-        completed.science,
-        tech.effects,
-      );
       const cleared: Country = {
         ...completed,
-        science: { ...sciencePatched, activeResearch: null },
+        science: { ...completed.science, activeResearch: null },
       };
-      const newCountry: Country = applyTechEffectsToCountry(cleared, tech.effects);
+      const newCountry: Country = applyTechEffects(cleared, tech.effects);
       updatedCountries[id] = newCountry;
       updatedProgress[id] = { activeResearch: null, accumulatedPoints: 0 };
       mutated = true;
@@ -351,62 +361,17 @@ function stepResearch(
   return next;
 }
 
-function applyTechEffectsToScience(science: ScienceState, effects: TechEffect[]): ScienceState {
-  let next = { ...science };
-  for (const effect of effects) {
-    if (effect.type === 'modifyStat' && effect.stat === 'researchOutput') {
-      next = {
-        ...next,
-        researchOutput:
-          (next.researchOutput + (effect.delta || 0)) * (effect.multiplier ?? 1),
-      };
-    }
-  }
-  // Mark tech as completed (caller passes it via science.activeResearch reset path).
-  return next;
-}
-
-function applyTechEffectsToCountry(country: Country, effects: TechEffect[]): Country {
+/**
+ * Apply a finished technology's stat effects to the country that researched
+ * it. Scenario files address stats by dotted path ("science.researchOutput",
+ * "economy.gdp", "politics.popularity", …); the shared applier handles the
+ * path, the clamping and the income-as-GDP convention.
+ */
+function applyTechEffects(country: Country, effects: TechEffect[]): Country {
   let next = country;
   for (const effect of effects) {
     if (effect.type !== 'modifyStat') continue;
-    switch (effect.stat) {
-      case 'doctrineLevel':
-        next = {
-          ...next,
-          military: {
-            ...next.military,
-            doctrineLevel:
-              (next.military.doctrineLevel + (effect.delta || 0)) * (effect.multiplier ?? 1),
-          },
-        };
-        break;
-      case 'counterIntelLevel':
-        next = {
-          ...next,
-          intelligence: {
-            ...next.intelligence,
-            counterIntelLevel: clamp(
-              (next.intelligence.counterIntelLevel + (effect.delta || 0)) *
-                (effect.multiplier ?? 1),
-              0,
-              1,
-            ),
-          },
-        };
-        break;
-      case 'gdp':
-        next = {
-          ...next,
-          economy: {
-            ...next.economy,
-            gdp: (next.economy.gdp + (effect.delta || 0)) * (effect.multiplier ?? 1),
-          },
-        };
-        break;
-      default:
-        break;
-    }
+    next = applyStatToCountry(next, effect.stat, effect.delta || 0, effect.multiplier);
   }
   return next;
 }
@@ -497,7 +462,7 @@ function applySpySuccess(
       if (!owner.science.completedTechs.includes(techId)) {
         const tech = techCatalog.find((t) => t.id === techId);
         const stolen = withCompletedTech(newOwner, techId);
-        newOwner = tech ? applyTechEffectsToCountry(stolen, tech.effects) : stolen;
+        newOwner = tech ? applyTechEffects(stolen, tech.effects) : stolen;
       }
       break;
     }
@@ -755,6 +720,9 @@ function simpleStableHash(s: string): number {
 
 // ---------- 8. Events ----------
 
+/** Quiet weeks guaranteed after an event before the next one may fire. */
+export const MIN_EVENT_GAP_TICKS = 12;
+
 function stepEvents(
   state: GameState,
   rng: Rng,
@@ -762,6 +730,15 @@ function stepEvents(
   eventChanceMultiplier: number,
 ): GameState {
   if (eventPool.length === 0) return state;
+
+  // Pacing: decisions stop the clock, so they must not pile up. Nothing fires
+  // while one is still waiting for an answer, and after each event the world
+  // stays quiet for a few weeks.
+  const previous = state.events[state.events.length - 1];
+  if (previous) {
+    if (previous.resolvedChoiceIndex === null) return state;
+    if (state.tick - previous.firedAtTick < MIN_EVENT_GAP_TICKS) return state;
+  }
   const fired: GameEvent[] = [];
 
   for (const def of eventPool) {
@@ -774,7 +751,12 @@ function stepEvents(
     let triggered = false;
     switch (def.trigger.type) {
       case 'periodic':
-        triggered = def.trigger.everyTicks > 0 && state.tick % def.trigger.everyTicks === 0;
+        // `tick > 0`: every period divides zero, which used to fire the
+        // whole periodic pool on the opening week.
+        triggered =
+          state.tick > 0 &&
+          def.trigger.everyTicks > 0 &&
+          state.tick % def.trigger.everyTicks === 0;
         break;
       case 'random': {
         // Difficulty-scaled random trigger probability. Clamped to [0,1].

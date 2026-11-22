@@ -33,6 +33,7 @@ import { applyLaunchStrategic } from './launchStrategic.js';
 import { applyDismantleNuclear } from './dismantleNuclear.js';
 import { ensureRelation } from './helpers.js';
 import { applyCancelProject, applyStartProject } from '../cosmos/index.js';
+import { applyEnactPolicy, applyRepealPolicy } from '../policies/index.js';
 import { maybeTriggerFromAction } from '../un/index.js';
 
 export {
@@ -120,6 +121,12 @@ export function applyAction(
       break;
     case 'cancelProject':
       result = applyCancelProject(state, action, actor);
+      break;
+    case 'enactPolicy':
+      result = applyEnactPolicy(state, action, actor);
+      break;
+    case 'repealPolicy':
+      result = applyRepealPolicy(state, action, actor);
       break;
     case 'launchTactical':
       result = applyLaunchTactical(state, action, actor, scenario);
