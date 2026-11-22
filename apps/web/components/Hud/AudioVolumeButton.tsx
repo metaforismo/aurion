@@ -65,7 +65,10 @@ export function AudioVolumeButton() {
     <div ref={containerRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          audio.play(open ? 'sfx.panel-close' : 'sfx.panel-open');
+          setOpen((v) => !v);
+        }}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={t('volumeButton')}
@@ -157,10 +160,14 @@ function VolumeRow({
   const handleSlider = (e: ChangeEvent<HTMLInputElement>) => {
     const next = Number(e.target.value) / 100;
     audio.setCategoryVolume(category, next);
+    // Audible preview of the new SFX level while dragging (throttled so a
+    // drag doesn't machine-gun the sample).
+    if (category === 'sfx') audio.play('sfx.click', { minIntervalMs: 140 });
   };
 
   const handleMute = (e: ChangeEvent<HTMLInputElement>) => {
     audio.setCategoryMuted(category, e.target.checked);
+    if (category === 'sfx' && !e.target.checked) audio.play('sfx.click');
   };
 
   return (

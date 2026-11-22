@@ -1,0 +1,467 @@
+{
+ "total_bytes": 5453411,
+ "files": {
+  "music/gameplay.mp3": {
+   "duration_s": 60.029,
+   "peak_db": -10.6,
+   "mean_db": -24.4,
+   "lufs": -22.4,
+   "bytes": 480443
+  },
+  "music/gameplay.webm": {
+   "duration_s": 60.008,
+   "peak_db": -10.3,
+   "mean_db": -23.9,
+   "lufs": -22.0,
+   "bytes": 493600
+  },
+  "music/menu.mp3": {
+   "duration_s": 48.039,
+   "peak_db": -5.0,
+   "mean_db": -22.6,
+   "lufs": -20.4,
+   "bytes": 384521
+  },
+  "music/menu.webm": {
+   "duration_s": 48.008,
+   "peak_db": -4.9,
+   "mean_db": -22.1,
+   "lufs": -20.0,
+   "bytes": 417682
+  },
+  "music/space.mp3": {
+   "duration_s": 60.029,
+   "peak_db": -11.1,
+   "mean_db": -23.8,
+   "lufs": -22.4,
+   "bytes": 480443
+  },
+  "music/space.webm": {
+   "duration_s": 60.008,
+   "peak_db": -10.2,
+   "mean_db": -23.3,
+   "lufs": -22.0,
+   "bytes": 552452
+  },
+  "music/tension.mp3": {
+   "duration_s": 48.039,
+   "peak_db": -5.6,
+   "mean_db": -21.9,
+   "lufs": -20.4,
+   "bytes": 384521
+  },
+  "music/tension.webm": {
+   "duration_s": 48.008,
+   "peak_db": -5.3,
+   "mean_db": -21.5,
+   "lufs": -20.0,
+   "bytes": 375410
+  },
+  "music/victory.mp3": {
+   "duration_s": 32.026,
+   "peak_db": -6.1,
+   "mean_db": -22.9,
+   "lufs": -20.4,
+   "bytes": 256416
+  },
+  "music/victory.webm": {
+   "duration_s": 32.008,
+   "peak_db": -5.4,
+   "mean_db": -22.5,
+   "lufs": -20.0,
+   "bytes": 287821
+  },
+  "sfx/achievement.mp3": {
+   "duration_s": 1.802,
+   "peak_db": -3.5,
+   "mean_db": -15.8,
+   "lufs": -11.8,
+   "bytes": 21942
+  },
+  "sfx/achievement.webm": {
+   "duration_s": 1.774,
+   "peak_db": -3.0,
+   "mean_db": -15.4,
+   "lufs": -11.4,
+   "bytes": 23656
+  },
+  "sfx/click.mp3": {
+   "duration_s": 0.313,
+   "peak_db": -3.2,
+   "mean_db": -24.0,
+   "lufs": -70.0,
+   "bytes": 2715
+  },
+  "sfx/click.webm": {
+   "duration_s": 0.279,
+   "peak_db": -3.4,
+   "mean_db": -23.8,
+   "lufs": -70.0,
+   "bytes": 2131
+  },
+  "sfx/coin.mp3": {
+   "duration_s": 0.731,
+   "peak_db": -5.4,
+   "mean_db": -22.1,
+   "lufs": -21.1,
+   "bytes": 6059
+  },
+  "sfx/coin.webm": {
+   "duration_s": 0.709,
+   "peak_db": -5.8,
+   "mean_db": -22.0,
+   "lufs": -20.9,
+   "bytes": 5562
+  },
+  "sfx/colony.mp3": {
+   "duration_s": 3.892,
+   "peak_db": -3.0,
+   "mean_db": -23.1,
+   "lufs": -14.0,
+   "bytes": 47020
+  },
+  "sfx/colony.webm": {
+   "duration_s": 3.853,
+   "peak_db": -2.7,
+   "mean_db": -22.7,
+   "lufs": -13.6,
+   "bytes": 40030
+  },
+  "sfx/confirm.mp3": {
+   "duration_s": 1.829,
+   "peak_db": -6.5,
+   "mean_db": -23.3,
+   "lufs": -21.2,
+   "bytes": 14836
+  },
+  "sfx/confirm.webm": {
+   "duration_s": 1.803,
+   "peak_db": -6.1,
+   "mean_db": -22.9,
+   "lufs": -20.8,
+   "bytes": 10962
+  },
+  "sfx/defeat.mp3": {
+   "duration_s": 4.493,
+   "peak_db": -3.4,
+   "mean_db": -21.5,
+   "lufs": -16.8,
+   "bytes": 54230
+  },
+  "sfx/defeat.webm": {
+   "duration_s": 4.451,
+   "peak_db": -3.2,
+   "mean_db": -21.0,
+   "lufs": -16.3,
+   "bytes": 42050
+  },
+  "sfx/deploy.mp3": {
+   "duration_s": 1.698,
+   "peak_db": -0.9,
+   "mean_db": -25.0,
+   "lufs": -20.5,
+   "bytes": 20689
+  },
+  "sfx/deploy.webm": {
+   "duration_s": 1.657,
+   "peak_db": -2.4,
+   "mean_db": -24.6,
+   "lufs": -20.1,
+   "bytes": 15886
+  },
+  "sfx/error.mp3": {
+   "duration_s": 0.522,
+   "peak_db": -5.3,
+   "mean_db": -14.2,
+   "lufs": -14.1,
+   "bytes": 4387
+  },
+  "sfx/error.webm": {
+   "duration_s": 0.499,
+   "peak_db": -4.8,
+   "mean_db": -13.8,
+   "lufs": -13.7,
+   "bytes": 3450
+  },
+  "sfx/event.mp3": {
+   "duration_s": 2.22,
+   "peak_db": -3.7,
+   "mean_db": -23.8,
+   "lufs": -22.0,
+   "bytes": 26958
+  },
+  "sfx/event.webm": {
+   "duration_s": 2.187,
+   "peak_db": -3.0,
+   "mean_db": -23.3,
+   "lufs": -21.6,
+   "bytes": 19933
+  },
+  "sfx/hover.mp3": {
+   "duration_s": 0.078,
+   "peak_db": -10.0,
+   "mean_db": -29.1,
+   "lufs": -70.0,
+   "bytes": 834
+  },
+  "sfx/hover.webm": {
+   "duration_s": 0.04,
+   "peak_db": -8.4,
+   "mean_db": -28.6,
+   "lufs": -70.0,
+   "bytes": 909
+  },
+  "sfx/launch.mp3": {
+   "duration_s": 6.531,
+   "peak_db": -3.6,
+   "mean_db": -23.0,
+   "lufs": -20.2,
+   "bytes": 78680
+  },
+  "sfx/launch.webm": {
+   "duration_s": 6.508,
+   "peak_db": -3.1,
+   "mean_db": -22.5,
+   "lufs": -19.7,
+   "bytes": 43188
+  },
+  "sfx/milestone.mp3": {
+   "duration_s": 6.975,
+   "peak_db": -3.6,
+   "mean_db": -24.8,
+   "lufs": -21.0,
+   "bytes": 84009
+  },
+  "sfx/milestone.webm": {
+   "duration_s": 6.939,
+   "peak_db": -2.9,
+   "mean_db": -24.3,
+   "lufs": -20.5,
+   "bytes": 56841
+  },
+  "sfx/notification.mp3": {
+   "duration_s": 1.045,
+   "peak_db": -5.7,
+   "mean_db": -24.7,
+   "lufs": -20.7,
+   "bytes": 8567
+  },
+  "sfx/notification.webm": {
+   "duration_s": 1.006,
+   "peak_db": -5.0,
+   "mean_db": -24.3,
+   "lufs": -20.3,
+   "bytes": 10447
+  },
+  "sfx/nuke.mp3": {
+   "duration_s": 7.549,
+   "peak_db": -3.6,
+   "mean_db": -28.6,
+   "lufs": -25.7,
+   "bytes": 90906
+  },
+  "sfx/nuke.webm": {
+   "duration_s": 7.508,
+   "peak_db": -3.3,
+   "mean_db": -28.1,
+   "lufs": -25.2,
+   "bytes": 47806
+  },
+  "sfx/panel-close.mp3": {
+   "duration_s": 1.907,
+   "peak_db": -7.0,
+   "mean_db": -24.4,
+   "lufs": -23.5,
+   "bytes": 15463
+  },
+  "sfx/panel-close.webm": {
+   "duration_s": 1.874,
+   "peak_db": -6.5,
+   "mean_db": -23.9,
+   "lufs": -23.1,
+   "bytes": 11109
+  },
+  "sfx/panel-open.mp3": {
+   "duration_s": 1.907,
+   "peak_db": -5.4,
+   "mean_db": -23.6,
+   "lufs": -20.8,
+   "bytes": 15463
+  },
+  "sfx/panel-open.webm": {
+   "duration_s": 1.866,
+   "peak_db": -5.3,
+   "mean_db": -23.2,
+   "lufs": -20.5,
+   "bytes": 11133
+  },
+  "sfx/pause.mp3": {
+   "duration_s": 1.75,
+   "peak_db": -4.0,
+   "mean_db": -17.7,
+   "lufs": -16.2,
+   "bytes": 14209
+  },
+  "sfx/pause.webm": {
+   "duration_s": 1.728,
+   "peak_db": -3.7,
+   "mean_db": -17.2,
+   "lufs": -15.7,
+   "bytes": 10633
+  },
+  "sfx/research-start.mp3": {
+   "duration_s": 1.933,
+   "peak_db": -3.4,
+   "mean_db": -16.7,
+   "lufs": -13.7,
+   "bytes": 23510
+  },
+  "sfx/research-start.webm": {
+   "duration_s": 1.908,
+   "peak_db": -2.9,
+   "mean_db": -16.3,
+   "lufs": -13.3,
+   "bytes": 17993
+  },
+  "sfx/resume.mp3": {
+   "duration_s": 0.993,
+   "peak_db": -5.9,
+   "mean_db": -19.9,
+   "lufs": -18.1,
+   "bytes": 8149
+  },
+  "sfx/resume.webm": {
+   "duration_s": 0.95,
+   "peak_db": -5.3,
+   "mean_db": -19.5,
+   "lufs": -17.7,
+   "bytes": 8273
+  },
+  "sfx/spy-detected.mp3": {
+   "duration_s": 1.202,
+   "peak_db": -3.5,
+   "mean_db": -18.5,
+   "lufs": -14.3,
+   "bytes": 14733
+  },
+  "sfx/spy-detected.webm": {
+   "duration_s": 1.172,
+   "peak_db": -2.9,
+   "mean_db": -18.0,
+   "lufs": -13.9,
+   "bytes": 14729
+  },
+  "sfx/spy-success.mp3": {
+   "duration_s": 1.071,
+   "peak_db": -1.4,
+   "mean_db": -26.4,
+   "lufs": -24.2,
+   "bytes": 8776
+  },
+  "sfx/spy-success.webm": {
+   "duration_s": 1.038,
+   "peak_db": -2.3,
+   "mean_db": -26.4,
+   "lufs": -24.1,
+   "bytes": 8227
+  },
+  "sfx/tab.mp3": {
+   "duration_s": 0.392,
+   "peak_db": -7.6,
+   "mean_db": -24.6,
+   "lufs": -70.0,
+   "bytes": 3342
+  },
+  "sfx/tab.webm": {
+   "duration_s": 0.365,
+   "peak_db": -7.7,
+   "mean_db": -24.1,
+   "lufs": -70.0,
+   "bytes": 2499
+  },
+  "sfx/tech-unlock.mp3": {
+   "duration_s": 2.168,
+   "peak_db": -3.4,
+   "mean_db": -20.3,
+   "lufs": -12.9,
+   "bytes": 26331
+  },
+  "sfx/tech-unlock.webm": {
+   "duration_s": 2.141,
+   "peak_db": -2.8,
+   "mean_db": -19.9,
+   "lufs": -12.4,
+   "bytes": 27989
+  },
+  "sfx/tick.mp3": {
+   "duration_s": 0.078,
+   "peak_db": -7.3,
+   "mean_db": -22.8,
+   "lufs": -70.0,
+   "bytes": 834
+  },
+  "sfx/tick.webm": {
+   "duration_s": 0.05,
+   "peak_db": -8.0,
+   "mean_db": -22.9,
+   "lufs": -70.0,
+   "bytes": 1178
+  },
+  "sfx/treaty.mp3": {
+   "duration_s": 3.291,
+   "peak_db": -3.3,
+   "mean_db": -27.2,
+   "lufs": -17.6,
+   "bytes": 39810
+  },
+  "sfx/treaty.webm": {
+   "duration_s": 3.259,
+   "peak_db": -2.8,
+   "mean_db": -26.8,
+   "lufs": -17.3,
+   "bytes": 36617
+  },
+  "sfx/victory.mp3": {
+   "duration_s": 6.008,
+   "peak_db": -3.2,
+   "mean_db": -24.2,
+   "lufs": -20.3,
+   "bytes": 72411
+  },
+  "sfx/victory.webm": {
+   "duration_s": 5.978,
+   "peak_db": -2.5,
+   "mean_db": -23.7,
+   "lufs": -19.9,
+   "bytes": 54652
+  },
+  "sfx/war.mp3": {
+   "duration_s": 4.963,
+   "peak_db": -3.5,
+   "mean_db": -18.9,
+   "lufs": -15.3,
+   "bytes": 59872
+  },
+  "sfx/war.webm": {
+   "duration_s": 4.927,
+   "peak_db": -2.6,
+   "mean_db": -18.5,
+   "lufs": -14.9,
+   "bytes": 37113
+  },
+  "sfx/zoom.mp3": {
+   "duration_s": 0.496,
+   "peak_db": -1.8,
+   "mean_db": -21.8,
+   "lufs": -17.0,
+   "bytes": 6269
+  },
+  "sfx/zoom.webm": {
+   "duration_s": 0.457,
+   "peak_db": -1.7,
+   "mean_db": -21.3,
+   "lufs": -16.6,
+   "bytes": 4102
+  }
+ }
+}
