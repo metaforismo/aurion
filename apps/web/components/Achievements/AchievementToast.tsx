@@ -1,34 +1,19 @@
-// Bottom-right achievement toast. Pops in when the store sets
-// `pendingAchievementToast` to a non-null id, auto-dismisses after 4 seconds,
-// and supports manual dismissal via a close button (or pressing Escape).
+// Trophy toast. Appears when the store queues `pendingAchievementToast`,
+// leaves on its own after a few seconds, and can be closed with the button
+// or Escape. Mounted by the play screen.
 
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { BUILTIN_ACHIEVEMENTS, type AchievementDef } from '@aurion/engine';
+import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { AchievementDef } from '@aurion/engine';
-import { BUILTIN_ACHIEVEMENTS } from '@aurion/engine';
+import { useEffect, useMemo } from 'react';
 
-import { cn } from '../../lib/cn';
+import { IconButton } from '../ui';
 import { useGameStore } from '../../lib/store';
+import { Medal, TIER_COLOR } from './Medal';
 
-const AUTO_DISMISS_MS = 4_000;
-
-/**
- * Tier→token mapping for the toast left-rule accent. Mirrors AchievementBadge
- * so a player can recognise tier at a glance without reading the label.
- */
-const TIER_BORDER: Record<AchievementDef['tier'], string> = {
-  bronze: 'border-l-warning',
-  silver: 'border-l-fg-muted',
-  gold: 'border-l-accent',
-};
-
-const TIER_ACCENT: Record<AchievementDef['tier'], string> = {
-  bronze: 'text-warning',
-  silver: 'text-fg-muted',
-  gold: 'text-accent',
-};
+const AUTO_DISMISS_MS = 5_000;
 
 export function AchievementToast() {
   const pending = useGameStore((s) => s.pendingAchievementToast);
@@ -37,42 +22,26 @@ export function AchievementToast() {
   const tToast = useTranslations('achievements.toast');
   const tList = useTranslations('achievements.list');
 
-  // Look up the matching def once per `pending` change.
-  const def = useMemo<AchievementDef | null>(() => {
-    if (!pending) return null;
-    return BUILTIN_ACHIEVEMENTS.find((a) => a.id === pending) ?? null;
-  }, [pending]);
+  const def = useMemo<AchievementDef | null>(
+    () => (pending ? (BUILTIN_ACHIEVEMENTS.find((a) => a.id === pending) ?? null) : null),
+    [pending],
+  );
 
-  // Auto-dismiss timer. Reset whenever `pending` changes so back-to-back
-  // unlocks each get a full window before being cleared.
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Each unlock gets its own full window (the play screen plays the chime).
   useEffect(() => {
     if (!pending) return;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      dismiss();
-    }, AUTO_DISMISS_MS);
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [pending, dismiss]);
-
-  // ESC dismisses too.
-  useEffect(() => {
-    if (!pending) return;
-    if (typeof window === 'undefined') return;
-    const handler = (e: KeyboardEvent) => {
+    const timer = setTimeout(dismiss, AUTO_DISMISS_MS);
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') dismiss();
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', onKey);
+    };
   }, [pending, dismiss]);
 
   if (!pending || !def) return null;
-
-  const name = t(def.nameKey);
-  const description = t(def.descKey);
-  const tierLabel = tList(`tier.${def.tier}`);
 
   return (
     <div
@@ -80,71 +49,31 @@ export function AchievementToast() {
       aria-live="polite"
       aria-atomic="true"
       data-testid="achievement-toast"
-      style={{
-        boxShadow: 'var(--shadow-lg)',
-        // Same keyframe as ActionToastStack — slides in from the right and
-        // fades. Reduced-motion users get an instant cut via the global
-        // animation-duration override in globals.css.
-        animation: 'toast-slide-in 200ms cubic-bezier(0, 0, 0.2, 1) both',
-      }}
-      className={cn(
-        'fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)]',
-        'rounded-md border border-border border-l-2 bg-bg',
-        TIER_BORDER[def.tier],
-      )}
+      // Slides in from the right; the global reduced-motion rule makes it a cut.
+      style={{ animation: 'toast-slide-in 220ms cubic-bezier(0, 0, 0.2, 1) both' }}
+      className="glass-panel fixed bottom-4 right-4 z-50 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl"
     >
-      <div className="flex items-start gap-3 px-4 py-3">
-        <span
-          aria-hidden="true"
-          className={cn(
-            'mt-0.5 inline-flex h-5 w-5 items-center justify-center text-base',
-            TIER_ACCENT[def.tier],
-          )}
-        >
-          {tierIcon(def.tier)}
-        </span>
-        <div className="flex-1 min-w-0">
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-0 w-1"
+        style={{ backgroundColor: TIER_COLOR[def.tier] }}
+      />
+      <div className="flex items-center gap-3 py-3 pl-4 pr-2">
+        <Medal tier={def.tier} size={40} />
+        <div className="min-w-0 flex-1">
           <p
-            className={cn(
-              'text-[10px] font-semibold uppercase tracking-[0.14em]',
-              TIER_ACCENT[def.tier],
-            )}
+            className="text-[10px] font-semibold uppercase tracking-[0.14em]"
+            style={{ color: TIER_COLOR[def.tier] }}
           >
-            {tToast('unlocked')} · {tierLabel}
+            {tToast('unlocked')} · {tList(`tier.${def.tier}`)}
           </p>
-          <p className="text-sm font-semibold text-fg">{name}</p>
-          <p className="mt-1 text-xs text-fg-muted line-clamp-2">{description}</p>
+          <p className="truncate text-sm font-semibold text-fg">{t(def.nameKey)}</p>
+          <p className="line-clamp-2 text-xs leading-relaxed text-fg-muted">{t(def.descKey)}</p>
         </div>
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label={tToast('dismiss')}
-          className="rounded-sm border border-transparent p-1 text-fg-muted transition hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="h-4 w-4"
-            aria-hidden="true"
-          >
-            <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L8.94 10l-4.72 4.72a.75.75 0 1 0 1.06 1.06L10 11.06l4.72 4.72a.75.75 0 0 0 1.06-1.06L11.06 10l4.72-4.72a.75.75 0 0 0-1.06-1.06L10 8.94 5.28 4.22Z" />
-          </svg>
-        </button>
+        <IconButton icon={X} label={tToast('dismiss')} onClick={dismiss} className="self-start" />
       </div>
     </div>
   );
-}
-
-function tierIcon(tier: AchievementDef['tier']): string {
-  switch (tier) {
-    case 'bronze':
-      return '*';
-    case 'silver':
-      return '+';
-    case 'gold':
-      return '#';
-  }
 }
 
 export default AchievementToast;
