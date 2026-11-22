@@ -2805,7 +2805,7 @@
       "inField": "{n, plural, =0 {Nessuno in missione} =1 {1 in missione} other {# in missione}}",
       "counterIntel": "Controspionaggio",
       "counterIntelHint": "Toglie {points} punti al successo delle operazioni contro di te e li aggiunge al rischio che vengano scoperte.",
-      "recruit": "Un agente parte e non rientra. Reclutarne uno costa {cost} investiti in intelligence.",
+      "recruit": "Un agente rientra a fine missione, a meno che non venga scoperto. Reclutarne uno costa {cost} investiti in intelligence.",
       "toEconomy": "Apri Economia"
     },
     "pick": {
@@ -2861,8 +2861,8 @@
       "assassinateRole": "Chi colpire",
       "ifSuccess": "Se riesce:",
       "ifDetected": "Se vi scoprono:",
-      "detectedEffect": "l'operazione viene alla luce e la tensione mondiale sale di 1 per dieci settimane. Se era riuscita, l'effetto resta.",
-      "agentLost": "In ogni caso l'agente non rientra.",
+      "detectedEffect": "l'agente è perso, i rapporti con loro peggiorano di {penalty} punti e la tensione mondiale sale di 1 per dieci settimane. Se l'operazione era riuscita, l'effetto resta.",
+      "agentLost": "Se nessuno vi scopre, l'agente rientra a fine operazione, che sia riuscita o no.",
       "submit": "Avvia l'operazione · 1 agente",
       "allLocked": "Nessuna operazione possibile contro questo paese, per ora.",
       "noAgents": "Non hai agenti disponibili.",
@@ -2887,13 +2887,21 @@
     "outcome": {
       "steal_tech": "la tecnologia è tua da subito, con tutti i suoi effetti.",
       "sabotage": {
-        "economy": "il loro PIL cala del 2%.",
+        "economy": "il loro PIL cala del {pct}: tanto pesa questo settore nella loro economia.",
         "military": "perdono 50 unità di guarnigione.",
-        "science": "la loro ricerca perde 1 punto a settimana."
+        "science": "la loro ricerca perde 1 punto a settimana.",
+        "economyUnknown": "il loro PIL cala tra l'1% e il 6%: più il settore pesa, più fa male. Con più informazioni sapresti quanto."
       },
-      "propaganda": "la popolarità del loro governo scende di 5 punti.",
       "destabilize": "la soddisfazione di ogni loro fazione scende di 5 punti.",
-      "assassinate": "la popolarità del loro governo scende di 10 punti."
+      "propaganda": {
+        "any": "la popolarità del loro governo scende di 5 punti.",
+        "faction": "la soddisfazione di {faction} crolla di 15 punti e la popolarità del governo scende di 2."
+      },
+      "assassinate": {
+        "head_of_state": "la popolarità del loro governo scende di 10 punti e ogni fazione perde 5 punti di soddisfazione.",
+        "defence_minister": "la loro dottrina militare perde il 15% e i militari perdono 10 punti di soddisfazione.",
+        "intelligence_chief": "il loro controspionaggio perde 10 punti e i loro archivi sono tuoi: informazioni complete sul paese."
+      }
     },
     "sabotage": {
       "agriculture": "Agricoltura",
@@ -2926,11 +2934,11 @@
     "reports": {
       "title": "Rapporti",
       "empty": "Ancora nessun rapporto: gli esiti delle operazioni arrivano qui.",
-      "completed": "{op} riuscita contro {name}.",
-      "failed": "{op} fallita contro {name}: nessun effetto, nessuno se n'è accorto.",
-      "detected": "{op} contro {name} scoperta: i tuoi agenti sono stati individuati.",
-      "detectedButDone": "{op} contro {name} scoperta, ma la tecnologia è tua.",
-      "caught": "Scoperta un'operazione di {name} contro di te: {op}.",
+      "completed": "{op} riuscita contro {name}. L'agente è rientrato.",
+      "failed": "{op} fallita contro {name}: nessun effetto, nessuno se n'è accorto. L'agente è rientrato.",
+      "detected": "{op} contro {name} fallita e scoperta: agente perso, rapporti −{penalty}.",
+      "detectedButDone": "{op} contro {name} riuscita, ma scoperta: l'effetto resta, l'agente è perso, rapporti −{penalty}.",
+      "caught": "Scoperta un'operazione di {name} contro di te: {op}. Rapporti −{penalty}.",
       "when": "{weeks, plural, =0 {Questa settimana} =1 {1 settimana fa} other {# settimane fa}}"
     },
     "list": {

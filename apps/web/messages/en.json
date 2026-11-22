@@ -2805,7 +2805,7 @@
       "inField": "{n, plural, =0 {None in the field} =1 {1 in the field} other {# in the field}}",
       "counterIntel": "Counter-intelligence",
       "counterIntelHint": "Takes {points} points off the success of operations against you and adds them to the risk of their exposure.",
-      "recruit": "An agent goes out and does not come back. Recruiting one costs {cost} invested in intelligence.",
+      "recruit": "An agent comes home when the mission ends, unless caught. Recruiting one costs {cost} invested in intelligence.",
       "toEconomy": "Open Economy"
     },
     "pick": {
@@ -2861,8 +2861,8 @@
       "assassinateRole": "Who to hit",
       "ifSuccess": "If it works:",
       "ifDetected": "If you are exposed:",
-      "detectedEffect": "the operation comes to light and world tension rises by 1 for ten weeks. If it had worked, the effect stands.",
-      "agentLost": "Either way the agent does not come back.",
+      "detectedEffect": "the agent is lost, relations with them worsen by {penalty} and world tension rises by 1 for ten weeks. If the operation had worked, the effect stands.",
+      "agentLost": "If nobody catches you, the agent comes home when the operation ends, whether it worked or not.",
       "submit": "Launch the operation · 1 agent",
       "allLocked": "No operation is possible against this country for now.",
       "noAgents": "You have no agents available.",
@@ -2887,13 +2887,21 @@
     "outcome": {
       "steal_tech": "the technology is yours at once, with all its effects.",
       "sabotage": {
-        "economy": "their GDP drops by 2%.",
+        "economy": "their GDP drops by {pct}: that is how much this sector weighs in their economy.",
         "military": "they lose 50 garrison units.",
-        "science": "their research loses 1 point a week."
+        "science": "their research loses 1 point a week.",
+        "economyUnknown": "their GDP drops by 1% to 6%: the bigger the sector, the deeper the cut. Better intel would tell you how much."
       },
-      "propaganda": "their government's popularity drops by 5.",
       "destabilize": "the satisfaction of every one of their factions drops by 5.",
-      "assassinate": "their government's popularity drops by 10."
+      "propaganda": {
+        "any": "their government's popularity drops by 5.",
+        "faction": "the satisfaction of {faction} drops by 15 and the government's popularity by 2."
+      },
+      "assassinate": {
+        "head_of_state": "their government's popularity drops by 10 and every faction loses 5 satisfaction.",
+        "defence_minister": "their military doctrine loses 15% and the military faction loses 10 satisfaction.",
+        "intelligence_chief": "their counter-intelligence loses 10 points and their files are yours: full intel on the country."
+      }
     },
     "sabotage": {
       "agriculture": "Agriculture",
@@ -2926,11 +2934,11 @@
     "reports": {
       "title": "Reports",
       "empty": "No reports yet: the outcome of each operation lands here.",
-      "completed": "{op} against {name} succeeded.",
-      "failed": "{op} against {name} failed: no effect, nobody noticed.",
-      "detected": "{op} against {name} exposed: your agents were identified.",
-      "detectedButDone": "{op} against {name} exposed, but the technology is yours.",
-      "caught": "You exposed an operation by {name} against you: {op}.",
+      "completed": "{op} against {name} succeeded. The agent is home.",
+      "failed": "{op} against {name} failed: no effect, nobody noticed. The agent is home.",
+      "detected": "{op} against {name} failed and was exposed: agent lost, relations −{penalty}.",
+      "detectedButDone": "{op} against {name} worked but was exposed: the effect stands, the agent is lost, relations −{penalty}.",
+      "caught": "You exposed an operation by {name} against you: {op}. Relations −{penalty}.",
       "when": "{weeks, plural, =0 {This week} =1 {1 week ago} other {# weeks ago}}"
     },
     "list": {

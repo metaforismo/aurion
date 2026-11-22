@@ -4,6 +4,7 @@
 // selected on the globe, the operations that can be run against it, and the
 // record of those already in the field or concluded.
 
+import { SPY_DETECTED_ATTITUDE_PENALTY } from '@aurion/engine';
 import type { IntelLevel, SpyOperation } from '@aurion/engine';
 import { Check, Eye, ShieldAlert, UserSearch, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -274,19 +275,26 @@ function Report({ w, op }: { w: World; op: SpyOperation }) {
   const t = useTranslations('panelSpies');
   const foreign = op.ownerCountryId !== w.player.id;
   const weeksAgo = Math.max(0, w.state.tick - (op.startedAtTick + op.durationTicks));
-  // An exposed operation may still have worked; only a stolen technology
-  // leaves proof the player can check.
-  const gotTech =
-    op.payload.kind === 'steal_tech' && w.player.science.completedTechs.includes(op.payload.techId);
+  // Saves from before results were recorded can only prove a success by the
+  // technology it left behind.
+  const worked =
+    op.result?.success ??
+    (op.status === 'completed' ||
+      (op.payload.kind === 'steal_tech' && w.player.science.completedTechs.includes(op.payload.techId)));
+  const args = {
+    op: t(`type.${op.type}`),
+    name: w.nameOf(foreign ? op.ownerCountryId : op.targetCountryId),
+    penalty: SPY_DETECTED_ATTITUDE_PENALTY,
+  };
   const verdict = foreign
-    ? t('reports.caught', { name: w.nameOf(op.ownerCountryId), op: t(`type.${op.type}`) })
+    ? t('reports.caught', args)
     : op.status === 'completed'
-      ? t('reports.completed', { op: t(`type.${op.type}`), name: w.nameOf(op.targetCountryId) })
+      ? t('reports.completed', args)
       : op.status === 'failed'
-        ? t('reports.failed', { op: t(`type.${op.type}`), name: w.nameOf(op.targetCountryId) })
-        : gotTech
-          ? t('reports.detectedButDone', { op: t(`type.${op.type}`), name: w.nameOf(op.targetCountryId) })
-          : t('reports.detected', { op: t(`type.${op.type}`), name: w.nameOf(op.targetCountryId) });
+        ? t('reports.failed', args)
+        : worked
+          ? t('reports.detectedButDone', args)
+          : t('reports.detected', args);
   const Icon = foreign ? ShieldAlert : op.status === 'completed' ? Check : op.status === 'failed' ? X : Eye;
   const tone = foreign ? 'text-[#8ad8ff]' : op.status === 'completed' ? 'text-success' : op.status === 'failed' ? 'text-fg-faint' : 'text-[#ff8a7d]';
   return (

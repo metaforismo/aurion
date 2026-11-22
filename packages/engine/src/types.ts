@@ -223,6 +223,18 @@ export type SpyOperation = {
   status: SpyOperationStatus;
   /** Tick at which the operation was created. */
   startedAtTick: number;
+  /**
+   * How the operation ended. `status` alone cannot say that an exposed
+   * operation still worked, nor whether the agent made it home.
+   */
+  result?: SpyOperationResult;
+};
+
+export type SpyOperationResult = {
+  success: boolean;
+  detected: boolean;
+  /** The agent rejoined the owner's roster (never when detected). */
+  agentReturned: boolean;
 };
 
 // ---------------------------------------------------------------------------

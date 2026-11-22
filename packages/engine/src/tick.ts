@@ -28,6 +28,11 @@ import type {
   VictoryRule,
 } from './types.js';
 import { clamp } from './actions/helpers.js';
+import {
+  SPY_DETECTED_ATTITUDE_PENALTY,
+  assassinationRole,
+  sabotageGdpLoss,
+} from './actions/deploySpy.js';
 import { tickReputation } from './reputation/index.js';
 import { tickBlocs } from './blocs/index.js';
 import { tickUN } from './un/index.js';
@@ -462,6 +467,7 @@ function stepSpies(
   if (state.spyOperations.length === 0) return state;
   const newOps: SpyOperation[] = [];
   const countriesPatch: Record<CountryId, Country> = {};
+  const relationsPatch: Record<string, Relation> = {};
   const getCountry = (id: CountryId): Country | undefined =>
     countriesPatch[id] ?? state.countries[id];
 
@@ -495,7 +501,33 @@ function stepSpies(
       }
     }
 
-    newOps.push({ ...op, progressTicks: newProgress, status });
+    // An agent who is not caught goes back on the roster; a caught one is
+    // lost, and the target does not forget who sent them.
+    if (!detected) {
+      const owner = getCountry(op.ownerCountryId);
+      if (owner) {
+        countriesPatch[owner.id] = {
+          ...owner,
+          intelligence: { ...owner.intelligence, spyCount: owner.intelligence.spyCount + 1 },
+        };
+      }
+    } else {
+      const key = relationKeyOf(op.ownerCountryId, op.targetCountryId);
+      const rel = relationsPatch[key] ?? state.relations[key as keyof typeof state.relations];
+      if (rel) {
+        relationsPatch[key] = {
+          ...rel,
+          attitude: clamp(rel.attitude - SPY_DETECTED_ATTITUDE_PENALTY, -100, 100),
+        };
+      }
+    }
+
+    newOps.push({
+      ...op,
+      progressTicks: newProgress,
+      status,
+      result: { success, detected, agentReturned: !detected },
+    });
   }
 
   // Trim completed/failed/detected ops older than 50 ticks to keep the array bounded.
@@ -503,14 +535,22 @@ function stepSpies(
     (o) => o.status === 'active' || state.tick - o.startedAtTick - o.durationTicks < 50,
   );
 
-  if (Object.keys(countriesPatch).length === 0) {
-    return { ...state, spyOperations: trimmed };
-  }
   return {
     ...state,
-    countries: { ...state.countries, ...countriesPatch },
+    countries:
+      Object.keys(countriesPatch).length === 0
+        ? state.countries
+        : { ...state.countries, ...countriesPatch },
+    relations:
+      Object.keys(relationsPatch).length === 0
+        ? state.relations
+        : { ...state.relations, ...relationsPatch },
     spyOperations: trimmed,
   };
+}
+
+function relationKeyOf(a: CountryId, b: CountryId): string {
+  return a < b ? `${a}::${b}` : `${b}::${a}`;
 }
 
 function applySpySuccess(
@@ -521,6 +561,19 @@ function applySpySuccess(
 ): { newOwner: Country; newTarget: Country } {
   let newOwner = owner;
   let newTarget = target;
+  const dropPopularity = (c: Country, by: number): Country => ({
+    ...c,
+    politics: { ...c.politics, popularity: clamp(c.politics.popularity - by, 0, 100) },
+  });
+  const dropFactions = (c: Country, by: number, only?: string | null): Country => {
+    const updated = { ...c.politics.factions };
+    for (const fid of Object.keys(updated) as Array<keyof typeof updated>) {
+      if (only && fid !== only) continue;
+      const cur = updated[fid];
+      updated[fid] = { ...cur, satisfaction: clamp(cur.satisfaction - by, 0, 100) };
+    }
+    return { ...c, politics: { ...c.politics, factions: updated } };
+  };
   switch (op.payload.kind) {
     case 'steal_tech': {
       const techId = op.payload.techId;
@@ -550,48 +603,61 @@ function applySpySuccess(
           },
         };
       } else {
-        // economy sector hit
+        // The larger the sector, the more of the economy goes down with it.
+        const loss = sabotageGdpLoss(newTarget.economy.sectors[sector] ?? 0);
         newTarget = {
           ...newTarget,
           economy: {
             ...newTarget.economy,
-            gdp: Math.max(0, newTarget.economy.gdp * 0.98),
+            gdp: Math.max(0, newTarget.economy.gdp * (1 - loss)),
           },
         };
       }
       break;
     }
     case 'propaganda': {
-      newTarget = {
-        ...newTarget,
-        politics: {
-          ...newTarget.politics,
-          popularity: clamp(newTarget.politics.popularity - 5, 0, 100),
-        },
-      };
+      // Aimed at one faction it bites deep there and little elsewhere;
+      // broadcast to everyone it erodes the government's standing.
+      const faction = op.payload.targetFaction;
+      newTarget = faction
+        ? dropPopularity(dropFactions(newTarget, 15, faction), 2)
+        : dropPopularity(newTarget, 5);
       break;
     }
     case 'destabilize': {
-      const factions = newTarget.politics.factions;
-      const updated = { ...factions };
-      for (const fid of Object.keys(updated) as Array<keyof typeof updated>) {
-        const cur = updated[fid];
-        updated[fid] = { ...cur, satisfaction: clamp(cur.satisfaction - 5, 0, 100) };
-      }
-      newTarget = {
-        ...newTarget,
-        politics: { ...newTarget.politics, factions: updated },
-      };
+      newTarget = dropFactions(newTarget, 5);
       break;
     }
     case 'assassinate': {
-      newTarget = {
-        ...newTarget,
-        politics: {
-          ...newTarget.politics,
-          popularity: clamp(newTarget.politics.popularity - 10, 0, 100),
-        },
-      };
+      switch (assassinationRole(op.payload.targetRoleKey)) {
+        case 'defence_minister':
+          // The chain of command takes years to rebuild.
+          newTarget = dropFactions(
+            {
+              ...newTarget,
+              military: {
+                ...newTarget.military,
+                doctrineLevel: Math.max(0, newTarget.military.doctrineLevel * 0.85),
+              },
+            },
+            10,
+            'army',
+          );
+          break;
+        case 'intelligence_chief':
+          // Their services go blind, and their files end up with the owner.
+          newTarget = {
+            ...newTarget,
+            intelligence: {
+              ...newTarget.intelligence,
+              counterIntelLevel: Math.max(0, newTarget.intelligence.counterIntelLevel - 0.1),
+            },
+          };
+          newOwner = withIntel(newOwner, target.id, 'full');
+          break;
+        default:
+          newTarget = dropFactions(dropPopularity(newTarget, 10), 5);
+      }
       break;
     }
   }
