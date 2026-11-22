@@ -15,6 +15,10 @@ import {
   projectCost,
   tick,
   tickCosmos,
+  checkWinLoss,
+  spaceRaceLeader,
+  spaceRaceProgress,
+  SPACE_RACE_PATH,
 } from '../src/index.js';
 import { evaluateVictory } from '../src/checkWinLoss.js';
 import type { GameState } from '../src/index.js';
@@ -162,5 +166,36 @@ describe('kardashev victory rule', () => {
     const rule = { kind: 'kardashev', atLeast: 1 } as const;
     expect(evaluateVictory(state, rule)).toBe(false);
     expect(evaluateVictory({ ...state, cosmos: { ...state.cosmos!, kardashev: 1 } }, rule)).toBe(true);
+  });
+});
+
+describe('space race mode', () => {
+  const race = (): GameState => ({ ...newGame(), gameMode: 'space-race' });
+
+  it('is won by finishing the planetary grid first', () => {
+    const s = race();
+    const won = { ...s, cosmos: { ...s.cosmos!, completed: ['earth_planetary_grid'] } };
+    expect(checkWinLoss(won).winLoss).toBe('won');
+  });
+
+  it('is lost when a rival gets there first', () => {
+    const s = race();
+    const rivalId = Object.keys(s.cosmos!.rivals)[0]!;
+    const lost = {
+      ...s,
+      cosmos: {
+        ...s.cosmos!,
+        rivals: { ...s.cosmos!.rivals, [rivalId]: { completed: ['earth_planetary_grid'], points: 0 } },
+      },
+    };
+    expect(checkWinLoss(lost).winLoss).toBe('lost');
+    expect(spaceRaceLeader(lost.cosmos)?.countryId).toBe(rivalId);
+  });
+
+  it('measures progress along the path to the goal', () => {
+    expect(spaceRaceProgress([])).toBe(0);
+    expect(spaceRaceProgress(SPACE_RACE_PATH)).toBe(1);
+    expect(SPACE_RACE_PATH).toContain('earth_fusion');
+    expect(SPACE_RACE_PATH).not.toContain('mars_colony');
   });
 });

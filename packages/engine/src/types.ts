@@ -725,7 +725,7 @@ export type ActionTriggerKey =
  *   < -50 in all blocs for 5+ years.
  * - 'era-paced' — chapters with summary screens (Wave 10+).
  */
-export type GameMode = 'classic' | 'eternal' | 'dethrone' | 'era-paced';
+export type GameMode = 'classic' | 'eternal' | 'dethrone' | 'era-paced' | 'space-race';
 
 /** Cumulative metrics tracked across an Eternal/Dethrone playthrough. */
 export type CumulativeStats = {

@@ -397,7 +397,8 @@
     "spies": "Intelligence",
     "diplomacy": "Diplomacy",
     "politics": "Politics",
-    "un": "UN"
+    "un": "UN",
+    "cosmos": "Cosmos"
   },
   "panelRail": {
     "label": "System panels",
@@ -973,6 +974,17 @@
       "alreadyVoted": "You have already voted on this resolution.",
       "votingClosed": "Voting on this resolution has closed.",
       "invalidTarget": "Invalid target for this resolution."
+    },
+    "cosmos": {
+      "playerOnly": "Only the player can start megaprojects.",
+      "unknownProject": "Unknown project.",
+      "alreadyDone": "Project already completed.",
+      "alreadyBuilding": "Project already under construction.",
+      "missingPrerequisite": "Prerequisite projects are missing.",
+      "missingSpaceTech": "More space technology is required.",
+      "noFreeSlot": "Every construction slot is busy.",
+      "insufficientTreasury": "Not enough treasury.",
+      "notBuilding": "That project is not under construction."
     }
   },
   "play": {
@@ -1245,7 +1257,8 @@
       "marsMission": "Mars mission completed",
       "annexRegion": "Annexed conquered region",
       "grantIndependence": "Granted independence to occupied region",
-      "breakClimateTreaty": "Broke climate treaty"
+      "breakClimateTreaty": "Broke climate treaty",
+      "cosmosFirst": "First in the space race"
     },
     "cause": {
       "tacticalStrike": "Tactical nuclear strike",
@@ -1348,7 +1361,8 @@
     "spies": "Gather intel on rivals and run covert operations.",
     "diplomacy": "Treaties, alliances and sanctions with other nations.",
     "politics": "Keep your factions happy or lose your grip on power.",
-    "un": "Propose and vote on resolutions that bind the whole world."
+    "un": "Propose and vote on resolutions that bind the whole world.",
+    "cosmos": "Megaprojects: from Earth to the stars, up the Kardashev scale."
   },
   "objectives": {
     "title": "First objectives",
@@ -1358,5 +1372,324 @@
     "treaty": "Sign your first treaty",
     "popularity": "Bring popularity to 60%",
     "bloc": "Join a bloc"
+  },
+  "cosmos": {
+    "kardashev": {
+      "title": "Kardashev scale",
+      "short": "Kardashev",
+      "type": {
+        "0": "Type 0 · pre-planetary",
+        "1": "Type I · planetary",
+        "2": "Type II · stellar",
+        "3": "Type III · galactic"
+      },
+      "toNext": "Toward Type {type}",
+      "hudHint": "How much energy your civilisation commands. Open Cosmos to climb."
+    },
+    "stats": {
+      "projects": "Projects",
+      "colonists": "Off-world",
+      "firsts": "Firsts"
+    },
+    "building": {
+      "title": "Under construction",
+      "slots": "{used}/{total} slots",
+      "empty": "No active build. Pick a project below: pay once, benefit forever.",
+      "remaining": "{weeks, plural, =1 {# week} other {# weeks}} to completion",
+      "cancel": "Cancel {name}",
+      "cancelHint": "Cancel and recover half the cost"
+    },
+    "ladder": {
+      "title": "The climb"
+    },
+    "start": "Start project",
+    "stages": {
+      "0": {
+        "name": "Earth",
+        "hint": "Power, cities, spaceport"
+      },
+      "1": {
+        "name": "Orbit",
+        "hint": "Stations, yards, elevator"
+      },
+      "2": {
+        "name": "Moon",
+        "hint": "Base, helium-3, lunar city"
+      },
+      "3": {
+        "name": "Mars",
+        "hint": "Colony, industry, Type I"
+      },
+      "4": {
+        "name": "Outer system",
+        "hint": "Belt, Jupiter, Saturn"
+      },
+      "5": {
+        "name": "The Sun",
+        "hint": "Dyson swarm and sphere, Type II"
+      },
+      "6": {
+        "name": "The stars",
+        "hint": "Antimatter, ark, Proxima"
+      }
+    },
+    "viewCta": {
+      "earth": "Show Earth",
+      "moon": "Go to the Moon",
+      "mars": "Go to Mars",
+      "system": "Open the solar system"
+    },
+    "fx": {
+      "type": "Type {type}",
+      "kardashev": "+{v} K",
+      "gdp": "+{v}% GDP",
+      "research": "+{v} research",
+      "popularity": "+{v} popularity",
+      "slots": "+{v} slot",
+      "prestige": "+{v} prestige if first",
+      "duration": "{weeks} wk"
+    },
+    "lock": {
+      "requires": "Requires: {list}",
+      "spaceTech": "Requires {pct}% of the space technologies (Research panel)",
+      "noSlot": "Every slot is busy",
+      "funds": "Not enough treasury"
+    },
+    "first": {
+      "you": "World first: you got there first",
+      "rival": "World first: {name}"
+    },
+    "race": {
+      "title": "Space race",
+      "count": "{n, plural, =1 {# project} other {# projects}}"
+    },
+    "bodies": {
+      "earth": "Earth",
+      "orbit": "Earth orbit",
+      "moon": "Moon",
+      "mars": "Mars",
+      "belt": "Asteroid belt",
+      "jupiter": "Jupiter",
+      "saturn": "Saturn",
+      "sun": "Sun",
+      "centauri": "Proxima Centauri",
+      "mercury": "Mercury",
+      "venus": "Venus"
+    },
+    "bodyStatus": {
+      "untouched": "Not yet reached",
+      "building": "Under construction",
+      "settled": "{done}/{total} projects completed",
+      "noProjects": "No projects here"
+    },
+    "toast": {
+      "done": "Completed: {name}",
+      "first": "World first!",
+      "typeReached": "Your civilisation is now Type {type}"
+    },
+    "projects": {
+      "earth_smart_grid": {
+        "name": "Continental power grid",
+        "desc": "Links every plant in the country: less waste, more usable power."
+      },
+      "earth_quantum_net": {
+        "name": "National quantum network",
+        "desc": "Unbreakable compute and comms for labs and industry."
+      },
+      "earth_arcologies": {
+        "name": "Arcologies",
+        "desc": "Self-sufficient vertical cities that free up land and lift morale."
+      },
+      "earth_fusion": {
+        "name": "Fusion reactor",
+        "desc": "The sun in a bottle: clean, near-limitless energy."
+      },
+      "earth_spaceport": {
+        "name": "Spaceport",
+        "desc": "The launch pad to everything else. Needs your first space technology."
+      },
+      "orbit_station": {
+        "name": "Orbital station",
+        "desc": "A crewed lab in low orbit, staging post for every mission."
+      },
+      "orbit_shipyard": {
+        "name": "Orbital shipyard",
+        "desc": "Building in vacuum: unlocks a second project in parallel."
+      },
+      "orbit_solar": {
+        "name": "Orbital solar farms",
+        "desc": "Kilometre-wide mirrors beam power down day and night."
+      },
+      "orbit_elevator": {
+        "name": "Space elevator",
+        "desc": "A tether to geostationary orbit: space at the price of a train ride."
+      },
+      "moon_survey": {
+        "name": "Lunar survey",
+        "desc": "Probes and rovers map ice and ore at the lunar poles."
+      },
+      "moon_base": {
+        "name": "Lunar base",
+        "desc": "The first permanent settlement beyond Earth."
+      },
+      "moon_helium3": {
+        "name": "Helium-3 mines",
+        "desc": "The perfect fusion fuel, sifted from the regolith."
+      },
+      "moon_mass_driver": {
+        "name": "Mass driver",
+        "desc": "Flings cargo off the Moon without rockets. One more parallel project."
+      },
+      "moon_city": {
+        "name": "Lunar city",
+        "desc": "Domes, greenhouses and sixty thousand residents under a black sky."
+      },
+      "mars_mission": {
+        "name": "Crewed Mars mission",
+        "desc": "Six people, seven months out, the first bootprint on the red planet."
+      },
+      "mars_colony": {
+        "name": "Mars colony",
+        "desc": "Pressurised habitats and mined ice: Mars becomes home."
+      },
+      "mars_industry": {
+        "name": "Martian industry",
+        "desc": "Steelworks and refineries living off local resources."
+      },
+      "mars_city": {
+        "name": "Olympus dome city",
+        "desc": "A million people at the foot of the tallest volcano in the system."
+      },
+      "earth_planetary_grid": {
+        "name": "Planetary grid",
+        "desc": "Fusion, orbital sunlight and lunar helium in one grid: a Type I civilisation."
+      },
+      "mars_terraform": {
+        "name": "Terraforming Mars",
+        "desc": "Mirrors, comets and centuries squeezed into decades: a second blue world."
+      },
+      "belt_mining": {
+        "name": "Asteroid mining",
+        "desc": "A single metal asteroid outweighs every mine on Earth."
+      },
+      "belt_ceres": {
+        "name": "Ceres station",
+        "desc": "The port of the belt: water, yards and one more parallel project."
+      },
+      "jupiter_europa": {
+        "name": "Europa outpost",
+        "desc": "Beneath the ice, an ocean. And perhaps we are not alone."
+      },
+      "jupiter_helium": {
+        "name": "Jovian gas harvest",
+        "desc": "Refinery aerostats in Jupiter's atmosphere: fuel for millennia."
+      },
+      "saturn_titan": {
+        "name": "Titan colony",
+        "desc": "Methane lakes and thick air: the farthest inhabited frontier."
+      },
+      "sun_mercury": {
+        "name": "Dismantling Mercury",
+        "desc": "A whole planet turned into raw material to capture the Sun."
+      },
+      "sun_swarm_1": {
+        "name": "Dyson swarm I",
+        "desc": "Billions of mirrors in solar orbit. The star starts working for us."
+      },
+      "sun_swarm_2": {
+        "name": "Dyson swarm II",
+        "desc": "The swarm thickens: half the Sun's light is ours."
+      },
+      "sun_sphere": {
+        "name": "Dyson sphere",
+        "desc": "The full output of a star: a Type II civilisation."
+      },
+      "star_antimatter": {
+        "name": "Antimatter drive",
+        "desc": "A tenth of light speed. The stars are on the agenda."
+      },
+      "star_ark": {
+        "name": "Generation ark",
+        "desc": "A city-ship for a hundred thousand pioneers bound for Proxima."
+      },
+      "star_proxima": {
+        "name": "Proxima b colony",
+        "desc": "The first human world under another sun."
+      }
+    }
+  },
+  "globe": {
+    "views": {
+      "label": "View",
+      "earth": "Earth",
+      "moon": "Moon",
+      "mars": "Mars",
+      "system": "System",
+      "lockedHint": "Complete a project on this world first"
+    },
+    "age": {
+      "now": "now",
+      "weeks": "{n}w",
+      "years": "{n}y"
+    },
+    "news": {
+      "decision": "Decision required",
+      "war": "War: {a} – {b}",
+      "unVote": "UN vote in progress",
+      "spy": {
+        "steal_tech": "Tech theft in progress",
+        "sabotage": "Sabotage in progress",
+        "propaganda": "Propaganda in progress",
+        "destabilize": "Destabilisation in progress",
+        "assassinate": "Wet operation in progress"
+      }
+    },
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "home": "Back to your nation",
+    "offworld": {
+      "locked": {
+        "title": "{body}: no presence yet",
+        "body": "You have nothing here yet. The next step is “{project}”.",
+        "cta": "Open projects"
+      },
+      "site": {
+        "done": "Operational",
+        "building": "Under construction · {weeks} wk",
+        "planned": "Planned site"
+      }
+    },
+    "system": {
+      "title": "Solar system",
+      "hint": "Select a world to see its projects.",
+      "open": "Visit",
+      "projects": "Projects"
+    },
+    "country": {
+      "you": "Your nation",
+      "close": "Close card",
+      "gdp": "GDP",
+      "army": "Army",
+      "attitude": "Attitude",
+      "space": "Space projects",
+      "actions": {
+        "diplomacy": "Diplomacy",
+        "spies": "Intelligence",
+        "military": "Military",
+        "economy": "Economy",
+        "politics": "Politics"
+      },
+      "status": {
+        "war": "At war with you",
+        "ally": "Your ally",
+        "sanctions": "Under sanctions",
+        "trade": "Trade deal",
+        "neutral": "Neutral"
+      }
+    },
+    "dock": {
+      "close": "Close panel",
+      "open": "Open {name}"
+    }
   }
 }

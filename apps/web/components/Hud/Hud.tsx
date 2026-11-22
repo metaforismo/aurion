@@ -23,6 +23,7 @@ import { AudioVolumeButton } from './AudioVolumeButton';
 import { DateBadge } from './DateBadge';
 import { EraBadge } from './EraBadge';
 import { IronManBadge } from './IronManBadge';
+import { KardashevBadge } from './KardashevBadge';
 import { MenuButton } from './MenuButton';
 import { PopularityBadge } from './PopularityBadge';
 import { ReputationBadges } from './ReputationBadges';
@@ -63,7 +64,7 @@ export function Hud({ onNotify }: HudProps) {
   const notify = onNotify ?? setInternalToast;
 
   return (
-    <header className="sticky top-0 z-20 flex h-[52px] items-center gap-x-4 border-b border-border bg-bg px-3 text-sm md:gap-x-7 md:px-5">
+    <header className="glass-panel pointer-events-auto relative z-20 flex h-[52px] shrink-0 items-center gap-x-3 rounded-2xl px-3 text-sm md:gap-x-5 md:px-4">
       {/* Brand wordmark — small caps, wide tracking, anchors the row left. */}
       <span
         aria-label={tApp('name')}
@@ -98,6 +99,7 @@ export function Hud({ onNotify }: HudProps) {
       {/* Phase 3 — Eternal-mode multi-victory counter. Hides itself unless
           state.gameMode === 'eternal'. */}
       <VictoryCounter />
+      <KardashevBadge />
       <SpeedControls />
       <div className="ml-auto flex items-center gap-1">
         <AudioVolumeButton />

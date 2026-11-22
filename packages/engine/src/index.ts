@@ -49,5 +49,10 @@ export {
   highestStage,
   kardashevToWatts,
   kardashevType,
+  SPACE_RACE_GOAL,
+  SPACE_RACE_PATH,
+  spaceRaceProgress,
+  spaceRaceLeader,
+  spaceRaceOutcome,
 } from './cosmos/index.js';
 export type { CosmosProjectStatus } from './cosmos/index.js';

@@ -41,9 +41,9 @@ export const CANCEL_REFUND_SHARE = 0.5;
 /** Maximum entries kept in the completion log. */
 const LOG_LIMIT = 40;
 /** Base rival progress per tick, in cost units. */
-const RIVAL_BASE_RATE = 0.05;
+const RIVAL_BASE_RATE = 0.042;
 /** Each completed project compounds a rival's pace by this factor. */
-const RIVAL_COMPOUND = 1.09;
+const RIVAL_COMPOUND = 1.065;
 /** Rivals only bank a fraction of a project's GDP multiplier. */
 const RIVAL_GDP_SHARE = 0.35;
 
@@ -430,4 +430,52 @@ export function highestStage(completed: readonly CosmosProjectId[]): number {
   let stage = -1;
   for (const id of completed) stage = Math.max(stage, getCosmosProject(id)?.stage ?? -1);
   return stage;
+}
+
+// ---------------------------------------------------------------------------
+// Space Race mode
+// ---------------------------------------------------------------------------
+
+/** The project that ends a Space Race run (Kardashev Type I). */
+export const SPACE_RACE_GOAL: CosmosProjectId = 'earth_planetary_grid';
+
+/** The goal plus everything it transitively requires. */
+export const SPACE_RACE_PATH: readonly CosmosProjectId[] = (() => {
+  const seen = new Set<CosmosProjectId>();
+  const visit = (id: CosmosProjectId) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    for (const r of getCosmosProject(id)?.requires ?? []) visit(r);
+  };
+  visit(SPACE_RACE_GOAL);
+  return COSMOS_PROJECTS.filter((p) => seen.has(p.id)).map((p) => p.id);
+})();
+
+/** Share (0..1) of the Space Race path a civilisation has completed. */
+export function spaceRaceProgress(completed: readonly CosmosProjectId[]): number {
+  const done = SPACE_RACE_PATH.filter((id) => completed.includes(id)).length;
+  return done / SPACE_RACE_PATH.length;
+}
+
+/** The rival closest to the goal, or null when there are no rivals. */
+export function spaceRaceLeader(
+  cosmos: CosmosState,
+): { countryId: CountryId; progress: number } | null {
+  let best: { countryId: CountryId; progress: number } | null = null;
+  for (const [countryId, rival] of Object.entries(cosmos.rivals)) {
+    const progress = spaceRaceProgress(rival.completed);
+    if (!best || progress > best.progress) best = { countryId, progress };
+  }
+  return best;
+}
+
+/** 'won' / 'lost' once the race is decided, otherwise null. */
+export function spaceRaceOutcome(state: GameState): 'won' | 'lost' | null {
+  const cosmos = state.cosmos;
+  if (!cosmos) return null;
+  if (cosmos.completed.includes(SPACE_RACE_GOAL)) return 'won';
+  for (const rival of Object.values(cosmos.rivals)) {
+    if (rival.completed.includes(SPACE_RACE_GOAL)) return 'lost';
+  }
+  return null;
 }

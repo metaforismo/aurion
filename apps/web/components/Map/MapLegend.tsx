@@ -36,8 +36,7 @@ export default function MapLegend(props: MapLegendProps) {
   return (
     <div
       className={cn(
-        'pointer-events-none absolute inset-x-3 bottom-3 z-10',
-        'flex flex-wrap items-end justify-between gap-3',
+        'pointer-events-none flex flex-col items-center gap-2',
       )}
     >
       <OverlayToggle
@@ -67,11 +66,11 @@ function OverlayToggle(props: OverlayToggleInternalProps) {
   return (
     <fieldset
       className={cn(
-        'pointer-events-auto flex items-center gap-3 border border-border bg-bg/85 px-3 py-1.5',
-        'rounded-sm font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint backdrop-blur-sm',
+        'glass-panel pointer-events-auto flex items-center gap-1 rounded-full px-2 py-1',
+        'text-[11px] font-medium text-fg-faint',
       )}
     >
-      <legend className="px-1 text-fg-faint">{props.groupLabel}</legend>
+      <legend className="sr-only">{props.groupLabel}</legend>
       <div className="flex items-center gap-1">
         {OVERLAY_MODES.map((m) => {
           const checked = props.mode === m;
@@ -84,16 +83,15 @@ function OverlayToggle(props: OverlayToggleInternalProps) {
               className={cn(
                 // Visible keyboard-focus ring: the radio itself is sr-only,
                 // so the label carries the indicator via :has().
-                'rounded-sm px-2 py-1 transition-colors has-[:focus-visible]:ring-1 has-[:focus-visible]:ring-accent',
+                'rounded-full px-2.5 py-1 transition-colors has-[:focus-visible]:ring-1 has-[:focus-visible]:ring-accent',
                 isDisabled
                   ? 'cursor-not-allowed text-fg-faint/60'
                   : 'cursor-pointer',
                 !isDisabled && checked
-                  ? 'text-accent'
+                  ? 'bg-white/15 text-fg'
                   : !isDisabled
-                    ? 'text-fg-muted hover:text-fg'
+                    ? 'text-fg-muted hover:bg-white/[0.07] hover:text-fg'
                     : '',
-                !isDisabled && checked ? 'underline underline-offset-[6px] decoration-1' : '',
               )}
             >
               <input
@@ -133,8 +131,8 @@ function BlocKey({
       role="group"
       aria-label={groupLabel ?? 'bloc legend'}
       className={cn(
-        'pointer-events-auto flex flex-wrap items-center gap-3 border border-border bg-bg/85 px-3 py-1.5',
-        'rounded-sm font-mono text-[10px] uppercase tracking-[0.14em] text-fg-muted backdrop-blur-sm',
+        'glass-panel pointer-events-auto order-first flex flex-wrap items-center gap-3 rounded-full px-3 py-1.5',
+        'text-[11px] text-fg-muted',
       )}
     >
       {BLOC_LEGEND_ORDER.map((key) => (

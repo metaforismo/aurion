@@ -397,7 +397,8 @@
     "spies": "Intelligence",
     "diplomacy": "Diplomazia",
     "politics": "Politica interna",
-    "un": "ONU"
+    "un": "ONU",
+    "cosmos": "Cosmo"
   },
   "panelRail": {
     "label": "Pannelli di sistema",
@@ -973,6 +974,17 @@
       "alreadyVoted": "Hai già espresso il tuo voto su questa risoluzione.",
       "votingClosed": "Il voto su questa risoluzione è chiuso.",
       "invalidTarget": "Bersaglio non valido per questa risoluzione."
+    },
+    "cosmos": {
+      "playerOnly": "Solo il giocatore può avviare grandi progetti.",
+      "unknownProject": "Progetto sconosciuto.",
+      "alreadyDone": "Progetto già completato.",
+      "alreadyBuilding": "Progetto già in costruzione.",
+      "missingPrerequisite": "Mancano i progetti propedeutici.",
+      "missingSpaceTech": "Servono altre tecnologie spaziali.",
+      "noFreeSlot": "Tutti i cantieri sono occupati.",
+      "insufficientTreasury": "Tesoreria insufficiente.",
+      "notBuilding": "Il progetto non è in costruzione."
     }
   },
   "play": {
@@ -1245,7 +1257,8 @@
       "marsMission": "Missione su Marte completata",
       "annexRegion": "Annessione di regione conquistata",
       "grantIndependence": "Indipendenza concessa a regione occupata",
-      "breakClimateTreaty": "Trattato climatico violato"
+      "breakClimateTreaty": "Trattato climatico violato",
+      "cosmosFirst": "Primato nella corsa allo spazio"
     },
     "cause": {
       "tacticalStrike": "Strike nucleare tattico",
@@ -1348,7 +1361,8 @@
     "spies": "Raccogli informazioni sui rivali e conduci operazioni coperte.",
     "diplomacy": "Trattati, alleanze e sanzioni con le altre nazioni.",
     "politics": "Tieni felici le fazioni o perderai il potere.",
-    "un": "Proponi e vota risoluzioni che vincolano il mondo intero."
+    "un": "Proponi e vota risoluzioni che vincolano il mondo intero.",
+    "cosmos": "Grandi progetti: dalla Terra alle stelle, lungo la scala di Kardashev."
   },
   "objectives": {
     "title": "Primi obiettivi",
@@ -1358,5 +1372,324 @@
     "treaty": "Firma il tuo primo trattato",
     "popularity": "Porta la popolarità al 60%",
     "bloc": "Unisciti a un blocco"
+  },
+  "cosmos": {
+    "kardashev": {
+      "title": "Scala di Kardashev",
+      "short": "Kardashev",
+      "type": {
+        "0": "Tipo 0 · pre-planetaria",
+        "1": "Tipo I · planetaria",
+        "2": "Tipo II · stellare",
+        "3": "Tipo III · galattica"
+      },
+      "toNext": "Verso il Tipo {type}",
+      "hudHint": "Quanta energia controlla la tua civiltà. Apri il Cosmo per salire."
+    },
+    "stats": {
+      "projects": "Progetti",
+      "colonists": "Fuori dalla Terra",
+      "firsts": "Primati"
+    },
+    "building": {
+      "title": "In costruzione",
+      "slots": "{used}/{total} cantieri",
+      "empty": "Nessun cantiere attivo. Scegli un progetto qui sotto: si paga subito, rende per sempre.",
+      "remaining": "{weeks, plural, =1 {# settimana} other {# settimane}} al completamento",
+      "cancel": "Annulla {name}",
+      "cancelHint": "Annulla e recupera metà del costo"
+    },
+    "ladder": {
+      "title": "La scalata"
+    },
+    "start": "Avvia progetto",
+    "stages": {
+      "0": {
+        "name": "Terra",
+        "hint": "Energia, città, spazioporto"
+      },
+      "1": {
+        "name": "Orbita",
+        "hint": "Stazioni, cantieri, ascensore"
+      },
+      "2": {
+        "name": "Luna",
+        "hint": "Base, elio-3, città lunare"
+      },
+      "3": {
+        "name": "Marte",
+        "hint": "Colonia, industria, Tipo I"
+      },
+      "4": {
+        "name": "Sistema esterno",
+        "hint": "Fascia, Giove, Saturno"
+      },
+      "5": {
+        "name": "Il Sole",
+        "hint": "Sciame e sfera di Dyson, Tipo II"
+      },
+      "6": {
+        "name": "Le stelle",
+        "hint": "Antimateria, arca, Proxima"
+      }
+    },
+    "viewCta": {
+      "earth": "Mostra la Terra",
+      "moon": "Vai sulla Luna",
+      "mars": "Vai su Marte",
+      "system": "Apri il sistema solare"
+    },
+    "fx": {
+      "type": "Tipo {type}",
+      "kardashev": "+{v} K",
+      "gdp": "+{v}% PIL",
+      "research": "+{v} ricerca",
+      "popularity": "+{v} popolarità",
+      "slots": "+{v} cantiere",
+      "prestige": "+{v} prestigio se primo",
+      "duration": "{weeks} sett."
+    },
+    "lock": {
+      "requires": "Richiede: {list}",
+      "spaceTech": "Richiede il {pct}% delle tecnologie spaziali (pannello Ricerca)",
+      "noSlot": "Cantieri tutti occupati",
+      "funds": "Tesoreria insufficiente"
+    },
+    "first": {
+      "you": "Primato mondiale: sei arrivato per primo",
+      "rival": "Primo al mondo: {name}"
+    },
+    "race": {
+      "title": "Corsa allo spazio",
+      "count": "{n, plural, =1 {# progetto} other {# progetti}}"
+    },
+    "bodies": {
+      "earth": "Terra",
+      "orbit": "Orbita terrestre",
+      "moon": "Luna",
+      "mars": "Marte",
+      "belt": "Fascia degli asteroidi",
+      "jupiter": "Giove",
+      "saturn": "Saturno",
+      "sun": "Sole",
+      "centauri": "Proxima Centauri",
+      "mercury": "Mercurio",
+      "venus": "Venere"
+    },
+    "bodyStatus": {
+      "untouched": "Non ancora raggiunto",
+      "building": "Cantiere aperto",
+      "settled": "{done}/{total} progetti completati",
+      "noProjects": "Nessun progetto qui"
+    },
+    "toast": {
+      "done": "Completato: {name}",
+      "first": "Primato mondiale!",
+      "typeReached": "La tua civiltà è ora di Tipo {type}"
+    },
+    "projects": {
+      "earth_smart_grid": {
+        "name": "Rete energetica continentale",
+        "desc": "Interconnette ogni centrale del paese: meno sprechi, più energia utile."
+      },
+      "earth_quantum_net": {
+        "name": "Rete quantistica nazionale",
+        "desc": "Calcolo e comunicazioni inviolabili per laboratori e imprese."
+      },
+      "earth_arcologies": {
+        "name": "Arcologie",
+        "desc": "Città verticali autosufficienti che liberano suolo e alzano il morale."
+      },
+      "earth_fusion": {
+        "name": "Reattore a fusione",
+        "desc": "Il sole in bottiglia: energia pulita e quasi illimitata."
+      },
+      "earth_spaceport": {
+        "name": "Spazioporto",
+        "desc": "La rampa verso tutto il resto. Richiede le prime tecnologie spaziali."
+      },
+      "orbit_station": {
+        "name": "Stazione orbitale",
+        "desc": "Un laboratorio abitato in orbita bassa, avamposto di ogni missione."
+      },
+      "orbit_shipyard": {
+        "name": "Cantiere orbitale",
+        "desc": "Costruire nel vuoto: sblocca un secondo progetto in parallelo."
+      },
+      "orbit_solar": {
+        "name": "Centrali solari orbitali",
+        "desc": "Specchi chilometrici trasmettono a terra energia giorno e notte."
+      },
+      "orbit_elevator": {
+        "name": "Ascensore spaziale",
+        "desc": "Un cavo fino all'orbita geostazionaria: lo spazio a costo di treno."
+      },
+      "moon_survey": {
+        "name": "Ricognizione lunare",
+        "desc": "Sonde e rover mappano ghiaccio e minerali ai poli della Luna."
+      },
+      "moon_base": {
+        "name": "Base lunare",
+        "desc": "Il primo insediamento permanente fuori dalla Terra."
+      },
+      "moon_helium3": {
+        "name": "Miniere di elio-3",
+        "desc": "Il combustibile perfetto per la fusione, raccolto dalla regolite."
+      },
+      "moon_mass_driver": {
+        "name": "Catapulta elettromagnetica",
+        "desc": "Lancia carichi dalla Luna senza razzi. Un progetto in parallelo in più."
+      },
+      "moon_city": {
+        "name": "Città lunare",
+        "desc": "Cupole, serre e sessantamila residenti sotto il cielo nero."
+      },
+      "mars_mission": {
+        "name": "Missione umana su Marte",
+        "desc": "Sei persone, sette mesi di viaggio, la prima impronta sul pianeta rosso."
+      },
+      "mars_colony": {
+        "name": "Colonia marziana",
+        "desc": "Habitat pressurizzati e ghiaccio estratto: Marte diventa casa."
+      },
+      "mars_industry": {
+        "name": "Industria marziana",
+        "desc": "Acciaierie e raffinerie che vivono di risorse locali."
+      },
+      "mars_city": {
+        "name": "Città-cupola Olympus",
+        "desc": "Un milione di abitanti ai piedi del vulcano più alto del sistema."
+      },
+      "earth_planetary_grid": {
+        "name": "Rete planetaria",
+        "desc": "Fusione, sole orbitale ed elio lunare in un'unica rete: civiltà di Tipo I."
+      },
+      "mars_terraform": {
+        "name": "Terraformazione di Marte",
+        "desc": "Specchi, comete e secoli compressi in decenni: un secondo mondo blu."
+      },
+      "belt_mining": {
+        "name": "Miniere asteroidali",
+        "desc": "Un solo asteroide metallico vale più di tutte le miniere terrestri."
+      },
+      "belt_ceres": {
+        "name": "Stazione Cerere",
+        "desc": "Il porto della fascia: acqua, cantieri e un altro progetto in parallelo."
+      },
+      "jupiter_europa": {
+        "name": "Avamposto Europa",
+        "desc": "Sotto il ghiaccio, un oceano. E forse non siamo soli."
+      },
+      "jupiter_helium": {
+        "name": "Raccolta dei gas gioviani",
+        "desc": "Aerostati-raffineria nell'atmosfera di Giove: carburante per millenni."
+      },
+      "saturn_titan": {
+        "name": "Colonia Titano",
+        "desc": "Laghi di metano e un'atmosfera densa: la frontiera abitata più lontana."
+      },
+      "sun_mercury": {
+        "name": "Smantellamento di Mercurio",
+        "desc": "Un pianeta intero trasformato in materia prima per catturare il Sole."
+      },
+      "sun_swarm_1": {
+        "name": "Sciame di Dyson I",
+        "desc": "Miliardi di specchi in orbita solare. La stella comincia a lavorare per noi."
+      },
+      "sun_swarm_2": {
+        "name": "Sciame di Dyson II",
+        "desc": "Lo sciame si infittisce: metà della luce del Sole è nostra."
+      },
+      "sun_sphere": {
+        "name": "Sfera di Dyson",
+        "desc": "Tutta l'energia di una stella: civiltà di Tipo II."
+      },
+      "star_antimatter": {
+        "name": "Propulsione ad antimateria",
+        "desc": "Un decimo della velocità della luce. Le stelle entrano in agenda."
+      },
+      "star_ark": {
+        "name": "Arca generazionale",
+        "desc": "Una città-nave per centomila pionieri diretti a Proxima."
+      },
+      "star_proxima": {
+        "name": "Colonia di Proxima b",
+        "desc": "Il primo mondo umano sotto un altro sole."
+      }
+    }
+  },
+  "globe": {
+    "views": {
+      "label": "Vista",
+      "earth": "Terra",
+      "moon": "Luna",
+      "mars": "Marte",
+      "system": "Sistema",
+      "lockedHint": "Completa prima un progetto su questo mondo"
+    },
+    "age": {
+      "now": "ora",
+      "weeks": "{n} sett.",
+      "years": "{n, plural, =1 {# anno} other {# anni}}"
+    },
+    "news": {
+      "decision": "Decisione richiesta",
+      "war": "Guerra: {a} – {b}",
+      "unVote": "Voto ONU in corso",
+      "spy": {
+        "steal_tech": "Furto di tecnologia in corso",
+        "sabotage": "Sabotaggio in corso",
+        "propaganda": "Propaganda in corso",
+        "destabilize": "Destabilizzazione in corso",
+        "assassinate": "Operazione letale in corso"
+      }
+    },
+    "zoomIn": "Avvicina",
+    "zoomOut": "Allontana",
+    "home": "Torna alla tua nazione",
+    "offworld": {
+      "locked": {
+        "title": "{body}: nessuna presenza",
+        "body": "Non hai ancora niente qui. Il prossimo passo è «{project}».",
+        "cta": "Apri i progetti"
+      },
+      "site": {
+        "done": "Operativo",
+        "building": "In costruzione · {weeks} sett.",
+        "planned": "Sito previsto"
+      }
+    },
+    "system": {
+      "title": "Sistema solare",
+      "hint": "Seleziona un mondo per vedere i suoi progetti.",
+      "open": "Visita",
+      "projects": "Progetti"
+    },
+    "country": {
+      "you": "La tua nazione",
+      "close": "Chiudi scheda",
+      "gdp": "PIL",
+      "army": "Esercito",
+      "attitude": "Attitudine",
+      "space": "Progetti spaziali",
+      "actions": {
+        "diplomacy": "Diplomazia",
+        "spies": "Intelligence",
+        "military": "Militare",
+        "economy": "Economia",
+        "politics": "Politica"
+      },
+      "status": {
+        "war": "In guerra con te",
+        "ally": "Tuo alleato",
+        "sanctions": "Sotto sanzioni",
+        "trade": "Accordo commerciale",
+        "neutral": "Neutrale"
+      }
+    },
+    "dock": {
+      "close": "Chiudi pannello",
+      "open": "Apri {name}"
+    }
   }
 }

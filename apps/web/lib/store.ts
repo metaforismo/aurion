@@ -63,7 +63,8 @@ export type PanelId =
   | 'spies'
   | 'diplomacy'
   | 'politics'
-  | 'un';
+  | 'un'
+  | 'cosmos';
 
 export const PANEL_IDS: readonly PanelId[] = [
   'economy',
@@ -73,7 +74,11 @@ export const PANEL_IDS: readonly PanelId[] = [
   'diplomacy',
   'politics',
   'un',
+  'cosmos',
 ] as const;
+
+/** What the central stage shows: a planet you can act on, or the system map. */
+export type MapView = 'earth' | 'moon' | 'mars' | 'system';
 
 /**
  * Reasons a player can lose. Mirrors the streak counters in `_loseStreaks`,
@@ -191,6 +196,10 @@ export type GameStoreState = {
   pendingConfirm: ConfirmRequest | null;
   /** Which of the 6 game-system panels is currently active in the left rail. */
   selectedPanel: PanelId;
+  /** Whether the system drawer next to the dock is open. */
+  panelOpen: boolean;
+  /** Which world the central stage is showing. */
+  mapView: MapView;
   /**
    * Most recent achievement that has been unlocked but not yet acknowledged
    * by the UI. The toast component reads this and clears it via
@@ -256,6 +265,8 @@ export type GameStoreState = {
   reset: () => void;
   /** Select a country on the map. Pass null to clear. */
   selectCountry: (id: CountryId | null) => void;
+  setPanelOpen: (open: boolean) => void;
+  setMapView: (view: MapView) => void;
   /** Open a generic confirmation modal. */
   confirm: (request: ConfirmRequest) => void;
   /** Clear any pending confirmation request without invoking its callback. */
@@ -368,6 +379,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   selectedCountryId: null,
   pendingConfirm: null,
   selectedPanel: getInitialPanel(),
+  panelOpen: true,
+  mapView: 'earth',
   pendingAchievementToast: null,
   unlockedAchievementIds: new Set<AchievementId>(),
   pendingVictoryToast: null,
@@ -654,8 +667,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({ pendingConfirm: null });
   },
 
+  setPanelOpen: (open) => set({ panelOpen: open }),
+  setMapView: (view) => set({ mapView: view }),
+
   setSelectedPanel: (panel) => {
-    set({ selectedPanel: panel });
+    set({ selectedPanel: panel, panelOpen: true });
     try {
       usePreferredPanel.getState().setPreferredPanel(panel);
     } catch {

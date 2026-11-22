@@ -20,13 +20,12 @@ import {
   useNotificationSfx,
 } from '../../../../components/Audio';
 import Hud from '../../../../components/Hud';
-import WorldMap from '../../../../components/Map';
+import MapStage from '../../../../components/Globe/MapStage';
 import ModalRoot from '../../../../components/Modals';
 import NotificationStream, {
   ActionToastStack,
   VictoryToast,
 } from '../../../../components/Notifications';
-import { FirstGameHints } from '../../../../components/Onboarding';
 import { ObjectivesCard } from '../../../../components/Onboarding/ObjectivesCard';
 import PanelTabs from '../../../../components/Panels';
 import TutorialOverlay from '../../../../components/Tutorial';
@@ -96,30 +95,27 @@ export default function PlayPage({
       {/* Audio behaviours mounted *inside* the provider so they have a
           context to read from. Side-effect-only — no DOM. */}
       <PlayAudioBindings />
-      <main className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-bg text-fg">
-        <Hud />
-        {/* Three-column work surface. We give the row a fixed height equal to
-            the viewport minus the HUD (52px — see Hud.tsx) so that the map
-            column never inherits the natural height of an oversized panel
-            (e.g. the full Research tech tree, which can grow to >10k px and
-            push the SVG's preserveAspectRatio off-screen). Each column owns
-            its own overflow: the left rail and the right notification stream
-            scroll independently; the centre map stays pinned and resizes via
-            preserveAspectRatio.
-
-            The right column's width comes from `--rail-w` (defaulting to
-            20rem) so the NotificationStream can shrink itself to its slim
-            collapsed state without leaving a gap. */}
+      <main className="relative h-[100dvh] overflow-hidden bg-[#010206] text-fg">
+        {/* The world fills the screen; every piece of chrome floats over it
+            as translucent glass so the planet stays the hero. */}
+        <MapStage />
         <div
-          className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden p-2 lg:grid-cols-[18rem_minmax(0,1fr)_var(--rail-w,20rem)]"
+          className="pointer-events-none absolute inset-0 z-10 flex flex-col gap-2 p-2"
           style={gridStyle}
         >
-          <PanelTabs />
-          <WorldMap />
-          <NotificationStream
-            onWidthChange={handleRailWidth}
-            topSlot={<ObjectivesCard />}
-          />
+          <Hud />
+          <div className="flex min-h-0 flex-1 flex-col justify-between gap-2 lg:flex-row">
+            <PanelTabs className="max-h-[55%] lg:max-h-none" />
+            <div
+              className="glass-panel glass-host pointer-events-auto hidden min-h-0 shrink-0 self-start overflow-hidden rounded-2xl transition-[width] duration-200 lg:block lg:max-h-full"
+              style={{ width: 'var(--rail-w, 20rem)' }}
+            >
+              <NotificationStream
+                onWidthChange={handleRailWidth}
+                topSlot={<ObjectivesCard />}
+              />
+            </div>
+          </div>
         </div>
         <ModalRoot />
         {/* Cross-game achievement toast — self-managed: reads
@@ -137,10 +133,6 @@ export default function PlayPage({
         {/* First-time tutorial — self-bootstraps from the persisted dismissed
             flag. Renders nothing once the player has seen / skipped it. */}
         <TutorialOverlay />
-        {/* Light-touch hint annotations for the very first game. Suppresses
-            itself when the tutorial is active or once the player has
-            dismissed (see FirstGameHints for the localStorage key). */}
-        <FirstGameHints />
       </main>
     </AudioProvider>
   );

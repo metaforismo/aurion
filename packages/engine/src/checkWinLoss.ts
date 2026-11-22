@@ -6,6 +6,7 @@ import {
   withDethroneStreaks,
   withStreaks,
 } from './internal.js';
+import { spaceRaceOutcome } from './cosmos/index.js';
 import type {
   ActiveBlocId,
   Country,
@@ -130,6 +131,12 @@ export function checkWinLoss(
       // declared era. The run is recognised as a win regardless of the
       // selected victory condition (it's a chapter-completion victory).
       winLoss = 'won';
+    } else if (state.gameMode === 'space-race') {
+      // Space Race: one goal, one clock. First civilisation to finish the
+      // planetary grid (Kardashev Type I) wins; if a rival closes it first
+      // the run is lost. Other victory rules are ignored in this mode.
+      const outcome = spaceRaceOutcome(state);
+      if (outcome) winLoss = outcome;
     } else if (victoryRule && evaluateVictory(state, victoryRule)) {
       // Eternal mode: victories accumulate in `unlockedVictories` instead of
       // ending the game. The tick step handles the tracking; here we just
