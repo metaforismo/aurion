@@ -247,6 +247,21 @@ ENTRIES = [
      "That operation needs a technology you do not have yet."),
     ("panelSpies.dossier.howToLearn", "Per saperne di più: un'operazione riuscita alza il livello di uno; un accordo commerciale porta almeno voci, un'alleanza fonti parziali; gli agenti liberi indagano da soli, lentamente.",
      "To learn more: a successful operation raises the level by one; a trade deal brings at least rumours, an alliance partial sources; idle agents investigate on their own, slowly."),
+    # ---- Run statistics ----------------------------------------------------
+    ("stats.title", "Andamento della partita", "How the run has gone"),
+    ("stats.menu", "Statistiche", "Statistics"),
+    ("stats.empty", "Lo storico comincia a riempirsi dopo qualche settimana di gioco.", "The record starts filling in after a few weeks of play."),
+    ("stats.series.gdp", "PIL", "GDP"),
+    ("stats.series.treasury", "Tesoreria", "Treasury"),
+    ("stats.series.popularity", "Popolarità", "Popularity"),
+    ("stats.series.kardashev", "Kardashev", "Kardashev"),
+    ("stats.series.rank", "Posizione economica", "Economic rank"),
+    ("stats.rankValue", "{rank}ª", "#{rank}"),
+    ("stats.year", "Anno {n}", "Year {n}"),
+    ("stats.weekOf", "Anno {year}, settimana {week}", "Year {year}, week {week}"),
+    ("stats.chartLabel", "{name}: da {from} a {to}. Usa le frecce per leggere i valori.", "{name}: from {from} to {to}. Use the arrow keys to read values."),
+    ("stats.table", "Mostra i dati in tabella", "Show the data as a table"),
+    ("stats.when", "Quando", "When"),
 ]
 
 if __name__ == "__main__":

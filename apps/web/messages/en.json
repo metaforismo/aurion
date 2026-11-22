@@ -3219,5 +3219,23 @@
       "moon": "Go to the Moon",
       "mars": "Go to Mars"
     }
+  },
+  "stats": {
+    "title": "How the run has gone",
+    "menu": "Statistics",
+    "empty": "The record starts filling in after a few weeks of play.",
+    "series": {
+      "gdp": "GDP",
+      "treasury": "Treasury",
+      "popularity": "Popularity",
+      "kardashev": "Kardashev",
+      "rank": "Economic rank"
+    },
+    "rankValue": "#{rank}",
+    "year": "Year {n}",
+    "weekOf": "Year {year}, week {week}",
+    "chartLabel": "{name}: from {from} to {to}. Use the arrow keys to read values.",
+    "table": "Show the data as a table",
+    "when": "When"
   }
 }

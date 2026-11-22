@@ -3219,5 +3219,23 @@
       "moon": "Vai sulla Luna",
       "mars": "Vai su Marte"
     }
+  },
+  "stats": {
+    "title": "Andamento della partita",
+    "menu": "Statistiche",
+    "empty": "Lo storico comincia a riempirsi dopo qualche settimana di gioco.",
+    "series": {
+      "gdp": "PIL",
+      "treasury": "Tesoreria",
+      "popularity": "Popolarità",
+      "kardashev": "Kardashev",
+      "rank": "Posizione economica"
+    },
+    "rankValue": "{rank}ª",
+    "year": "Anno {n}",
+    "weekOf": "Anno {year}, settimana {week}",
+    "chartLabel": "{name}: da {from} a {to}. Usa le frecce per leggere i valori.",
+    "table": "Mostra i dati in tabella",
+    "when": "Quando"
   }
 }

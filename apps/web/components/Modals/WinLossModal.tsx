@@ -14,6 +14,7 @@ import { money } from '../../lib/format';
 import type { ScenarioId } from '../../lib/scenarios';
 import { selectLossReason, selectPlayerCountry, useGameStore } from '../../lib/store';
 import { useScenarioMessages } from '../Panels/shared/useScenarioMessages';
+import { RunCharts } from '../Play/RunCharts';
 import { Button, Stat } from '../ui';
 
 function gdpRank(state: GameState): number {
@@ -29,6 +30,7 @@ export function WinLossModal() {
   const continueAsOdyssey = useGameStore((s) => s.continueAsOdyssey);
   const t = useTranslations('modals.winLoss');
   const tEnd = useTranslations('endScreen');
+  const tStats = useTranslations('stats');
   const tVictory = useTranslations();
   const tCosmos = useTranslations('cosmos.kardashev');
   const locale = useLocale();
@@ -152,6 +154,17 @@ export function WinLossModal() {
             </div>
           ))}
         </dl>
+
+        {(state.history?.length ?? 0) >= 2 ? (
+          <details className="mt-5 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+            <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-[0.16em] text-fg-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+              {tStats('title')}
+            </summary>
+            <div className="mt-3">
+              <RunCharts />
+            </div>
+          </details>
+        ) : null}
 
         <div className="mt-7 flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
           <Link

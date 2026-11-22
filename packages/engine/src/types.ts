@@ -535,6 +535,8 @@ export type GameState = {
   cosmos?: CosmosState;
   /** Standing national policies. */
   policies?: PolicyState;
+  /** Sampled history of the player's run, oldest first. */
+  history?: HistorySample[];
 };
 
 // ---------------------------------------------------------------------------
@@ -1001,4 +1003,20 @@ export type PolicyState = {
   cooldownUntil: Partial<Record<PolicyId, number>>;
   /** Fractional megaproject build progress carried between ticks. */
   speedCarry: number;
+};
+
+
+// ---------------------------------------------------------------------------
+// Run history
+// ---------------------------------------------------------------------------
+
+/** One snapshot of the player's situation, for charts and the end screen. */
+export type HistorySample = {
+  tick: number;
+  gdp: number;
+  treasury: number;
+  popularity: number;
+  kardashev: number;
+  /** 1-based GDP rank among all nations. */
+  rank: number;
 };

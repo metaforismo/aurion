@@ -59,6 +59,8 @@ It runs entirely in the browser. No backend, no account, no tracking.
 
 It plays on a phone too: the drawer and the briefing become sheets over the planet.
 
+Big steps get their own moment — the first base on the Moon, the day you become a Type I civilisation — and the pause menu keeps charts of how the run has gone.
+
 Also: four scenarios (a six-nation starter, a fictional continent, the contemporary world, the Cold War), three difficulty presets plus Iron Man, 23 trophies that persist across runs, save / load / export / import, a first-run tour, a full how-to-play codex, and Italian and English throughout.
 
 ## Game modes
@@ -79,7 +81,7 @@ Picked first, because the mode decides how you win, how you lose and how long it
 
 Thirty-two megaprojects in seven stages: **Earth → Orbit → Moon → Mars → Outer system → the Sun → the stars.** Each is paid up front, takes weeks to build and pays out for ever: more GDP, more research, more of the Sun's energy under your control. Your civilisation's Kardashev rating climbs from 0.70 to Type I (a planet's worth of energy) with the Planetary Grid, to Type II with a Dyson sphere, and a little beyond with the first interstellar colony.
 
-Every other nation climbs the same ladder at its own pace. Being first earns prestige; in Space Race it is the whole game. You can visit the Moon and Mars to see your sites, or open the solar-system map.
+Allies co-fund your builds (4% off per alliance, up to 20%), and milestones bring their own decisions: who owns the Moon, what to do when Mars asks for autonomy. Every other nation climbs the same ladder at its own pace. Being first earns prestige; in Space Race it is the whole game. You can visit the Moon and Mars to see your sites, or open the solar-system map.
 
 ## Quick start
 

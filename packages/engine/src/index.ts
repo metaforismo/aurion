@@ -85,3 +85,4 @@ export { isSpyTypeUnlocked, computeSpyProbabilities } from './actions/deploySpy.
 export { evaluateCondition as evaluateEventCondition } from './events/conditions.js';
 export { supportMultiplier } from './tick.js';
 export { COSMOS_EVENTS } from './cosmos/events.js';
+export { tickHistory, sampleOf as historySampleOf, HISTORY_INTERVAL_TICKS, HISTORY_LIMIT } from './history.js';

@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   Download,
   FolderOpen,
+  LineChart,
   LogOut,
   Menu,
   Play,
@@ -32,6 +33,7 @@ import {
 } from '../../lib/persistence';
 import { selectIronMan, useGameStore } from '../../lib/store';
 import { useTicker } from '../../lib/ticker';
+import { RunCharts } from '../Play/RunCharts';
 import { IconButton, Kbd } from '../ui';
 
 export type MenuButtonProps = {
@@ -45,6 +47,7 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
   const tErrors = useTranslations('errors');
   const tIronMan = useTranslations('hud.ironMan');
   const tMenu = useTranslations('pauseMenu');
+  const tStats = useTranslations('stats');
   const locale = useLocale();
   const ticker = useTicker();
   const saveName = useGameStore((s) => s.saveName);
@@ -55,6 +58,7 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
   const [showSaves, setShowSaves] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [saves, setSaves] = useState<SaveSummary[] | null>(null);
 
   const saveId = useGameStore((s) => s.saveId);
@@ -88,6 +92,7 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
   const closeMenu = () => {
     setOpen(false);
     setShowSaves(false);
+    setShowStats(false);
     const speed = resumeSpeed.current;
     resumeSpeed.current = null;
     if (speed === 1 || speed === 2 || speed === 4) ticker.setSpeed(speed);
@@ -224,7 +229,10 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
           <div
             role="menu"
             aria-label={t('menu')}
-            className="glass-panel flex max-h-[calc(100dvh-2rem)] w-full max-w-sm flex-col overflow-hidden rounded-2xl"
+            className={cn(
+              'glass-panel flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-2xl',
+              showStats ? 'max-w-2xl' : 'max-w-sm',
+            )}
             style={{ animation: 'rise-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both' }}
           >
             <header className="border-b border-white/10 px-5 py-4">
@@ -233,7 +241,16 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
             </header>
 
             <div className="thin-scroll flex flex-col gap-1 overflow-y-auto p-2">
-              {showSaves ? (
+              {showStats ? (
+                <>
+                  <MenuItem icon={ChevronLeft} onClick={() => setShowStats(false)}>
+                    {tMenu('loadBack')}
+                  </MenuItem>
+                  <div className="px-1 pb-1">
+                    <RunCharts />
+                  </div>
+                </>
+              ) : showSaves ? (
                 <>
                   <MenuItem icon={ChevronLeft} onClick={() => setShowSaves(false)}>
                     {tMenu('loadBack')}
@@ -283,6 +300,9 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
                   </MenuItem>
                   <MenuItem icon={Upload} onClick={handleImportPick}>
                     {t('import')}
+                  </MenuItem>
+                  <MenuItem icon={LineChart} onClick={() => setShowStats(true)}>
+                    {tStats('menu')}
                   </MenuItem>
                   <a
                     role="menuitem"
