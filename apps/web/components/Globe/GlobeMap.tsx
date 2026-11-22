@@ -22,7 +22,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Country, CountryId, GameState, IntelLevel } from '@aurion/engine';
 
 import { buildGeoCountries, countryAt, greatCircle, midpoint, type GeoCountry } from '../../lib/globe/geo';
@@ -35,6 +35,7 @@ import { IconButton } from '../ui';
 
 import { CapitalMarker, NewsPill, type MarkerTone } from './markers';
 import { BLOC_HEX, OverlaySwitch, computeIntelMask, type BlocColorKey, type OverlayMode } from './overlay';
+import { useWideStage, type StageInsets } from './useStageInsets';
 import PlanetView, { type PlanetMarker, type PlanetViewHandle } from './PlanetView';
 
 const GOLD = '#E8B45A';
@@ -49,16 +50,6 @@ const NEWS_STYLE: Record<WorldNewsKind, { icon: LucideIcon; tone: MarkerTone }> 
   sanctions: { icon: Ban, tone: 'warning' },
   trade: { icon: ShoppingBag, tone: 'neutral' },
 };
-
-const WIDE_QUERY = '(min-width: 1024px)';
-function subscribeWide(onChange: () => void): () => void {
-  const query = window.matchMedia(WIDE_QUERY);
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
-}
-function isWide(): boolean {
-  return window.matchMedia(WIDE_QUERY).matches;
-}
 
 function relKey(a: CountryId, b: CountryId): string {
   return a < b ? `${a}::${b}` : `${b}::${a}`;
@@ -138,7 +129,7 @@ function paintFor(
   return { fill, stroke, width, glow };
 }
 
-export default function GlobeMap() {
+export default function GlobeMap({ insets }: { insets: StageInsets | undefined }) {
   const t = useTranslations('map');
   const tGlobe = useTranslations('globe');
   const tCosmos = useTranslations('cosmos');
@@ -306,26 +297,7 @@ export default function GlobeMap() {
   }, [speed, ready]);
 
   // Screen bands taken by the dock/drawer and the briefing on wide layouts.
-  const wide = useSyncExternalStore(subscribeWide, isWide, () => false);
-  // Measured rather than assumed: the drawer can be closed and the briefing
-  // collapsed, and both change how much of the planet is covered.
-  const [insets, setInsets] = useState<{ left: number; right: number } | undefined>(undefined);
-  useEffect(() => {
-    if (!wide) return;
-    const measure = () => {
-      const dock = document.querySelector('[data-stage-inset="left"]')?.getBoundingClientRect();
-      const rail = document.querySelector('[data-stage-inset="right"]')?.getBoundingClientRect();
-      const next = {
-        left: Math.round((dock?.right ?? 0) + 8),
-        right: Math.round(rail ? window.innerWidth - rail.left + 8 : 8),
-      };
-      setInsets((prev) => (prev && prev.left === next.left && prev.right === next.right ? prev : next));
-    };
-    measure();
-    const id = window.setInterval(measure, 400);
-    return () => window.clearInterval(id);
-  }, [wide]);
-
+  const wide = useWideStage();
   useEffect(() => {
     // Keep the planet centred in the free space between drawer and briefing.
     viewRef.current?.setOffsetX(wide && panelOpen ? 0.045 : 0);
@@ -618,14 +590,14 @@ export default function GlobeMap() {
         ariaLabel={t('label')}
         markers={markers}
         initialDistance={2.9}
-        insets={wide ? insets : undefined}
+        insets={insets}
         onPick={handlePick}
         onHover={handleHover}
         onZoom={setZoomDistance}
         onReady={() => setReady(true)}
       />
 
-      <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2">
+      <div className="pointer-events-none absolute bottom-3 z-10 -translate-x-1/2" style={{ left: 'var(--stage-center, 50%)' }}>
         <div className="pointer-events-auto">
           <OverlaySwitch
             mode={overlay}

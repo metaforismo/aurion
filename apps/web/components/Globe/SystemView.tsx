@@ -124,7 +124,7 @@ export default function SystemView() {
       className="absolute inset-0 overflow-hidden bg-[radial-gradient(ellipse_at_50%_50%,#0a1226_0%,#02040a_70%)]"
       data-testid="system-view"
     >
-      <div className="absolute inset-x-4 bottom-56 top-28 grid place-items-center lg:left-[30rem] lg:right-[21.5rem]">
+      <div className="absolute inset-x-4 bottom-72 top-36 grid place-items-center lg:bottom-56 lg:left-[30rem] lg:right-[21.5rem] lg:top-28">
       <div className="relative aspect-square h-full max-h-full max-w-full">
         {/* Orbits */}
         {BODIES.filter((b) => b.orbit > 0).map((b) => (
@@ -210,7 +210,8 @@ export default function SystemView() {
       {/* Selected world card */}
       <section
         aria-live="polite"
-        className="glass-panel absolute bottom-4 left-1/2 z-10 w-[min(30rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl p-4 lg:left-[calc(50%+4.25rem)]"
+        className="glass-panel absolute bottom-28 z-10 w-[min(30rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl p-4 lg:bottom-4"
+        style={{ left: 'var(--stage-center, 50%)' }}
       >
         <div className="flex items-start justify-between gap-3">
           <div>

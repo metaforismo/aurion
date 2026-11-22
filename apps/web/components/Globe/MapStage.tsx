@@ -15,6 +15,7 @@ import CountryCard from './CountryCard';
 import GlobeMap from './GlobeMap';
 import OffworldView from './OffworldView';
 import SystemView from './SystemView';
+import { useStageInsets } from './useStageInsets';
 
 /** A small filled disc reads as "a planet" better than any stock icon. */
 function MarsGlyph({ className }: { className?: string }) {
@@ -40,10 +41,11 @@ export default function MapStage() {
   const setMapView = useGameStore((s) => s.setMapView);
   const cosmos = useGameStore((s) => s.state?.cosmos);
   const settled = cosmos ? settledBodies(cosmos) : ['earth'];
+  const insets = useStageInsets();
 
   return (
     <div className="absolute inset-0">
-      {view === 'earth' ? <GlobeMap /> : null}
+      {view === 'earth' ? <GlobeMap insets={insets} /> : null}
       {view === 'moon' || view === 'mars' ? <OffworldView body={view} /> : null}
       {view === 'system' ? <SystemView /> : null}
 
@@ -52,7 +54,8 @@ export default function MapStage() {
         role="radiogroup"
         aria-label={t('views.label')}
         data-testid="view-switch"
-        className="glass-panel absolute bottom-14 left-1/2 z-10 flex -translate-x-1/2 gap-0.5 rounded-full p-1 lg:bottom-auto lg:top-[4.5rem]"
+        className="glass-panel absolute bottom-14 z-10 flex -translate-x-1/2 gap-0.5 rounded-full p-1 lg:bottom-auto lg:top-[4.5rem]"
+        style={{ left: 'var(--stage-center, 50%)' }}
       >
         {VIEWS.map(({ id, icon: Icon }) => {
           const active = view === id;
@@ -81,7 +84,10 @@ export default function MapStage() {
       </div>
 
       {view === 'earth' ? (
-        <div className="pointer-events-none absolute bottom-[6.75rem] left-1/2 z-10 -translate-x-1/2 lg:bottom-[4.75rem]">
+        <div
+          className="pointer-events-none absolute bottom-[6.75rem] z-10 -translate-x-1/2 lg:bottom-[4.75rem]"
+          style={{ left: 'var(--stage-center, 50%)' }}
+        >
           <CountryCard />
         </div>
       ) : null}

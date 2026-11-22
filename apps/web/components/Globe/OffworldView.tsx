@@ -111,8 +111,8 @@ export default function OffworldView({ body }: { body: SurfaceBody }) {
       />
       {!hasPresence && nextStep ? (
         <div
-          className="glass-panel absolute bottom-20 left-1/2 z-10 w-[min(26rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl p-4 text-center"
-          style={{ animation: 'rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both' }}
+          className="glass-panel absolute bottom-28 z-10 w-[min(26rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl p-4 text-center lg:bottom-20"
+          style={{ left: 'var(--stage-center, 50%)', animation: 'rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both' }}
         >
           <Orbit aria-hidden className="mx-auto mb-2 h-5 w-5 text-[#8ad8ff]" />
           <h3 className="text-sm font-semibold text-fg">{t('offworld.locked.title', { body: bodyName })}</h3>
