@@ -11,6 +11,8 @@ import type {
   IntelLevel,
   SpyOperation,
   SpyOperationId,
+  TechDefinition,
+  SpyOperationType,
 } from '../types.js';
 import { withCountry } from './helpers.js';
 
@@ -67,11 +69,28 @@ function nextSpyOpId(state: GameState): SpyOperationId {
   return `spy_${state.tick}_${state.spyOperations.length}_${rng.nextInt(1_000_000)}`;
 }
 
+/**
+ * Operation types are unlocked by technologies (`unlockSpyType`). A type no
+ * technology in the catalogue mentions is available from the start.
+ */
+export function isSpyTypeUnlocked(
+  owner: Country,
+  type: SpyOperationType,
+  techCatalog: readonly TechDefinition[],
+): boolean {
+  const unlockers = techCatalog.filter((t) =>
+    t.effects.some((e) => e.type === 'unlockSpyType' && e.spyType === type),
+  );
+  if (unlockers.length === 0) return true;
+  return unlockers.some((t) => owner.science.completedTechs.includes(t.id));
+}
+
 export function applyDeploySpy(
   state: GameState,
   action: DeploySpyAction,
   countryId: CountryId,
   difficulty?: DifficultyTuning,
+  techCatalog: readonly TechDefinition[] = [],
 ): ApplyActionResult {
   const errors: string[] = [];
   const op = action.op;
@@ -95,6 +114,10 @@ export function applyDeploySpy(
   }
   if (owner.intelligence.spyCount < 1) {
     errors.push('errors.spy.noSpies');
+    return { state, errors };
+  }
+  if (!isSpyTypeUnlocked(owner, op.type, techCatalog)) {
+    errors.push('errors.spy.typeLocked');
     return { state, errors };
   }
   if (op.durationTicks <= 0) {

@@ -78,3 +78,6 @@ export type { PolicyStatus, PolicyModifiers } from './policies/index.js';
 export { applyEventEffects, describeEventEffect, resolveEventChoice } from './events/index.js';
 export type { EventEffectSummary } from './events/index.js';
 export { PLACATE_COST } from './actions/placateFaction.js';
+export { isSpyTypeUnlocked, computeSpyProbabilities } from './actions/deploySpy.js';
+export { evaluateCondition as evaluateEventCondition } from './events/conditions.js';
+export { supportMultiplier } from './tick.js';

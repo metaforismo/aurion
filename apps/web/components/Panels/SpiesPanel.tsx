@@ -212,6 +212,9 @@ function Dossier({ w }: { w: World }) {
           ))}
         </ol>
         <p className="mt-2 text-[11px] leading-snug text-fg-muted">{t(`intelDetail.${level}`)}</p>
+        {level !== 'full' ? (
+          <p className="mt-1.5 text-[11px] leading-snug text-fg-faint">{t('dossier.howToLearn')}</p>
+        ) : null}
       </div>
       <dl className="flex flex-col gap-1 border-t border-white/10 pt-2.5">
         <Fact label={t('dossier.edge')} tone="info" words={INTEL_EDGE[level] === 0}>

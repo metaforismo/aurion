@@ -735,6 +735,9 @@
       "excluded": "Incompatible with a policy in force.",
       "noSlot": "You have reached the maximum number of policies.",
       "notActive": "That policy is not in force."
+    },
+    "spy": {
+      "typeLocked": "That operation needs a technology you do not have yet."
     }
   },
   "play": {
@@ -2810,7 +2813,8 @@
       "edgeValue": "{points, plural, =0 {none} other {+# points}}",
       "defences": "Counter-intelligence",
       "techs": "Technologies completed",
-      "unknown": "unknown"
+      "unknown": "unknown",
+      "howToLearn": "To learn more: a successful operation raises the level by one; a trade deal brings at least rumours, an alliance partial sources; idle agents investigate on their own, slowly."
     },
     "intel": {
       "none": "None",
@@ -2933,7 +2937,8 @@
       "targetNotFound": "The target no longer exists.",
       "selfTarget": "You cannot spy on yourself.",
       "noSpies": "You have no agents available.",
-      "invalidDuration": "Invalid operation length."
+      "invalidDuration": "Invalid operation length.",
+      "typeLocked": "That operation needs a technology you do not have yet."
     }
   },
   "panelUN": {

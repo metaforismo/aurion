@@ -83,7 +83,7 @@ export function applyAction(
       result = applyInvest(state, action, actor);
       break;
     case 'deploySpy':
-      result = applyDeploySpy(state, action, actor, difficulty);
+      result = applyDeploySpy(state, action, actor, difficulty, techCatalog);
       break;
     case 'startResearch':
       result = applyStartResearch(state, action, actor, techCatalog);

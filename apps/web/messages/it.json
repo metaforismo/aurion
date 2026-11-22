@@ -735,6 +735,9 @@
       "excluded": "Incompatibile con una politica in vigore.",
       "noSlot": "Hai raggiunto il numero massimo di politiche.",
       "notActive": "Questa politica non è in vigore."
+    },
+    "spy": {
+      "typeLocked": "Questa operazione richiede una tecnologia che non hai ancora."
     }
   },
   "play": {
@@ -2810,7 +2813,8 @@
       "edgeValue": "{points, plural, =0 {nessuno} other {+# punti}}",
       "defences": "Controspionaggio",
       "techs": "Tecnologie completate",
-      "unknown": "ignoto"
+      "unknown": "ignoto",
+      "howToLearn": "Per saperne di più: un'operazione riuscita alza il livello di uno; un accordo commerciale porta almeno voci, un'alleanza fonti parziali; gli agenti liberi indagano da soli, lentamente."
     },
     "intel": {
       "none": "Nessuna",
@@ -2933,7 +2937,8 @@
       "targetNotFound": "Il bersaglio non esiste più.",
       "selfTarget": "Non puoi spiare te stesso.",
       "noSpies": "Non hai agenti disponibili.",
-      "invalidDuration": "Durata dell'operazione non valida."
+      "invalidDuration": "Durata dell'operazione non valida.",
+      "typeLocked": "Questa operazione richiede una tecnologia che non hai ancora."
     }
   },
   "panelUN": {

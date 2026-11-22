@@ -239,6 +239,13 @@ ENTRIES = [
     ("modals.winLoss.lossReason.dethroned", "Sei rimasto troppo a lungo fuori dal podio delle economie.",
      "You stayed off the podium of economies for too long."),
     ("endScreen.won.throne", "Dieci anni sul podio delle economie: il trono è tuo.", "Ten years on the podium of economies: the throne is yours."),
+    # ---- Engine round 2 ----------------------------------------------------
+    ("errors.spy.typeLocked", "Questa operazione richiede una tecnologia che non hai ancora.",
+     "That operation needs a technology you do not have yet."),
+    ("panelSpies.error.typeLocked", "Questa operazione richiede una tecnologia che non hai ancora.",
+     "That operation needs a technology you do not have yet."),
+    ("panelSpies.dossier.howToLearn", "Per saperne di più: un'operazione riuscita alza il livello di uno; un accordo commerciale porta almeno voci, un'alleanza fonti parziali; gli agenti liberi indagano da soli, lentamente.",
+     "To learn more: a successful operation raises the level by one; a trade deal brings at least rumours, an alliance partial sources; idle agents investigate on their own, slowly."),
 ]
 
 if __name__ == "__main__":

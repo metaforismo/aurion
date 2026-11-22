@@ -8,6 +8,7 @@ import { decideAiAction } from './ai/index.js';
 import { checkWinLoss, evaluateVictory } from './checkWinLoss.js';
 import { createRng, type Rng } from './rng.js';
 import type {
+  IntelLevel,
   Country,
   CountryId,
   CumulativeStats,
@@ -36,6 +37,7 @@ import { tickNuclear } from './nuclear/index.js';
 import { tickCosmos } from './cosmos/index.js';
 import { tickPolicies } from './policies/index.js';
 import { applyStatToCountry } from './events/index.js';
+import { evaluateCondition } from './events/conditions.js';
 
 export type TickContext = {
   /** Tech catalog from the current scenario; used to complete research and apply effects. */
@@ -89,6 +91,9 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
 
   // 3. Spy operations.
   next = stepSpies(next, rng, techCatalog);
+
+  // 3.5. Intelligence picture: treaties and idle agents reveal rivals.
+  next = stepIntel(next, rng);
 
   // 4. Military: advance deployment & resolve battles.
   next = stepMilitary(next, rng);
@@ -390,6 +395,61 @@ function withCompletedTech(country: Country, techId: string): Country {
 
 // ---------- 3. Spies ----------
 
+const INTEL_ORDER: readonly IntelLevel[] = ['none', 'rumors', 'partial', 'full'];
+/** Per-agent weekly chance that passive collection raises intel on one rival. */
+const PASSIVE_INTEL_CHANCE_PER_SPY = 0.006;
+
+function raiseIntel(level: IntelLevel | undefined): IntelLevel {
+  const idx = INTEL_ORDER.indexOf(level ?? 'none');
+  return INTEL_ORDER[Math.min(INTEL_ORDER.length - 1, idx + 1)] ?? 'full';
+}
+
+function withIntel(country: Country, targetId: CountryId, level: IntelLevel): Country {
+  if (country.intelligence.knownIntel[targetId] === level) return country;
+  return {
+    ...country,
+    intelligence: {
+      ...country.intelligence,
+      knownIntel: { ...country.intelligence.knownIntel, [targetId]: level },
+    },
+  };
+}
+
+/**
+ * What the player learns without running operations: allies share their
+ * books (partial), trade partners are an open secret (rumours), and idle
+ * agents slowly build a picture of the least-known rival — up to "partial";
+ * full intelligence takes operations.
+ */
+function stepIntel(state: GameState, rng: Rng): GameState {
+  const player = state.countries[state.playerCountryId];
+  if (!player) return state;
+  let next = player;
+  const rank = (id: CountryId) => INTEL_ORDER.indexOf(next.intelligence.knownIntel[id] ?? 'none');
+
+  for (const rel of Object.values(state.relations)) {
+    const other = rel.countryA === player.id ? rel.countryB : rel.countryB === player.id ? rel.countryA : null;
+    if (!other || !state.countries[other]) continue;
+    const floor: IntelLevel | null = rel.treaties.includes('alliance')
+      ? 'partial'
+      : rel.treaties.includes('tradeDeal')
+        ? 'rumors'
+        : null;
+    if (floor && rank(other) < INTEL_ORDER.indexOf(floor)) next = withIntel(next, other, floor);
+  }
+
+  const chance = Math.min(0.25, player.intelligence.spyCount * PASSIVE_INTEL_CHANCE_PER_SPY);
+  if (chance > 0 && rng.next() < chance) {
+    const candidates = Object.keys(state.countries)
+      .filter((id) => id !== player.id && rank(id) < INTEL_ORDER.indexOf('partial'))
+      .sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+    const target = candidates[0];
+    if (target) next = withIntel(next, target, raiseIntel(next.intelligence.knownIntel[target]));
+  }
+
+  return next === player ? state : { ...state, countries: { ...state.countries, [player.id]: next } };
+}
+
 function stepSpies(
   state: GameState,
   rng: Rng,
@@ -425,7 +485,8 @@ function stepSpies(
       const target = getCountry(op.targetCountryId);
       if (owner && target) {
         const { newOwner, newTarget } = applySpySuccess(owner, target, op, techCatalog);
-        countriesPatch[owner.id] = newOwner;
+        // Agents who pull an operation off come back knowing more.
+        countriesPatch[owner.id] = withIntel(newOwner, target.id, raiseIntel(newOwner.intelligence.knownIntel[target.id]));
         countriesPatch[target.id] = newTarget;
       }
     }
@@ -568,8 +629,8 @@ function stepMilitary(state: GameState, rng: Rng): GameState {
         // Resolve a small skirmish.
         const aDoct = state.countries[a.countryId]?.military.doctrineLevel ?? 1;
         const bDoct = state.countries[b.countryId]?.military.doctrineLevel ?? 1;
-        const aPower = a.deployment.units * (1 + aDoct);
-        const bPower = b.deployment.units * (1 + bDoct);
+        const aPower = a.deployment.units * (1 + aDoct) * supportMultiplier(state.countries[a.countryId]);
+        const bPower = b.deployment.units * (1 + bDoct) * supportMultiplier(state.countries[b.countryId]);
         const total = aPower + bPower;
         if (total <= 0) continue;
         const aWinChance = aPower / total;
@@ -607,6 +668,18 @@ function stepMilitary(state: GameState, rng: Rng): GameState {
     };
   }
   return { ...state, countries: updated };
+}
+
+/**
+ * Sea and air power back up troops on the ground: a navy the size of the army
+ * adds up to 25% to combat power, an air force up to 35%.
+ */
+export function supportMultiplier(country: Country | undefined): number {
+  if (!country) return 1;
+  const army = Math.max(1, country.military.armySize);
+  const navy = Math.min(1, country.military.navy / army);
+  const air = Math.min(1, country.military.airforce / army);
+  return 1 + navy * 0.25 + air * 0.35;
 }
 
 function lookupRelation(state: GameState, a: CountryId, b: CountryId): Relation | undefined {
@@ -768,8 +841,9 @@ function stepEvents(
         break;
       }
       case 'condition':
-        // Mini-DSL not implemented in Phase 1; treat as never-trigger.
-        triggered = false;
+        // Fires when the player's situation matches (see events/conditions).
+        // The event's cooldown keeps a lasting condition from repeating.
+        triggered = evaluateCondition(def.trigger.expression, state);
         break;
     }
     if (triggered) {
