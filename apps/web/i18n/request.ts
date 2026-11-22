@@ -46,9 +46,15 @@ export default getRequestConfig(async ({ requestLocale }) => {
     }),
   );
 
-  const messages: Record<string, unknown> = { ...uiMessages.default };
+  // Scenario bundles are authored flat ("country.aurion.name": "…"), but
+  // next-intl treats "." as the nesting separator and rejects keys that
+  // contain it. Expand every flat key into the nested tree so lookups like
+  // `t('country.aurion.name')` resolve and validation stays clean.
+  const messages = structuredClone(uiMessages.default) as MessageTree;
   for (const bundle of scenarioBundles) {
-    Object.assign(messages, bundle);
+    for (const [flatKey, value] of Object.entries(bundle)) {
+      setNested(messages, flatKey.split('.'), value);
+    }
   }
 
   return {
@@ -56,3 +62,29 @@ export default getRequestConfig(async ({ requestLocale }) => {
     messages,
   };
 });
+
+type MessageTree = { [key: string]: string | MessageTree };
+
+/**
+ * Write `value` at `path` inside `tree`, creating intermediate objects.
+ * Existing leaves are never overwritten by a branch (and vice versa) — the
+ * UI bundle wins on conflict so a scenario file cannot clobber core copy.
+ */
+function setNested(tree: MessageTree, path: string[], value: string): void {
+  let node = tree;
+  for (let i = 0; i < path.length - 1; i += 1) {
+    const segment = path[i]!;
+    const child = node[segment];
+    if (child === undefined) {
+      const created: MessageTree = {};
+      node[segment] = created;
+      node = created;
+    } else if (typeof child === 'object') {
+      node = child;
+    } else {
+      return;
+    }
+  }
+  const leaf = path[path.length - 1]!;
+  if (node[leaf] === undefined) node[leaf] = value;
+}

@@ -887,6 +887,10 @@
     "domination": {
       "name": "Dominio totale",
       "description": "Conquista o vassallizza tutte le nazioni."
+    },
+    "ascension": {
+      "name": "Ascensione",
+      "description": "Porta la tua civiltà al Tipo I della scala di Kardashev: energia su scala planetaria, dalla fusione alla rete orbitale."
     }
   },
   "difficulty": {
@@ -1046,7 +1050,8 @@
       "gf-warsaw-pact": "Patto di Varsavia",
       "gf-non-aligned": "Non Allineati",
       "gf-global-south": "Sud Globale",
-      "gf-asian-tigers": "Tigri Asiatiche"
+      "gf-asian-tigers": "Tigri Asiatiche",
+      "vermilion": "Isole Vermilion"
     },
     "nation": {
       "aria": "{name}, regione {region}, PIL {gdp}, esercito {army}",
@@ -1090,6 +1095,10 @@
       "outro": {
         "title": "Tutto qui!",
         "body": "Hai visto i controlli essenziali. Il gioco riprenderà a velocità 1× appena chiudi questa finestra. Buona partita."
+      },
+      "intro": {
+        "title": "Benvenuto in Aurion",
+        "body": "Aurion è un gioco strategico in tempo reale: il mondo non aspetta, ma puoi mettere in pausa quando vuoi per pianificare. Ti facciamo un tour rapido dei comandi essenziali — ci vogliono meno di un minuto."
       }
     }
   },

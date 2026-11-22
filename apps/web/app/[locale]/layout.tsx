@@ -70,6 +70,7 @@ export default async function LocaleLayout({
   return (
     <html
       lang={locale}
+      data-scroll-behavior="smooth"
       className={`${spaceGrotesk.variable} ${jetBrainsMono.variable} h-full`}
     >
       <body className="min-h-full bg-bg font-sans text-fg antialiased">
