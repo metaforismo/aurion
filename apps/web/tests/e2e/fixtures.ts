@@ -186,7 +186,20 @@ export async function clickSpeed(
   locale: Locale = 'it',
 ): Promise<void> {
   const label = SPEED_LABEL[locale][speed];
-  await page.getByRole('button', { name: label, exact: true }).click();
+  const button = page.getByRole('button', { name: label, exact: true });
+  // A decision can pop up at any tick and its backdrop swallows the click:
+  // answer it and try again rather than racing the game clock.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await dismissEventModalIfPresent(page);
+    try {
+      await button.click({ timeout: 2_500 });
+      return;
+    } catch {
+      // Fall through to dismiss whatever opened and retry.
+    }
+  }
+  await dismissEventModalIfPresent(page);
+  await button.click();
 }
 
 /**
