@@ -53,9 +53,11 @@ It runs entirely in the browser. No backend, no account, no tracking.
 | United Nations | Propose and vote on resolutions that bind everyone |
 | Cosmos | Megaprojects, the space race and your Kardashev rating |
 
-**Decisions with consequences you can read.** Events stop the clock and show exactly what each choice will do before you pick. Every action in every panel states its price and its effect first, and says why when it is unavailable.
+**Decisions with consequences you can read.** Events stop the clock and show exactly what each choice will do before you pick — from a border skirmish to the day your colonists on Mars ask for a parliament of their own. Every action in every panel states its price and its effect first, and says why when it is unavailable.
 
 **A briefing that always knows the next step.** The right-hand rail walks you from "start a research" to "found a colony on Proxima b", and keeps a running feed of what just happened in the world.
+
+It plays on a phone too: the drawer and the briefing become sheets over the planet.
 
 Also: four scenarios (a six-nation starter, a fictional continent, the contemporary world, the Cold War), three difficulty presets plus Iron Man, 23 trophies that persist across runs, save / load / export / import, a first-run tour, a full how-to-play codex, and Italian and English throughout.
 
@@ -109,7 +111,7 @@ Open [http://localhost:3000](http://localhost:3000) and press **Quick play**.
 
 A pnpm + Turborepo monorepo with a hard line between game logic and interface.
 
-- **`packages/engine`** — the game, in pure TypeScript. No React, no DOM. `tick()` and `applyAction()` are pure functions over an immutable `GameState`, driven by a seedable PRNG, so the same seed and the same actions always give the same game. That makes it fast to test (414 unit and property tests), easy to simulate headlessly, and portable.
+- **`packages/engine`** — the game, in pure TypeScript. No React, no DOM. `tick()` and `applyAction()` are pure functions over an immutable `GameState`, driven by a seedable PRNG, so the same seed and the same actions always give the same game. That makes it fast to test (420+ unit and property tests), easy to simulate headlessly, and portable.
 - **`apps/web`** — the interface: Next.js 16 (App Router), React 19, Tailwind 4, a Zustand store around the engine, Three.js for the planet, IndexedDB saves (Dexie), `next-intl` for Italian and English.
 
 The engine owns every rule, including how event and technology effects are interpreted, and exposes the same interpretation to the UI (`describeEventEffect`, `getProjectStatus`, `getPolicyStatus`), so what a button promises and what the game does cannot drift apart.
