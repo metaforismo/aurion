@@ -36,6 +36,7 @@ import { recordTechCompletion, tickSpace } from './space/index.js';
 import { tickNuclear } from './nuclear/index.js';
 import { tickCosmos } from './cosmos/index.js';
 import { tickPolicies } from './policies/index.js';
+import { tickHistory } from './history.js';
 import { applyStatToCountry } from './events/index.js';
 import { evaluateCondition } from './events/conditions.js';
 
@@ -166,6 +167,9 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
 
   // 14. Track cumulative stats & dethrone-mode counters where applicable.
   next = tickCumulativeStats(next);
+
+  // 16. Run history sample (bounded).
+  next = tickHistory(next);
 
   // 15. Multi-victory tracking for Eternal mode: never push duplicates.
   if (ctx.scenario) next = tickUnlockedVictories(next, ctx.scenario);

@@ -143,3 +143,18 @@ describe('space-age events', () => {
     expect(s.events.filter((e) => e.definitionId === 'event_cosmos_cheap_power')).toHaveLength(1);
   });
 });
+
+describe('run history', () => {
+  it('samples on the interval and stays bounded while keeping the whole arc', async () => {
+    const { HISTORY_INTERVAL_TICKS, HISTORY_LIMIT } = await import('../src/index.js');
+    let s = newGame();
+    for (let i = 0; i < HISTORY_INTERVAL_TICKS * 3; i += 1) s = tick(s, {});
+    expect(s.history!.length).toBe(3);
+    expect(s.history![0]).toMatchObject({ tick: 0, rank: expect.any(Number) });
+    for (let i = 0; i < HISTORY_INTERVAL_TICKS * (HISTORY_LIMIT + 40); i += 1) s = tick(s, {});
+    expect(s.history!.length).toBeLessThanOrEqual(HISTORY_LIMIT);
+    expect(s.history![0]!.tick).toBe(0);
+    const ticks = s.history!.map((h) => h.tick);
+    expect([...ticks].sort((a, b) => a - b)).toEqual(ticks);
+  });
+});

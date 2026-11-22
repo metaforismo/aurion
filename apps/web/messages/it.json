@@ -1412,6 +1412,12 @@
         "name": "Colonia di Proxima b",
         "desc": "Il primo mondo umano sotto un altro sole."
       }
+    },
+    "discount": {
+      "title": "Sconti in vigore",
+      "allies": "−{pct}% dagli alleati ({n, plural, =1 {# alleanza} other {# alleanze}}): cofinanziano i tuoi cantieri",
+      "policy": "−{pct}% dal Piano industriale",
+      "hint": "Ogni alleanza toglie il 4% dal prezzo dei grandi progetti, fino al 20%."
     }
   },
   "globe": {
@@ -3158,5 +3164,78 @@
       "a": "Una lotteria aperta a tutti",
       "b": "Solo i più qualificati"
     }
+  },
+  "milestone": {
+    "kicker": {
+      "body": "Nuova frontiera",
+      "type": "Scala di Kardashev"
+    },
+    "dismiss": "Continua",
+    "body": {
+      "orbit": {
+        "title": "In orbita",
+        "text": "La tua nazione ha una casa sopra il cielo. Da qui parte tutto il resto."
+      },
+      "moon": {
+        "title": "La Luna è raggiunta",
+        "text": "Per la prima volta la tua bandiera sventola su un altro mondo."
+      },
+      "mars": {
+        "title": "Marte",
+        "text": "Sette mesi di viaggio, un pianeta intero davanti. La tua civiltà non è più di un mondo solo."
+      },
+      "belt": {
+        "title": "La fascia degli asteroidi",
+        "text": "Le risorse di mille mondi in miniatura sono a portata di mano."
+      },
+      "jupiter": {
+        "title": "Giove",
+        "text": "Il gigante e le sue lune: l'avamposto più lontano mai costruito."
+      },
+      "saturn": {
+        "title": "Saturno",
+        "text": "Sotto gli anelli, una colonia. La frontiera si sposta ancora."
+      },
+      "sun": {
+        "title": "Il Sole",
+        "text": "Hai cominciato a raccogliere la luce della tua stella, alla fonte."
+      },
+      "centauri": {
+        "title": "Verso le stelle",
+        "text": "Il primo passo fuori dal sistema solare. Non si torna indietro."
+      }
+    },
+    "type": {
+      "1": {
+        "title": "Civiltà di Tipo I",
+        "text": "Tutta l'energia di un pianeta, al tuo servizio. Pochi ci speravano; tu l'hai fatto."
+      },
+      "2": {
+        "title": "Civiltà di Tipo II",
+        "text": "Una stella intera lavora per te. La tua specie non può più spegnersi per caso."
+      }
+    },
+    "visit": {
+      "moon": "Vai sulla Luna",
+      "mars": "Vai su Marte"
+    }
+  },
+  "stats": {
+    "title": "Andamento della partita",
+    "menu": "Statistiche",
+    "empty": "Lo storico comincia a riempirsi dopo qualche settimana di gioco.",
+    "series": {
+      "gdp": "PIL",
+      "treasury": "Tesoreria",
+      "popularity": "Popolarità",
+      "kardashev": "Kardashev",
+      "rank": "Posizione economica"
+    },
+    "rankValue": "{rank}ª",
+    "year": "Anno {n}",
+    "weekOf": "Anno {year}, settimana {week}",
+    "chartLabel": "{name}: da {from} a {to}. Usa le frecce per leggere i valori.",
+    "table": "Mostra i dati in tabella",
+    "when": "Quando"
   }
 }

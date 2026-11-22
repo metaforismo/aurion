@@ -1412,6 +1412,12 @@
         "name": "Proxima b colony",
         "desc": "The first human world under another sun."
       }
+    },
+    "discount": {
+      "title": "Discounts in force",
+      "allies": "−{pct}% from allies ({n, plural, =1 {# alliance} other {# alliances}}): they co-fund your builds",
+      "policy": "−{pct}% from the Industrial plan",
+      "hint": "Each alliance takes 4% off megaproject prices, up to 20%."
     }
   },
   "globe": {
@@ -3158,5 +3164,78 @@
       "a": "A lottery open to all",
       "b": "Only the most qualified"
     }
+  },
+  "milestone": {
+    "kicker": {
+      "body": "New frontier",
+      "type": "Kardashev scale"
+    },
+    "dismiss": "Continue",
+    "body": {
+      "orbit": {
+        "title": "In orbit",
+        "text": "Your nation has a home above the sky. Everything else starts here."
+      },
+      "moon": {
+        "title": "The Moon is reached",
+        "text": "For the first time your flag flies on another world."
+      },
+      "mars": {
+        "title": "Mars",
+        "text": "Seven months out, a whole planet ahead. Your civilisation no longer belongs to one world."
+      },
+      "belt": {
+        "title": "The asteroid belt",
+        "text": "The resources of a thousand miniature worlds are within reach."
+      },
+      "jupiter": {
+        "title": "Jupiter",
+        "text": "The giant and its moons: the farthest outpost ever built."
+      },
+      "saturn": {
+        "title": "Saturn",
+        "text": "Beneath the rings, a colony. The frontier moves again."
+      },
+      "sun": {
+        "title": "The Sun",
+        "text": "You have begun to harvest your star's light at the source."
+      },
+      "centauri": {
+        "title": "Toward the stars",
+        "text": "The first step out of the solar system. There is no going back."
+      }
+    },
+    "type": {
+      "1": {
+        "title": "Type I civilisation",
+        "text": "The whole energy of a planet at your command. Few hoped for it; you did it."
+      },
+      "2": {
+        "title": "Type II civilisation",
+        "text": "An entire star works for you. Your species can no longer go out by accident."
+      }
+    },
+    "visit": {
+      "moon": "Go to the Moon",
+      "mars": "Go to Mars"
+    }
+  },
+  "stats": {
+    "title": "How the run has gone",
+    "menu": "Statistics",
+    "empty": "The record starts filling in after a few weeks of play.",
+    "series": {
+      "gdp": "GDP",
+      "treasury": "Treasury",
+      "popularity": "Popularity",
+      "kardashev": "Kardashev",
+      "rank": "Economic rank"
+    },
+    "rankValue": "#{rank}",
+    "year": "Year {n}",
+    "weekOf": "Year {year}, week {week}",
+    "chartLabel": "{name}: from {from} to {to}. Use the arrow keys to read values.",
+    "table": "Show the data as a table",
+    "when": "When"
   }
 }

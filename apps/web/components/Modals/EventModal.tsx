@@ -85,6 +85,8 @@ export function EventModal({ event, scenario }: EventModalProps) {
   // Number keys pick an option — the dialog is the only thing on screen.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // A milestone moment covers this dialog: its keys belong to it.
+      if (document.querySelector('[data-testid="milestone-overlay"]')) return;
       const n = Number(e.key);
       if (!Number.isInteger(n) || n < 1 || n > choiceCount) return;
       e.preventDefault();
