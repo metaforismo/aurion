@@ -80,11 +80,11 @@ export default function PlayError({ error, reset }: ErrorPageProps) {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col items-center justify-center gap-4 bg-bg px-6 text-center text-fg">
-      <h1 className="text-2xl font-bold text-danger">{label('title')}</h1>
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col items-center justify-center gap-4 bg-[#010206] px-6 text-center text-fg">
+      <h1 className="text-3xl font-semibold text-fg">{label('title')}</h1>
       <p className="text-sm text-fg-muted">{label('description')}</p>
       {error.message ? (
-        <p className="max-w-full truncate rounded-sm border border-border bg-surface px-3 py-2 font-mono text-xs text-fg-faint">
+        <p className="max-w-full truncate rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-fg-faint">
           {error.message}
         </p>
       ) : null}
@@ -93,20 +93,20 @@ export default function PlayError({ error, reset }: ErrorPageProps) {
           type="button"
           onClick={handleDownload}
           disabled={!state}
-          className="rounded-sm border border-accent bg-accent px-4 py-2 text-sm font-semibold text-bg transition hover:border-accent-strong hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-fg-faint"
+          className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-black transition hover:border-accent-strong hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-fg-faint"
         >
           {downloaded ? label('downloaded') : label('download')}
         </button>
         <button
           type="button"
           onClick={reset}
-          className="rounded-sm border border-border bg-transparent px-4 py-2 text-sm text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          className="rounded-xl border border-white/15 bg-white/[0.05] px-4 py-2.5 text-sm text-fg transition hover:border-white/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         >
           {label('retry')}
         </button>
         <Link
           href="/"
-          className="rounded-sm border border-border bg-transparent px-4 py-2 text-sm text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          className="rounded-xl border border-white/15 bg-white/[0.05] px-4 py-2.5 text-sm text-fg transition hover:border-white/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         >
           {label('home')}
         </Link>

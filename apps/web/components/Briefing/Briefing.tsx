@@ -120,7 +120,10 @@ export function Briefing() {
   // client-side, so the lazy initialiser cannot cause a hydration mismatch.
   const [collapsed, setCollapsed] = useState(() => {
     try {
-      return typeof window !== 'undefined' && window.localStorage.getItem(COLLAPSED_KEY) === 'true';
+      if (typeof window === 'undefined') return false;
+      const stored = window.localStorage.getItem(COLLAPSED_KEY);
+      // No preference yet: open on a desktop, tucked away on a phone.
+      return stored === null ? window.matchMedia('(max-width: 1023px)').matches : stored === 'true';
     } catch {
       return false;
     }
@@ -263,7 +266,7 @@ export function Briefing() {
       aria-label={t('title')}
       data-testid="briefing"
       data-stage-inset="right"
-      className="glass-panel pointer-events-auto flex max-h-full min-h-0 w-[19.5rem] shrink-0 flex-col self-start overflow-hidden rounded-2xl"
+      className="glass-panel pointer-events-auto flex max-h-full min-h-0 w-full shrink-0 flex-col self-start overflow-hidden rounded-2xl lg:w-[19.5rem]"
     >
       <header className="flex items-center justify-between border-b border-white/10 py-2 pl-4 pr-2">
         <h2 className="text-[15px] font-semibold text-fg">{t('title')}</h2>

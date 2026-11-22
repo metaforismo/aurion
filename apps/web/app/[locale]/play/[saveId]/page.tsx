@@ -72,7 +72,9 @@ export default function PlayPage({
           <Hud />
           <div className="flex min-h-0 flex-1 flex-col justify-between gap-2 lg:flex-row">
             <PanelTabs className="max-h-[55%] lg:max-h-none" />
-            <div className="hidden min-h-0 lg:flex">
+            {/* Desktop: a rail on the right. Phone: a pill at the bottom that
+                opens as a sheet over the lower half of the planet. */}
+            <div className="flex max-h-[55%] min-h-0 items-end pb-24 lg:max-h-none lg:items-start lg:pb-0">
               <Briefing />
             </div>
           </div>

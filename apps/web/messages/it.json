@@ -314,7 +314,8 @@
       "x4": "4×",
       "play": "Riprendi",
       "pauseHint": "Pausa (Spazio)",
-      "speedHint": "Velocità {n}×"
+      "speedHint": "Velocità {n}×",
+      "cycle": "Velocità {n}×: tocca per cambiare"
     },
     "menu": "Menu",
     "save": "Salva partita",

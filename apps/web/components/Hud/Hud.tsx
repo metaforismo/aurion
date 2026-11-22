@@ -72,7 +72,7 @@ export function Hud({ onNotify }: HudProps) {
 
   return (
     <header className="glass-panel pointer-events-auto relative z-20 flex h-14 shrink-0 items-center gap-1 rounded-2xl px-2 text-sm md:gap-2 md:px-3">
-      <div className="mr-1 flex flex-col leading-none md:mr-2">
+      <div className="mr-1 hidden flex-col leading-none sm:flex md:mr-2">
         <span aria-label={tApp('name')} className="select-none text-[13px] font-semibold uppercase tracking-[0.22em] text-fg">
           {tApp('name')}
         </span>
@@ -90,11 +90,15 @@ export function Hud({ onNotify }: HudProps) {
       <Divider />
       <TreasuryReadout />
       <PopularityReadout />
-      <KardashevBadge />
+      <div className="hidden sm:contents">
+        <KardashevBadge />
+      </div>
       <div className="hidden xl:contents">
         <ReputationBadges />
       </div>
-      <VictoryCounter />
+      <div className="hidden sm:contents">
+        <VictoryCounter />
+      </div>
       <GoalChip />
 
       <div className="ml-auto flex items-center gap-1 md:gap-2">
@@ -113,7 +117,9 @@ export function Hud({ onNotify }: HudProps) {
           </span>
         ) : null}
         <SpeedControl />
-        <AudioVolumeButton />
+        <div className="hidden sm:block">
+          <AudioVolumeButton />
+        </div>
         <MenuButton onNotify={onNotify ?? setToast} />
       </div>
       {toast ? (
@@ -273,25 +279,39 @@ function SpeedControl() {
       >
         {paused ? <Pause aria-hidden className="h-3.5 w-3.5" /> : <Play aria-hidden className="h-3.5 w-3.5" />}
       </button>
-      {PLAY_SPEEDS.map((s) => {
-        const active = ticker.speed === s;
-        return (
-          <button
-            key={s}
-            type="button"
-            onClick={() => select(s)}
-            aria-pressed={active}
-            aria-label={t(`x${s}` as 'x1' | 'x2' | 'x4')}
-            title={t('speedHint', { n: s })}
-            className={cn(
-              'numeric-tabular h-8 rounded-[10px] px-2 font-mono text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
-              active ? 'bg-accent text-black' : 'text-fg-muted hover:bg-white/10 hover:text-fg',
-            )}
-          >
-            {s}×
-          </button>
-        );
-      })}
+      {/* Phones: one button that cycles 1× → 2× → 4×. */}
+      <button
+        type="button"
+        onClick={() => select(ticker.speed === 1 ? 2 : ticker.speed === 2 ? 4 : 1)}
+        aria-label={t('cycle', { n: paused ? 1 : ticker.speed })}
+        className={cn(
+          'numeric-tabular h-8 rounded-[10px] px-2.5 font-mono text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent sm:hidden',
+          paused ? 'text-fg-muted' : 'bg-accent text-black',
+        )}
+      >
+        {paused ? 1 : ticker.speed}×
+      </button>
+      <span className="hidden items-center gap-0.5 sm:flex">
+        {PLAY_SPEEDS.map((s) => {
+          const active = ticker.speed === s;
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => select(s)}
+              aria-pressed={active}
+              aria-label={t(`x${s}` as 'x1' | 'x2' | 'x4')}
+              title={t('speedHint', { n: s })}
+              className={cn(
+                'numeric-tabular h-8 rounded-[10px] px-2 font-mono text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+                active ? 'bg-accent text-black' : 'text-fg-muted hover:bg-white/10 hover:text-fg',
+              )}
+            >
+              {s}×
+            </button>
+          );
+        })}
+      </span>
     </div>
   );
 }

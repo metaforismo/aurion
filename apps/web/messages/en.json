@@ -314,7 +314,8 @@
       "x4": "4×",
       "play": "Resume",
       "pauseHint": "Pause (Space)",
-      "speedHint": "Speed {n}×"
+      "speedHint": "Speed {n}×",
+      "cycle": "Speed {n}×: tap to change"
     },
     "menu": "Menu",
     "save": "Save game",

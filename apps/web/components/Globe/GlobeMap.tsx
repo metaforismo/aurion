@@ -645,7 +645,7 @@ export default function GlobeMap() {
       </div>
 
       <div
-        className="glass-panel pointer-events-auto absolute bottom-3 z-10 flex flex-col rounded-xl p-0.5"
+        className="glass-panel pointer-events-auto absolute bottom-[7.25rem] z-10 flex flex-col rounded-xl p-0.5 lg:bottom-3"
         style={{ right: wide && insets ? insets.right + 4 : 12 }}
       >
         <IconButton icon={Plus} label={tGlobe('zoomIn')} onClick={() => viewRef.current?.zoomBy(0.78)} disabled={zoomDistance <= 1.3} />

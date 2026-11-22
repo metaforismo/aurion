@@ -129,6 +129,11 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
     // tRail is stable per locale; state/player/scenario are the meaningful inputs.
   }, [state, player, scenario, tRail]);
 
+  // On a phone the drawer would cover the planet, so it starts closed there.
+  useEffect(() => {
+    if (window.matchMedia('(max-width: 1023px)').matches) setPanelOpen(false);
+  }, [setPanelOpen]);
+
   const [inlineErrors, setInlineErrors] = useState<string[]>([]);
 
   // Forward errors externally if a handler was provided; otherwise show a

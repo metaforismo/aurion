@@ -29,6 +29,7 @@ ENTRIES = [
      "Popularity: under 10% for twelve weeks and the government falls."),
     ("hud.speed.play", "Riprendi", "Resume"),
     ("hud.speed.pauseHint", "Pausa (Spazio)", "Pause (Space)"),
+    ("hud.speed.cycle", "Velocità {n}×: tocca per cambiare", "Speed {n}×: tap to change"),
     ("hud.speed.speedHint", "Velocità {n}×", "Speed {n}×"),
     ("hud.autoPausedHint", "Il tempo è fermo finché non decidi", "Time is stopped until you decide"),
     ("hud.goal.label", "Obiettivo", "Goal"),

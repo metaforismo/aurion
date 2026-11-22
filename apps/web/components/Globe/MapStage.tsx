@@ -52,7 +52,7 @@ export default function MapStage() {
         role="radiogroup"
         aria-label={t('views.label')}
         data-testid="view-switch"
-        className="glass-panel absolute left-1/2 top-[4.5rem] z-10 flex -translate-x-1/2 gap-0.5 rounded-full p-1"
+        className="glass-panel absolute bottom-14 left-1/2 z-10 flex -translate-x-1/2 gap-0.5 rounded-full p-1 lg:bottom-auto lg:top-[4.5rem]"
       >
         {VIEWS.map(({ id, icon: Icon }) => {
           const active = view === id;
@@ -81,7 +81,7 @@ export default function MapStage() {
       </div>
 
       {view === 'earth' ? (
-        <div className="pointer-events-none absolute bottom-[4.75rem] left-1/2 z-10 -translate-x-1/2">
+        <div className="pointer-events-none absolute bottom-[6.75rem] left-1/2 z-10 -translate-x-1/2 lg:bottom-[4.75rem]">
           <CountryCard />
         </div>
       ) : null}
