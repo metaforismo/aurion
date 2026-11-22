@@ -51,8 +51,8 @@ test.describe('Phase 3 — nuclear launch', () => {
     await dismissAllEventModals(page);
     await waitForStore(page);
 
-    // Cheat: grant a 5-warhead tactical arsenal so the NuclearArsenalSection
-    // mounts in the MilitaryPanel.
+    // Cheat: grant a 5-warhead tactical arsenal so the nuclear arsenal
+    // section mounts at the bottom of the Military panel.
     await grantNuclearArsenal(page, { warheadCount: 5, deliveryLevel: 1 });
 
     // The engine's `launchTactical` reducer rejects strikes against non-enemy
@@ -113,12 +113,13 @@ test.describe('Phase 3 — nuclear launch', () => {
     const arsenalSection = page.getByLabel('Arsenale Nucleare');
     await expect(arsenalSection).toBeVisible();
 
-    // Pick a region for the tactical strike. The select is `#nuke-region`.
-    // After declaring war on China, mc-asia-pacific is now a legal tactical
-    // target (it's China's home region and the war makes it an enemy region).
-    const regionSelect = page.locator('#nuke-region');
-    await expect(regionSelect).toBeVisible();
-    await regionSelect.selectOption('mc-asia-pacific');
+    // Pick a region for the tactical strike. Only enemy regions are listed,
+    // one row each (`nuclear-region-{regionId}`). With China at war,
+    // mc-asia-pacific — its home region — is a legal tactical target.
+    const regionRow = arsenalSection.getByTestId('nuclear-region-mc-asia-pacific');
+    await expect(regionRow).toBeVisible();
+    await regionRow.click();
+    await expect(regionRow).toHaveAttribute('aria-pressed', 'true');
 
     // Click "Lancia tattico" — opens step 1 of the confirm modal.
     await arsenalSection.getByRole('button', { name: /Lancia tattico/ }).click();

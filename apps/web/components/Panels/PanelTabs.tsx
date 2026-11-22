@@ -39,7 +39,6 @@ import {
   type PanelId,
 } from '../../lib/store';
 
-import { AdvisorStrip } from './AdvisorStrip';
 import { CosmosPanel } from './CosmosPanel';
 import { DiplomacyPanel } from './DiplomacyPanel';
 import { EconomyPanel } from './EconomyPanel';
@@ -178,6 +177,7 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
     <aside
       className={cn('pointer-events-none flex min-h-0 flex-col gap-2 lg:h-full lg:flex-row lg:items-start', className)}
       aria-label={tRail('label')}
+      data-stage-inset="left"
     >
       {/* Dock — one icon per game system. Always visible; the active system
           opens in the drawer beside it, and clicking it again tucks the
@@ -256,10 +256,6 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
               <X aria-hidden className="h-4 w-4" />
             </button>
           </header>
-
-          {/* Advisor — "what should I do now?" Suggestions derive from the
-              same signals as the dock badges. Renders nothing when calm. */}
-          <AdvisorStrip onNavigate={setSelectedPanel} />
 
           <div
             role="tabpanel"

@@ -8,9 +8,11 @@
 //   1) start MC as Italy (council member — verified by phase3.spec.ts);
 //   2) inject a synthetic 'sanctions' resolution into `state.unResolutions`
 //      via the `injectUNResolution` cheat helper;
-//   3) drive the UN panel UI to vote "Sì" through the real ActionButton;
+//   3) vote "Sì" — once from the new-resolution dialog, once from the
+//      resolution card in the UN panel (`un-resolution-{id}` → `un-vote-yes`);
 //   4) assert the vote is recorded on the resolution (`votes[player] === 'yes'`)
-//      and the "alreadyVoted" hint replaces the vote buttons.
+//      and, in the panel, that the ballot gives way to the "Hai votato" line
+//      (`un-voted`).
 //
 // Step 4 confirms the engine reducer (`voteUN`) ran and updated state. We
 // stop short of asserting `passed` / `failed` because that requires AI council
@@ -64,8 +66,7 @@ test.describe('Phase 3 — UN vote flow', () => {
     });
     await expect(newResolutionDialog).toBeVisible({ timeout: 5_000 });
 
-    // Click "Sì" inside the dialog (the modal renders the same vote chips
-    // as the UNResolutionCard).
+    // Click "Sì" inside the dialog (same labels as the panel's ballot).
     await newResolutionDialog.getByRole('button', { name: /^Sì$/ }).click();
 
     // Engine assertion: the vote was recorded against the player on the
@@ -83,5 +84,55 @@ test.describe('Phase 3 — UN vote flow', () => {
         { timeout: 5_000, intervals: [100, 250, 500] },
       )
       .toBe('yes');
+  });
+
+  test('player votes Yes from the resolution card in the UN panel', async ({ page }) => {
+    await startNewGame(page, {
+      locale: 'it',
+      scenarioId: 'mondo-contemporaneo',
+      countryId: 'mc-italy',
+      victoryId: 'economic',
+      difficultyId: 'normal',
+      gameMode: 'classic',
+    });
+    await waitForPlayReady(page, 'it');
+    await dismissAllEventModals(page);
+    await waitForStore(page);
+
+    const resolutionId = await injectUNResolution(page, {
+      kind: 'sanctions',
+      proposerCountryId: 'mc-usa',
+      targetCountryId: 'mc-china',
+      votingDurationTicks: 52,
+    });
+
+    // Put the dialog aside and vote from the panel instead.
+    const newResolutionDialog = page.getByRole('dialog', {
+      name: /Nuova risoluzione ONU/i,
+    });
+    await expect(newResolutionDialog).toBeVisible({ timeout: 5_000 });
+    await newResolutionDialog.getByRole('button', { name: /Per ora salta/ }).click();
+    await expect(newResolutionDialog).toBeHidden();
+
+    // Open the UN panel through the store so the test does not depend on
+    // the dock's markup.
+    await page.evaluate(() => {
+      const w = window as unknown as {
+        __aurion: { store: { getState: () => { setSelectedPanel: (id: string) => void } } };
+      };
+      w.__aurion.store.getState().setSelectedPanel('un');
+    });
+
+    const card = page.getByTestId(`un-resolution-${resolutionId}`);
+    await expect(card).toBeVisible();
+    // Italy sits on the council: the veto is offered next to the ballot.
+    await expect(card.getByTestId('un-vote-veto')).toBeVisible();
+    await card.getByTestId('un-vote-yes').click();
+
+    await expect(card.getByTestId('un-voted')).toContainText('Sì');
+    const resolutions = await readStateField<
+      { id: string; votes: Record<string, string> }[]
+    >(page, 'unResolutions');
+    expect(resolutions?.find((r) => r.id === resolutionId)?.votes['mc-italy']).toBe('yes');
   });
 });

@@ -1,835 +1,241 @@
-// Military system panel.
-//
-// Progressive-disclosure layout:
-//   - PanelHero: war status (or "at peace") with army-size delta chip.
-//   - Quick stats: warheads (if any), deployed units.
-//   - Primary actions inline: "Schiera" / "Allena" / (nuclear actions remain
-//     in their own dedicated section).
-//   - Collapsed: full deployment list, training composer, wars list, and
-//     the whole nuclear arsenal section.
-
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
+// Military panel — what the player can put in the field, how that compares
+// with everyone else, the wars under way, and the orders that move troops.
+// The nuclear arsenal sits last, set apart, for scenarios that have one.
+
+import { Shield, Swords } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
-import { AlertTriangle, Radiation, Skull } from 'lucide-react';
-import type {
-  CountryId,
-  NuclearArsenal,
-  RegionId,
-  RelationKey,
-} from '@aurion/engine';
 
-import { cn } from '../../lib/cn';
+import { compactNumber, percent } from '../../lib/format';
+import { useGameStore } from '../../lib/store';
+import { Card, Chip, Meter, SectionTitle, Stat } from '../ui';
+
+import { CountryPicker, type PickerItem } from './diplomacy/CountryPicker';
+import { PanelLink, StanceChip, TargetHeader } from './diplomacy/parts';
 import {
-  selectPlayerCountry,
-  useGameStore,
-  type GameStoreState,
-} from '../../lib/store';
-import { ScenarioId } from '../../lib/scenarios';
-import { tone, type Tone } from '../../lib/theme';
-import {
-  NuclearLaunchConfirm,
-  type NuclearLaunchConfirmRequest,
-} from '../Modals/NuclearLaunchConfirm';
-import { ActionButton } from './shared/ActionButton';
-import { Disclosure } from './shared/Disclosure';
-import { EmptyState } from './shared/EmptyState';
-import { PanelHero } from './shared/PanelHero';
-import { StatBar } from './shared/StatBar';
-import { StickyFooter } from './shared/StickyFooter';
-import { useScenarioMessages } from './shared/useScenarioMessages';
+  cash,
+  combatPower,
+  knowsFigures,
+  stanceOf,
+  useWorld,
+  type World,
+} from './diplomacy/world';
+import { DeployOrders, Deployments, Recruit } from './military/Deploy';
+import { Fronts } from './military/Fronts';
+import { NuclearArsenalSection } from './military/Nuclear';
+import { approx, enemiesOf } from './military/forces';
 
-/** Build a lex-sorted relation key matching the engine's `relationKey()`. */
-function relationKey(a: CountryId, b: CountryId): RelationKey {
-  return (a < b ? `${a}::${b}` : `${b}::${a}`) as RelationKey;
-}
-
-export function MilitaryPanel({
-  onErrors,
-}: {
-  onErrors?: (errors: string[]) => void;
-}) {
+export function MilitaryPanel({ onErrors }: { onErrors?: (errors: string[]) => void }) {
   const t = useTranslations('panelMilitary');
-  const tShared = useTranslations('panelShared');
-  const tMap = useTranslations('map.regions');
-  const fmt = useFormatter();
+  const w = useWorld();
+  const setSelectedPanel = useGameStore((s) => s.setSelectedPanel);
+  // A region chosen by hand wins over the one implied by the selected country,
+  // but only until the selection changes.
+  const [picked, setPicked] = useState<{ region: string; forTarget: string | null } | null>(null);
 
-  const player = useGameStore(selectPlayerCountry);
-  const state = useGameStore((s: GameStoreState) => s.state);
-  const scenario = useGameStore((s: GameStoreState) => s.scenario);
-  const applyAction = useGameStore((s: GameStoreState) => s.applyAction);
-  const pushActionToast = useGameStore(
-    (s: GameStoreState) => s.pushActionToast,
-  );
-  const tNotifications = useTranslations('notifications');
-
-  const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
-  const { t: tScenario } = useScenarioMessages(scenarioId);
-
-  // Build the list of region candidates: regions where the player has at
-  // least 'rumors' intel, or that border the player country (same / adjacent
-  // — we approximate as "every distinct regionId in the world" for Phase 1
-  // and let the engine reject impossible deployments).
-  const regions = useMemo<RegionId[]>(() => {
-    if (!state) return [];
-    const set = new Set<RegionId>();
-    for (const c of Object.values(state.countries)) {
-      set.add(c.regionId);
-    }
-    return [...set].sort();
-  }, [state]);
-
-  const [trainAmount, setTrainAmount] = useState<string>('');
-  const [deployUnits, setDeployUnits] = useState<string>('');
-  const [deployRegion, setDeployRegion] = useState<RegionId>('');
-
-  // Nuclear arsenal — Wave 10. The two pickers are local state so the player
-  // can stage a strike target before opening the launch confirm modal.
-  const [nukeRegion, setNukeRegion] = useState<RegionId>('');
-  const [nukeCountry, setNukeCountry] = useState<CountryId>('');
-  // The launch-confirm two-step modal is rendered inline (not via ModalRoot)
-  // so it's owned by the panel that triggered it. `null` = closed.
-  const [pendingLaunch, setPendingLaunch] =
-    useState<NuclearLaunchConfirmRequest | null>(null);
-  const [pendingLaunchAction, setPendingLaunchAction] = useState<
-    | { type: 'launchTactical'; targetRegionId: RegionId }
-    | { type: 'launchStrategic'; targetCountryId: CountryId }
-    | null
-  >(null);
-  const confirm = useGameStore((s: GameStoreState) => s.confirm);
-
-  // Wars derived from relations. Computed unconditionally so we don't break
-  // the rules of hooks when player/state are temporarily null.
-  const wars = useMemo(() => {
-    if (!player || !state) return [];
-    const me = player.id;
-    const out: { with: CountryId; name: string }[] = [];
-    for (const c of Object.values(state.countries)) {
-      if (c.id === me) continue;
-      const rel = state.relations[relationKey(me, c.id)];
-      if (rel?.atWar) {
-        out.push({ with: c.id, name: tScenario(c.nameKey) });
-      }
-    }
-    return out;
-  }, [player, state, tScenario]);
-
-  // Nuclear arsenal (Wave 10) — declared BEFORE the early-return guard so the
-  // rules of hooks are honoured. Returns empty / inert defaults when there is
-  // no game loaded; the guarded JSX below only renders the section after the
-  // (player, state) guard passes.
-  const enemyCountries = useMemo<{ id: CountryId; name: string }[]>(() => {
-    if (!state || !player) return [];
-    if (player.nuclear === undefined) return [];
-    return Object.values(state.countries)
-      .filter((c) => c.id !== player.id)
-      .map((c) => ({ id: c.id, name: tScenario(c.nameKey) }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [state, player, tScenario]);
-
-  const treatyActive = useMemo<boolean>(() => {
-    const list = state?.unResolutions ?? [];
-    return list.some(
-      (r) => r.kind === 'nonProliferation' && r.status === 'passed',
-    );
-  }, [state]);
-
-  if (!player || !state) {
-    return (
-      <div className="p-4">
-        <EmptyState>{tShared('noPlayer')}</EmptyState>
-      </div>
-    );
-  }
-
-  const military = player.military;
-  const treasury = player.economy.treasury;
-
-  const trainAmountNum = Number(trainAmount);
-  const trainInvalid =
-    trainAmount === '' ||
-    !Number.isFinite(trainAmountNum) ||
-    trainAmountNum <= 0;
-  const trainTooHigh = trainAmountNum > treasury;
-
-  const deployUnitsNum = Number(deployUnits);
-  const deployInvalidUnits =
-    deployUnits === '' ||
-    !Number.isFinite(deployUnitsNum) ||
-    deployUnitsNum <= 0;
-  const deployTooMany = deployUnitsNum > military.armySize;
-  const deployNoRegion = !deployRegion;
-
-  const handleTrain = async () => {
-    if (trainInvalid || trainTooHigh) return [];
-    const errors = await applyAction({
-      type: 'invest',
-      target: 'military',
-      amount: trainAmountNum,
+  const items = useMemo<PickerItem[]>(() => {
+    if (!w) return [];
+    const all = [w.player, ...w.others];
+    const top = Math.max(1, ...all.map(combatPower));
+    return all.map((c) => {
+      const isPlayer = c.id === w.player.id;
+      const power = combatPower(c);
+      const exact = isPlayer || knowsFigures(w.intelOn(c.id));
+      const stance = isPlayer ? null : stanceOf(w.relation(c.id));
+      const name = isPlayer ? t('balance.you', { name: w.nameOf(c.id) }) : w.nameOf(c.id);
+      return {
+        id: c.id,
+        name,
+        color: isPlayer ? 'var(--color-accent)' : c.color,
+        inert: isPlayer,
+        subtitle: (
+          <span className="mt-1 block h-1 overflow-hidden rounded-full bg-white/10">
+            <span
+              className={isPlayer ? 'block h-full rounded-full bg-accent' : stance === 'war' ? 'block h-full rounded-full bg-[#ff5d4d]' : 'block h-full rounded-full bg-white/50'}
+              style={{ width: `${Math.max(2, (power / top) * 100)}%` }}
+            />
+          </span>
+        ),
+        trailing: (
+          <span className="flex items-center gap-2">
+            {stance === 'war' || stance === 'ally' ? <StanceChip stance={stance} /> : null}
+            <span className="numeric-tabular w-14 text-right font-mono text-xs text-fg">
+              {exact ? compactNumber(power, w.locale) : approx(power, w.locale)}
+            </span>
+          </span>
+        ),
+        sort: { power, name },
+      };
     });
-    if (errors.length === 0) setTrainAmount('');
-    return errors;
-  };
+  }, [w, t]);
 
-  const handleDeploy = async () => {
-    if (deployInvalidUnits || deployTooMany || deployNoRegion) return [];
-    const errors = await applyAction({
-      type: 'deployArmy',
-      target: deployRegion,
-      units: deployUnitsNum,
-    });
-    if (errors.length === 0) {
-      setDeployUnits('');
-    }
-    return errors;
-  };
+  if (!w) return null;
 
-  const regionLabel = (id: RegionId): string => {
-    // Try the curated map.regions.{id} bundle first; fall back to raw id.
-    try {
-      return tMap(id);
-    } catch {
-      return id;
-    }
-  };
-
-  // ---- Nuclear arsenal (Wave 10) ----------------------------------------
-  // Show the section ONLY when the player country has a nuclear field. We
-  // intentionally don't render a "build first warhead" affordance here —
-  // building the arsenal goes through the tech tree (`tech_*_nuclear_arsenal`).
-  const nuclear: NuclearArsenal | undefined = player.nuclear;
-  const hasArsenal = nuclear !== undefined;
-  const warheadCount = nuclear?.warheadCount ?? 0;
-  const noWarheads = warheadCount <= 0;
-  const deliveryLevel = (nuclear?.deliverySystemLevel ?? 0) as 0 | 1 | 2;
-
-  // The detected MAD risk for a strategic strike. We only consider the target
-  // country's `nuclear.warheadCount > 0` — a refined intel gate would defer
-  // to the engine when it ships; for now, the UI shows the worst case so the
-  // confirm modal under-promises and over-delivers on the warning.
-  const computeMadRisk = (targetCountryId: CountryId): boolean => {
-    const target = state.countries[targetCountryId];
-    if (!target) return false;
-    return (target.nuclear?.warheadCount ?? 0) > 0;
-  };
-
-  const openTacticalConfirm = () => {
-    if (!nukeRegion || noWarheads) return;
-    setPendingLaunch({
-      kind: 'tactical',
-      targetLabel: regionLabel(nukeRegion),
-      // Tactical strikes never trigger MAD (region target, not country).
-      madRisk: false,
-    });
-    setPendingLaunchAction({
-      type: 'launchTactical',
-      targetRegionId: nukeRegion,
-    });
-  };
-
-  const openStrategicConfirm = () => {
-    if (!nukeCountry || noWarheads) return;
-    const targetName = tScenario(
-      state.countries[nukeCountry]?.nameKey ?? nukeCountry,
-    );
-    setPendingLaunch({
-      kind: 'strategic',
-      targetLabel: targetName,
-      madRisk: computeMadRisk(nukeCountry),
-    });
-    setPendingLaunchAction({
-      type: 'launchStrategic',
-      targetCountryId: nukeCountry,
-    });
-  };
-
-  const cancelLaunch = () => {
-    setPendingLaunch(null);
-    setPendingLaunchAction(null);
-  };
-
-  const confirmLaunch = async () => {
-    if (!pendingLaunchAction) return;
-    const launchKind = pendingLaunchAction.type;
-    const errors = await applyAction(pendingLaunchAction);
-    setPendingLaunch(null);
-    setPendingLaunchAction(null);
-    if (errors.length > 0 && onErrors) {
-      onErrors(errors);
-      return;
-    }
-    // Success: surface a confirmation toast keyed on the kind of strike so
-    // the player has feedback that the engine accepted the launch order.
-    pushActionToast({
-      message: tNotifications(
-        launchKind === 'launchTactical'
-          ? 'nuclear.tacticalLaunched'
-          : 'nuclear.strategicLaunched',
-      ),
-      tone: 'warning',
-    });
-  };
-
-  // Total reputation boost the player would receive on confirm. With an
-  // active non-proliferation treaty, the engine awards +30 per warhead; without
-  // the treaty, the boost is halved to +15 per warhead. Computed defensively
-  // so the banner remains stable even when the engine action stub returns an
-  // error (the treasury / reputation aren't applied; the boost preview is a
-  // pure-UI computation against current state).
-  const dismantleFullBoost = warheadCount * 30;
-  const dismantleHalvedBoost = warheadCount * 15;
-  const dismantleBoost = treatyActive ? dismantleFullBoost : dismantleHalvedBoost;
-
-  const handleDismantle = () => {
-    if (!hasArsenal || noWarheads) return;
-    confirm({
-      titleKey: 'modals.confirm.nuclearDismantle.title',
-      descriptionKey: treatyActive
-        ? 'modals.confirm.nuclearDismantle.descriptionTreaty'
-        : 'modals.confirm.nuclearDismantle.descriptionNoTreaty',
-      confirmKey: 'modals.confirm.nuclearDismantle.confirm',
-      cancelKey: 'common.cancel',
-      tone: 'danger',
-      onConfirm: async () => {
-        const errors = await applyAction({
-          type: 'dismantleNuclear',
-          count: warheadCount,
-        });
-        if (errors.length > 0 && onErrors) onErrors(errors);
-      },
-    });
-  };
-
-  // Hero summary — at war (single enemy → enemy name, multiple → count),
-  // otherwise army-size with "at peace" caption.
-  const atWar = wars.length > 0;
-  const heroValue = atWar
-    ? wars.length === 1
-      ? t('heroAtWar', { name: wars[0]!.name })
-      : t('heroAtWarMany', { count: wars.length })
-    : fmt.number(military.armySize);
-  const heroValueTone: Tone = atWar ? 'danger' : 'neutral';
-
-  const quickStats: { label: string; value: string }[] = [];
-  if (military.deployedUnits.length > 0) {
-    quickStats.push({
-      label: t('deployed.title'),
-      value: fmt.number(military.deployedUnits.length),
-    });
-  }
-  if (hasArsenal) {
-    quickStats.push({
-      label: t('nuclear.arsenal.count'),
-      value: fmt.number(warheadCount),
-    });
-  }
-  if (quickStats.length === 0) {
-    quickStats.push({
-      label: t('doctrineLevel'),
-      value: fmt.number(military.doctrineLevel, {
-        style: 'percent',
-        maximumFractionDigits: 0,
-      }),
-    });
-  }
+  const enemies = enemiesOf(w);
+  const region =
+    picked && picked.forTarget === (w.target?.id ?? null) ? picked.region : (w.target?.regionId ?? null);
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      {/* Hero — war status or peacetime army size. */}
-      <PanelHero
-        title={t('title')}
-        value={
-          atWar ? (
-            <span className="text-base font-semibold">{heroValue}</span>
-          ) : (
-            heroValue
-          )
-        }
-        valueTone={heroValueTone}
-        quickStats={quickStats}
+    <div className="flex flex-col gap-4 p-4" data-testid="military-panel">
+      <Forces w={w} enemies={enemies.length} />
+
+      <section aria-label={t('wars.title')} className="flex flex-col gap-2">
+        <SectionTitle aside={enemies.length}>{t('wars.title')}</SectionTitle>
+        {enemies.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-white/15 px-3 py-3 text-[11px] leading-relaxed text-fg-faint">
+            <span className="font-medium text-fg-muted">{t('wars.emptyTitle')}.</span> {t('wars.empty')}{' '}
+            <PanelLink onClick={() => setSelectedPanel('diplomacy')}>{t('wars.toDiplomacy')}</PanelLink>
+          </p>
+        ) : (
+          <Fronts
+            w={w}
+            enemies={enemies}
+            onErrors={onErrors}
+            onDeployTo={(regionId) => {
+              setPicked({ region: regionId, forTarget: w.target?.id ?? null });
+              // The order form sits further down the drawer: bring it into view.
+              const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+              document
+                .getElementById('military-deploy')
+                ?.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+            }}
+          />
+        )}
+      </section>
+
+      <section aria-label={t('balance.title')} className="flex flex-col gap-2">
+        <SectionTitle aside={t('balance.aside')}>{t('balance.title')}</SectionTitle>
+        {w.target ? <Matchup w={w} /> : null}
+        <CountryPicker
+          label={t('balance.title')}
+          testIdPrefix="military-country"
+          items={items}
+          selectedId={w.target?.id ?? null}
+          onPick={w.selectTarget}
+          sorts={[
+            { id: 'power', label: t('balance.sortPower') },
+            { id: 'name', label: t('balance.sortName') },
+          ]}
+          limit={6}
+        />
+        <p className="text-[11px] leading-snug text-fg-faint">{t('balance.hint')}</p>
+      </section>
+
+      <DeployOrders
+        w={w}
+        region={region}
+        onRegion={(regionId) => setPicked({ region: regionId, forTarget: w.target?.id ?? null })}
+        onErrors={onErrors}
       />
+      <Deployments w={w} />
+      <Recruit w={w} onErrors={onErrors} />
 
-      {/* Collapsed details — training composer, deployment composer, wars,
-          deployment list. Default closed. */}
-      <Disclosure summary={tShared('moreDetails')} trailing={t('details')}>
-        {/* Stat headline */}
-        <div className="grid grid-cols-2 gap-2">
-          <Stat label={t('armySize')} value={fmt.number(military.armySize)} t="neutral" />
-          <Stat label={t('navy')} value={fmt.number(military.navy)} t="info" />
-          <Stat label={t('airforce')} value={fmt.number(military.airforce)} t="info" />
-          <Stat
-            label={t('doctrineLevel')}
-            value={fmt.number(military.doctrineLevel, {
-              style: 'percent',
-              maximumFractionDigits: 0,
-            })}
-            t="success"
-          />
-        </div>
-
-        <StatBar
-          label={t('doctrineLevel')}
-          value={military.doctrineLevel * 100}
-          max={100}
-          valueLabel={fmt.number(military.doctrineLevel, {
-            style: 'percent',
-            maximumFractionDigits: 0,
-          })}
-          tone="info"
-        />
-
-        {/* Train */}
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('train.title')}
-          </div>
-          <label htmlFor="military-train" className="text-xs text-fg">
-            {t('train.amountLabel')}
-          </label>
-          <input
-            id="military-train"
-            type="number"
-            min={0}
-            step={1}
-            placeholder="0"
-            value={trainAmount}
-            onChange={(e) => setTrainAmount(e.target.value)}
-            className={cn(
-              'rounded-sm border bg-transparent px-2 py-1 font-mono numeric-tabular text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent',
-              trainTooHigh ? 'border-danger' : 'border-border',
-            )}
-            aria-invalid={trainTooHigh || undefined}
-          />
-          <ActionButton
-            tone="primary"
-            cost={trainAmount ? fmt.number(trainAmountNum) : null}
-            disabledReason={
-              trainInvalid
-                ? tShared('enterAmount')
-                : trainTooHigh
-                  ? tShared('insufficientTreasury')
-                  : null
-            }
-            onClick={handleTrain}
-            onErrors={onErrors}
-          >
-            {t('train.cta')}
-          </ActionButton>
-          <p className="text-[11px] text-fg-faint">{t('train.hint')}</p>
-        </div>
-
-        {/* Deploy */}
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('deploy.title')}
-          </div>
-          <label htmlFor="military-deploy-region" className="text-xs text-fg">
-            {t('deploy.regionLabel')}
-          </label>
-          <select
-            id="military-deploy-region"
-            value={deployRegion}
-            onChange={(e) => setDeployRegion(e.target.value)}
-            className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
-          >
-            <option value="">{t('deploy.regionPlaceholder')}</option>
-            {regions.map((r) => (
-              <option key={r} value={r}>
-                {regionLabel(r)}
-              </option>
-            ))}
-          </select>
-          <label htmlFor="military-deploy-units" className="text-xs text-fg">
-            {t('deploy.unitsLabel')}
-          </label>
-          <input
-            id="military-deploy-units"
-            type="number"
-            min={0}
-            step={1}
-            placeholder="0"
-            value={deployUnits}
-            onChange={(e) => setDeployUnits(e.target.value)}
-            className={cn(
-              'rounded-sm border bg-transparent px-2 py-1 font-mono numeric-tabular text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent',
-              deployTooMany ? 'border-danger' : 'border-border',
-            )}
-            aria-invalid={deployTooMany || undefined}
-          />
-          <ActionButton
-            tone="primary"
-            disabledReason={
-              deployNoRegion
-                ? t('deploy.pickRegion')
-                : deployInvalidUnits
-                  ? tShared('enterAmount')
-                  : deployTooMany
-                    ? t('deploy.notEnough')
-                    : null
-            }
-            onClick={handleDeploy}
-            onErrors={onErrors}
-          >
-            {t('deploy.cta')}
-          </ActionButton>
-        </div>
-
-        {/* Active deployments */}
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <div className="flex items-baseline justify-between">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-              {t('deployed.title')}
-            </div>
-            <span className="text-[11px] font-mono text-fg-faint">
-              {military.deployedUnits.length}
-            </span>
-          </div>
-          {military.deployedUnits.length === 0 ? (
-            <EmptyState>{t('deployed.empty')}</EmptyState>
-          ) : (
-            <ul className="flex flex-col divide-y divide-border">
-              {military.deployedUnits.map((dep) => {
-                const age = Math.max(0, state.tick - dep.issuedAtTick);
-                return (
-                  <li key={dep.id} className="py-2">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xs font-medium text-fg">
-                        {regionLabel(dep.regionId)}
-                      </span>
-                      <span className="font-mono numeric-tabular text-[11px] text-fg-muted">
-                        {fmt.number(dep.units)} {t('deployed.units')}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-fg-faint">
-                      {t('deployed.age', { weeks: age })}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-
-        {/* Wars */}
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <div className="flex items-baseline justify-between">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-              {t('wars.title')}
-            </div>
-            <span className="text-[11px] font-mono text-fg-faint">
-              {wars.length}
-            </span>
-          </div>
-          {wars.length === 0 ? (
-            <EmptyState>{t('wars.empty')}</EmptyState>
-          ) : (
-            <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-mono uppercase tracking-wider text-danger">
-              {wars.map((w) => (
-                <li key={w.with}>{w.name}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/*
-          Nuclear arsenal — buried at the bottom on purpose. Render only when
-          the player country has a nuclear field (i.e. has researched the
-          arsenal tech). The whole section is wrapped in a danger-toned
-          container with a permanent visual warning so the player never opens
-          the panel by reflex and clicks the wrong button.
-        */}
-        {hasArsenal ? (
-          <NuclearArsenalSection
-            warheadCount={warheadCount}
-            deliveryLevel={deliveryLevel}
-            noWarheads={noWarheads}
-            treatyActive={treatyActive}
-            dismantleBoost={dismantleBoost}
-            dismantleFullBoost={dismantleFullBoost}
-            dismantleHalvedBoost={dismantleHalvedBoost}
-            regions={regions}
-            regionLabel={regionLabel}
-            enemyCountries={enemyCountries}
-            nukeRegion={nukeRegion}
-            setNukeRegion={setNukeRegion}
-            nukeCountry={nukeCountry}
-            setNukeCountry={setNukeCountry}
-            openTacticalConfirm={openTacticalConfirm}
-            openStrategicConfirm={openStrategicConfirm}
-            handleDismantle={handleDismantle}
-            fmt={fmt}
-          />
-        ) : null}
-      </Disclosure>
-
-      {/*
-        Inline two-step launch confirm. Owned by the panel — it would be
-        wrong to route this through the global ModalRoot priority chain
-        because the request is local UI state (target picker → confirm),
-        not a store-level event.
-      */}
-      {pendingLaunch ? (
-        <NuclearLaunchConfirm
-          request={pendingLaunch}
-          onConfirm={confirmLaunch}
-          onCancel={cancelLaunch}
-        />
-      ) : null}
-
-      {/* Sticky primary action — pinned "Schiera esercito" so a player who
-          enters the panel mid-war can deploy without scrolling past the
-          stats / training section. Disabled with a contextual helper when
-          region / units aren't set yet. */}
-      <StickyFooter
-        hint={
-          deployNoRegion || deployInvalidUnits
-            ? tShared('stickyAction.militaryHint')
-            : null
-        }
-      >
-        <ActionButton
-          tone="primary"
-          disabledReason={
-            deployNoRegion
-              ? tShared('stickyAction.selectFirst')
-              : deployInvalidUnits
-                ? tShared('enterAmount')
-                : deployTooMany
-                  ? t('deploy.notEnough')
-                  : null
-          }
-          onClick={handleDeploy}
-          onErrors={onErrors}
-        >
-          {t('deploy.cta')}
-        </ActionButton>
-      </StickyFooter>
+      {w.player.nuclear ? <NuclearArsenalSection w={w} arsenal={w.player.nuclear} onErrors={onErrors} /> : null}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Nuclear arsenal section — extracted so the panel render stays readable.
-// ---------------------------------------------------------------------------
-
-const DELIVERY_LABEL_KEY = ['arsenal.deliverySystem.0', 'arsenal.deliverySystem.1', 'arsenal.deliverySystem.2'] as const;
-
-function NuclearArsenalSection({
-  warheadCount,
-  deliveryLevel,
-  noWarheads,
-  treatyActive,
-  dismantleBoost,
-  dismantleFullBoost,
-  dismantleHalvedBoost,
-  regions,
-  regionLabel,
-  enemyCountries,
-  nukeRegion,
-  setNukeRegion,
-  nukeCountry,
-  setNukeCountry,
-  openTacticalConfirm,
-  openStrategicConfirm,
-  handleDismantle,
-  fmt,
-}: {
-  warheadCount: number;
-  deliveryLevel: 0 | 1 | 2;
-  noWarheads: boolean;
-  treatyActive: boolean;
-  dismantleBoost: number;
-  dismantleFullBoost: number;
-  dismantleHalvedBoost: number;
-  regions: RegionId[];
-  regionLabel: (id: RegionId) => string;
-  enemyCountries: { id: CountryId; name: string }[];
-  nukeRegion: RegionId;
-  setNukeRegion: (id: RegionId) => void;
-  nukeCountry: CountryId;
-  setNukeCountry: (id: CountryId) => void;
-  openTacticalConfirm: () => void;
-  openStrategicConfirm: () => void;
-  handleDismantle: () => void;
-  fmt: ReturnType<typeof useFormatter>;
-}) {
-  const t = useTranslations('panelMilitary.nuclear');
-
-  const noTacticalTarget = nukeRegion === '';
-  const noStrategicTarget = nukeCountry === '';
+/** Hero: the garrison ready to move, then the rest of the armed forces. */
+function Forces({ w, enemies }: { w: World; enemies: number }) {
+  const t = useTranslations('panelMilitary');
+  const m = w.player.military;
+  const deployed = m.deployedUnits.reduce((sum, d) => sum + d.units, 0);
+  const ranked = [w.player, ...w.others].sort((a, b) => combatPower(b) - combatPower(a));
+  const rank = ranked.findIndex((c) => c.id === w.player.id) + 1;
+  // The engine charges 50 per garrisoned unit, per war, every week.
+  const upkeep = m.armySize * 50 * enemies;
 
   return (
     <section
-      aria-label={t('section.title')}
-      className="flex flex-col gap-3 border-t border-danger pt-3"
+      aria-label={t('hero.label')}
+      className={
+        enemies > 0
+          ? 'rounded-xl border border-[#ff5d4d]/30 bg-gradient-to-br from-[#ff5d4d]/[0.10] via-transparent to-accent/[0.05] p-4'
+          : 'rounded-xl border border-accent/25 bg-gradient-to-br from-accent/[0.09] via-transparent to-[#5cc8ff]/[0.05] p-4'
+      }
     >
-      <header className="flex items-center gap-2">
-        <Radiation aria-hidden className={cn('h-4 w-4', tone('danger'))} />
-        <h3
-          className={cn(
-            'text-[11px] font-semibold uppercase tracking-[0.14em]',
-            tone('danger'),
-          )}
-        >
-          {t('section.title')}
-        </h3>
-      </header>
-
-      {/* Permanent warning copy — keeps the moral weight visible at a glance. */}
-      <p
-        className={cn(
-          'flex items-start gap-1.5 border-l-2 border-danger px-2 py-1 text-[11px] leading-relaxed',
-          tone('danger'),
+      <div className="flex items-start justify-between gap-3">
+        <Stat
+          size="lg"
+          label={t('hero.garrison')}
+          value={compactNumber(m.armySize, w.locale)}
+          hint={deployed > 0 ? t('hero.deployed', { n: compactNumber(deployed, w.locale) }) : t('hero.ready')}
+        />
+        {enemies > 0 ? (
+          <Chip tone="danger" icon={Swords}>
+            {t('hero.wars', { n: enemies })}
+          </Chip>
+        ) : (
+          <Chip tone="success" icon={Shield}>
+            {t('hero.atPeace')}
+          </Chip>
         )}
-      >
-        <AlertTriangle aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-        <span>{t('warningPermanent')}</span>
-      </p>
-
-      {/* Arsenal stats */}
-      <div className="grid grid-cols-2 gap-2">
-        <Stat label={t('arsenal.count')} value={fmt.number(warheadCount)} t="danger" />
-        <div className="flex flex-col gap-0.5 border-t border-border pt-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('arsenal.deliveryLabel')}
-          </div>
-          <div className={cn('font-mono text-sm numeric-tabular', tone('danger'))}>
-            {t(DELIVERY_LABEL_KEY[deliveryLevel])}
-          </div>
-        </div>
       </div>
 
-      {/* Tactical strike picker + button */}
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="nuke-region" className="text-[11px] uppercase tracking-wider text-fg">
-          {t('target.region')}
-        </label>
-        <select
-          id="nuke-region"
-          value={nukeRegion}
-          onChange={(e) => setNukeRegion(e.target.value)}
-          className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
-        >
-          <option value="">{t('target.regionPlaceholder')}</option>
-          {regions.map((r) => (
-            <option key={r} value={r}>
-              {regionLabel(r)}
-            </option>
-          ))}
-        </select>
-        <ActionButton
-          tone="danger"
-          data-testid="nuclear-launch-tactical-button"
-          disabledReason={
-            noWarheads
-              ? t('arsenal.noWarheads')
-              : noTacticalTarget
-                ? t('target.pickRegion')
-                : null
-          }
-          onClick={openTacticalConfirm}
-        >
-          <span className="flex items-center gap-1.5">
-            <Skull aria-hidden className="h-3.5 w-3.5" />
-            {t('button.tactical')}
-          </span>
-        </ActionButton>
-      </div>
+      <Meter
+        className="mt-3"
+        tone="info"
+        value={m.doctrineLevel}
+        label={t('hero.doctrine')}
+        valueLabel={percent(m.doctrineLevel, w.locale)}
+      />
 
-      {/* Strategic strike picker + button */}
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="nuke-country" className="text-[11px] uppercase tracking-wider text-fg">
-          {t('target.country')}
-        </label>
-        <select
-          id="nuke-country"
-          value={nukeCountry}
-          onChange={(e) => setNukeCountry(e.target.value)}
-          className="rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-fg outline-none transition focus:border-accent focus-visible:border-accent"
-        >
-          <option value="">{t('target.countryPlaceholder')}</option>
-          {enemyCountries.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <ActionButton
-          tone="danger"
-          data-testid="nuclear-launch-strategic-button"
-          disabledReason={
-            noWarheads
-              ? t('arsenal.noWarheads')
-              : noStrategicTarget
-                ? t('target.pickCountry')
-                : null
-          }
-          onClick={openStrategicConfirm}
-        >
-          <span className="flex items-center gap-1.5">
-            <Skull aria-hidden className="h-3.5 w-3.5" />
-            {t('button.strategic')}
-          </span>
-        </ActionButton>
-      </div>
-
-      {/* Dismantle — small, subtle, pro-disarmament path. */}
-      <div className="mt-2 flex flex-col gap-1.5 border-t border-border pt-3">
-        <p
-          className={cn(
-            'border-l-2 px-2 py-1 text-[11px] leading-relaxed',
-            treatyActive ? 'border-success text-success' : 'border-warning text-warning',
-          )}
-        >
-          {treatyActive
-            ? t('dismantle.boostFull', {
-                perWarhead: 30,
-                total: dismantleFullBoost,
-              })
-            : t('dismantle.boostHalved', {
-                perWarhead: 15,
-                total: dismantleHalvedBoost,
-              })}
+      <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-white/10 pt-3">
+        <Stat size="sm" label={t('hero.navy')} value={compactNumber(m.navy, w.locale)} />
+        <Stat size="sm" label={t('hero.airforce')} value={compactNumber(m.airforce, w.locale)} />
+        <Stat size="sm" label={t('hero.rank')} value={t('hero.rankValue', { rank, total: ranked.length })} tone="accent" />
+      </dl>
+      {upkeep > 0 ? (
+        <p className="mt-2 text-[11px] leading-snug text-warning">
+          {t('hero.upkeep', { cost: cash(upkeep, w.locale) })}
         </p>
-        <button
-          type="button"
-          onClick={handleDismantle}
-          disabled={noWarheads}
-          aria-disabled={noWarheads}
-          title={noWarheads ? t('arsenal.noWarheads') : undefined}
-          className={cn(
-            'self-start rounded-sm border bg-transparent px-2.5 py-1 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
-            noWarheads
-              ? 'cursor-not-allowed border-border text-fg-faint'
-              : 'border-border text-fg-muted hover:border-border-strong hover:text-fg',
-          )}
-        >
-          {t('button.dismantle', { count: warheadCount, boost: dismantleBoost })}
-        </button>
-      </div>
+      ) : null}
     </section>
   );
 }
 
-function Stat({
-  label,
-  value,
-  t,
-}: {
-  label: string;
-  value: string;
-  t: Tone;
-}) {
+/** The selected country measured against the player. */
+function Matchup({ w }: { w: World }) {
+  const t = useTranslations('panelMilitary');
+  const target = w.target;
+  if (!target) return null;
+  const mine = combatPower(w.player);
+  const theirs = combatPower(target);
+  const exact = knowsFigures(w.intelOn(target.id));
+  const share = mine + theirs > 0 ? mine / (mine + theirs) : 0.5;
+  const ratio = theirs > 0 ? mine / theirs : Infinity;
+  const name = w.nameOf(target.id);
+  const verdict =
+    ratio >= 1.5 ? t('matchup.stronger', { name }) : ratio <= 0.67 ? t('matchup.weaker', { name }) : t('matchup.even', { name });
+
   return (
-    <div className="flex flex-col gap-0.5 border-t border-border pt-2">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-        {label}
+    <Card data-testid="military-matchup" className="flex flex-col gap-2.5">
+      <TargetHeader
+        name={name}
+        color={target.color}
+        aside={<StanceChip stance={stanceOf(w.relation(target.id))} />}
+        caption={w.regionName(target.regionId)}
+        onClear={() => w.selectTarget(null)}
+      />
+      <div>
+        <div className="flex h-2 overflow-hidden rounded-full bg-white/10" role="img" aria-label={verdict}>
+          <span className="h-full bg-accent transition-[width] duration-500" style={{ width: `${share * 100}%` }} />
+          <span className="h-full flex-1 bg-white/40" />
+        </div>
+        <div className="mt-1 flex justify-between font-mono text-[11px]">
+          <span className="text-accent">{t('matchup.you', { n: compactNumber(mine, w.locale) })}</span>
+          <span className="text-fg-muted">
+            {t('matchup.them', { n: exact ? compactNumber(theirs, w.locale) : approx(theirs, w.locale) })}
+          </span>
+        </div>
       </div>
-      <div className={cn('font-mono text-sm numeric-tabular', tone(t))}>
-        {value}
-      </div>
-    </div>
+      <p className="text-[11px] leading-snug text-fg-muted">
+        {verdict}
+        {exact ? '' : ` ${t('matchup.estimate')}`}
+      </p>
+    </Card>
   );
 }
 

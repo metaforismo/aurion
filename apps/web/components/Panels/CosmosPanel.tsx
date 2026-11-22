@@ -23,7 +23,7 @@ import {
   getProjectStatus,
   kardashevToWatts,
   kardashevType,
-  projectCost,
+  effectiveProjectCost,
   type CosmosProjectDef,
   type CosmosProjectStatus,
 } from '@aurion/engine';
@@ -293,7 +293,7 @@ export function CosmosPanel({ onErrors }: { onErrors?: (errors: string[]) => voi
                       key={def.id}
                       def={def}
                       status={statuses.get(def.id)!}
-                      price={money(projectCost(cosmos, def))}
+                      price={money(effectiveProjectCost(state, def))}
                       firstBy={cosmos.firsts[def.id]}
                       playerId={player.id}
                       nameOfCountry={nameOfCountry}

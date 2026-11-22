@@ -1,468 +1,178 @@
-// Diplomacy system panel.
-//
-// Progressive-disclosure layout:
-//   - PanelHero: ally count as the BIG number, "tense" relations count chip,
-//     quick-stats for at-war count.
-//   - Primary action: "Propose alliance" pinned in the sticky footer (it
-//     targets whichever country the player drills into below).
-//   - Collapsed: the full nation list with sort toolbar and per-row
-//     expanders. Default closed so the rail isn't a wall of country rows.
-
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
-import type {
-  Country,
-  CountryId,
-  DiplomacyKind,
-  Relation,
-  RelationKey,
-  TreatyKind,
-} from '@aurion/engine';
+// Diplomacy panel — where every other nation stands toward the player, what
+// can be done about the one selected on the globe, and the blocs that group
+// them. Opens on the figure a diplomat counts first: allies.
 
-import { cn } from '../../lib/cn';
-import {
-  selectPlayerCountry,
-  useGameStore,
-  type GameStoreState,
-} from '../../lib/store';
-import { ScenarioId } from '../../lib/scenarios';
-import { toneChip } from '../../lib/theme';
-import { ActionButton } from './shared/ActionButton';
-import { Disclosure } from './shared/Disclosure';
-import { EmptyState } from './shared/EmptyState';
-import { PanelHero } from './shared/PanelHero';
-import { StickyFooter } from './shared/StickyFooter';
-import { useScenarioMessages } from './shared/useScenarioMessages';
+import type { VictoryRule } from '@aurion/engine';
+import { Flag, Handshake } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
-type SortMode = 'alpha' | 'attitude' | 'treaties';
+import { percent } from '../../lib/format';
+import { Chip, EmptyState, Meter, SectionTitle, Stat } from '../ui';
 
-function relationKey(a: CountryId, b: CountryId): RelationKey {
-  return (a < b ? `${a}::${b}` : `${b}::${a}`) as RelationKey;
+import { Blocs } from './diplomacy/Blocs';
+import { CountryPicker, type PickerItem } from './diplomacy/CountryPicker';
+import { Dossier } from './diplomacy/Dossier';
+import { AttitudeValue, StanceChip } from './diplomacy/parts';
+import { stanceOf, useWorld, type World } from './diplomacy/world';
+
+/** The alliance-based goal inside a victory rule, if it has one. */
+function allianceGoal(rule: VictoryRule | undefined, rivals: number): { need: number; kind: 'coverage' | 'control'; value: number } | null {
+  if (!rule) return null;
+  switch (rule.kind) {
+    case 'allianceCoverage':
+      return { kind: 'coverage', value: rule.minPercent, need: Math.ceil((rule.minPercent / 100) * rivals) };
+    case 'controlNCountries':
+      // The engine counts the player plus every ally.
+      return { kind: 'control', value: rule.n, need: rule.n - 1 };
+    case 'and':
+    case 'or': {
+      for (const r of rule.rules) {
+        const found = allianceGoal(r, rivals);
+        if (found) return found;
+      }
+      return null;
+    }
+    default:
+      return null;
+  }
 }
 
-const TREATY_TONE: Record<TreatyKind, string> = {
-  alliance: toneChip('success'),
-  tradeDeal: toneChip('info'),
-  nonAggression: toneChip('neutral'),
-  sanctions: toneChip('danger'),
-};
-
-export function DiplomacyPanel({
-  onErrors,
-}: {
-  onErrors?: (errors: string[]) => void;
-}) {
+export function DiplomacyPanel({ onErrors }: { onErrors?: (errors: string[]) => void }) {
   const t = useTranslations('panelDiplomacy');
-  const tShared = useTranslations('panelShared');
-  const tCommon = useTranslations('common');
-  const fmt = useFormatter();
+  const w = useWorld();
 
-  const player = useGameStore(selectPlayerCountry);
-  const state = useGameStore((s: GameStoreState) => s.state);
-  const scenario = useGameStore((s: GameStoreState) => s.scenario);
-  const applyAction = useGameStore((s: GameStoreState) => s.applyAction);
-  const confirm = useGameStore((s: GameStoreState) => s.confirm);
-
-  const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
-  const { t: tScenario } = useScenarioMessages(scenarioId);
-
-  const [sortMode, setSortMode] = useState<SortMode>('alpha');
-  const [expanded, setExpanded] = useState<CountryId | null>(null);
-
-  const rows = useMemo(() => {
-    if (!player || !state) return [];
-    const me = player.id;
-    const out: { country: Country; relation: Relation | null }[] = [];
-    for (const c of Object.values(state.countries)) {
-      if (c.id === me) continue;
-      const rel = state.relations[relationKey(me, c.id)] ?? null;
-      out.push({ country: c, relation: rel });
-    }
-    out.sort((a, b) => {
-      switch (sortMode) {
-        case 'attitude': {
-          const aAtt = a.relation?.attitude ?? 0;
-          const bAtt = b.relation?.attitude ?? 0;
-          return bAtt - aAtt;
-        }
-        case 'treaties': {
-          const aT = a.relation?.treaties.length ?? 0;
-          const bT = b.relation?.treaties.length ?? 0;
-          return bT - aT;
-        }
-        case 'alpha':
-        default:
-          return tScenario(a.country.nameKey).localeCompare(
-            tScenario(b.country.nameKey),
-          );
-      }
+  const items = useMemo<PickerItem[]>(() => {
+    if (!w) return [];
+    return w.others.map((c) => {
+      const rel = w.relation(c.id);
+      const stance = stanceOf(rel);
+      const tags: string[] = [];
+      if (stance === 'ally') tags.push('allies');
+      if (rel.atWar || rel.treaties.includes('sanctions') || rel.attitude <= -25) tags.push('hostile');
+      if (!rel.atWar && !rel.treaties.includes('alliance') && rel.attitude >= 0) tags.push('open');
+      const name = w.nameOf(c.id);
+      return {
+        id: c.id,
+        name,
+        color: c.color,
+        subtitle:
+          rel.treaties.length > 0
+            ? rel.treaties.map((k) => t(`treaty.${k}`)).join(' · ')
+            : t('noTreaties'),
+        trailing: (
+          <span className="flex items-center gap-2">
+            {stance === 'war' || stance === 'ally' ? <StanceChip stance={stance} /> : null}
+            <AttitudeValue attitude={rel.attitude} className="w-8 text-right text-xs" />
+          </span>
+        ),
+        sort: { attitude: rel.attitude, name },
+        tags,
+      };
     });
-    return out;
-  }, [player, state, sortMode, tScenario]);
+  }, [w, t]);
 
-  if (!player || !state) {
-    return (
-      <div className="p-4">
-        <EmptyState>{tShared('noPlayer')}</EmptyState>
-      </div>
-    );
-  }
-
-  // Resolve the currently-expanded row, if any, so the sticky footer can offer
-  // "Propose alliance" against that target. We only enable it when the row's
-  // relation passes the engine-side preconditions (attitude ≥ 30, no war, not
-  // already allied) — same gates the inline button uses inside CountryRow.
-  const expandedRow = expanded ? rows.find((r) => r.country.id === expanded) : null;
-  const expandedAttitude = expandedRow?.relation?.attitude ?? 0;
-  const expandedAtWar = expandedRow?.relation?.atWar === true;
-  const expandedAllied =
-    expandedRow?.relation?.treaties.includes('alliance') === true;
-  const allianceDisabledReason = (() => {
-    if (!expandedRow) return tShared('stickyAction.selectFirst');
-    if (expandedAtWar) return t('atWar');
-    if (expandedAllied) return t('action.breakAlliance');
-    if (expandedAttitude < 30) return t('reason.attitudeTooLow');
-    return null;
-  })();
-
-  // Hero counts — allies, tense relations (attitude < -30), at-war.
-  const allyCount = rows.filter((r) =>
-    r.relation?.treaties.includes('alliance'),
-  ).length;
-  const tenseCount = rows.filter((r) => (r.relation?.attitude ?? 0) <= -30)
-    .length;
-  const warCount = rows.filter((r) => r.relation?.atWar === true).length;
+  if (!w) return null;
 
   return (
-    <div className="flex flex-col gap-3 p-4">
-      {/* Hero — ally count, plus open-tensions + at-war quick stats. */}
-      <PanelHero
-        title={t('title')}
-        value={fmt.number(allyCount)}
-        valueTone={allyCount > 0 ? 'success' : 'muted'}
-        quickStats={[
-          {
-            label: t('heroOpenRequests'),
-            value: t('heroTensionsHigh', { n: fmt.number(tenseCount) }),
-          },
-          { label: t('atWar'), value: fmt.number(warCount) },
-        ]}
-      />
+    <div className="flex flex-col gap-4 p-4" data-testid="diplomacy-panel">
+      <Standing w={w} />
 
-      {/* Collapsed nations list — sort toolbar + per-row expanders. */}
-      <Disclosure summary={tShared('moreDetails')} trailing={t('details')}>
-        {/* Sort toolbar */}
-        <div className="flex items-center justify-between gap-2 border-b border-border pb-2">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-            {t('countries.title')} ({rows.length})
-          </span>
-          <div className="flex gap-3" role="group" aria-label={t('sort.label')}>
-            {(['alpha', 'attitude', 'treaties'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setSortMode(m)}
-                aria-pressed={sortMode === m}
-                className={cn(
-                  'border-b-2 px-0.5 py-0.5 text-[11px] font-medium uppercase tracking-wider transition focus-visible:outline-none',
-                  sortMode === m
-                    ? 'border-accent text-fg'
-                    : 'border-transparent text-fg-muted hover:text-fg',
-                )}
-              >
-                {t(`sort.${m}`)}
-              </button>
-            ))}
-          </div>
-        </div>
+      {w.target ? (
+        <Dossier w={w} target={w.target} onErrors={onErrors} />
+      ) : (
+        <EmptyState icon={Flag} title={t('pick.title')}>
+          {t('pick.body')}
+        </EmptyState>
+      )}
 
-        <ul className="flex flex-col divide-y divide-border">
-          {rows.map(({ country, relation }) => {
-            const expandedNow = expanded === country.id;
-            return (
-              <li key={country.id}>
-                <CountryRow
-                  country={country}
-                  relation={relation}
-                  expanded={expandedNow}
-                  playerName={tScenario(player.nameKey)}
-                  otherName={tScenario(country.nameKey)}
-                  onToggle={() =>
-                    setExpanded((prev) =>
-                      prev === country.id ? null : country.id,
-                    )
-                  }
-                  onAction={async (kind) => {
-                    return applyAction({
-                      type: 'diplomacy',
-                      target: country.id,
-                      kind,
-                    });
-                  }}
-                  onConfirmAction={(kind, titleKey, descriptionKey, tone) => {
-                    confirm({
-                      titleKey,
-                      descriptionKey,
-                      tone,
-                      confirmKey: 'common.confirm',
-                      cancelKey: 'common.cancel',
-                      onConfirm: async () => {
-                        const errors = await applyAction({
-                          type: 'diplomacy',
-                          target: country.id,
-                          kind,
-                        });
-                        if (errors.length > 0) onErrors?.(errors);
-                      },
-                    });
-                  }}
-                  onErrors={onErrors}
-                  fmt={fmt}
-                  tCommon={tCommon}
-                />
-              </li>
-            );
-          })}
-        </ul>
-      </Disclosure>
+      <section aria-label={t('countries.title')} className="flex flex-col gap-2">
+        <SectionTitle aside={w.others.length}>{t('countries.title')}</SectionTitle>
+        <CountryPicker
+          label={t('countries.title')}
+          testIdPrefix="diplomacy-country"
+          items={items}
+          selectedId={w.target?.id ?? null}
+          onPick={w.selectTarget}
+          sorts={[
+            { id: 'attitude', label: t('sort.attitude') },
+            { id: 'name', label: t('sort.alpha') },
+          ]}
+          filters={[
+            { id: 'allies', label: t('filter.allies') },
+            { id: 'open', label: t('filter.open') },
+            { id: 'hostile', label: t('filter.hostile') },
+          ]}
+          limit={8}
+        />
+      </section>
 
-      {/* Sticky primary action — "Propose alliance" against whichever country
-          is currently expanded. The expectation is the player clicks a row to
-          inspect, then taps the pinned action without having to scroll back
-          to the row's inline buttons. */}
-      <StickyFooter
-        hint={
-          !expandedRow
-            ? tShared('stickyAction.diplomacyHint')
-            : null
-        }
-      >
-        <ActionButton
-          tone="primary"
-          disabledReason={allianceDisabledReason}
-          onClick={async () => {
-            if (!expandedRow) return [];
-            return applyAction({
-              type: 'diplomacy',
-              target: expandedRow.country.id,
-              kind: 'proposeAlliance',
-            });
-          }}
-          onErrors={onErrors}
-        >
-          {expandedRow
-            ? `${t('action.proposeAlliance')} → ${tScenario(expandedRow.country.nameKey)}`
-            : t('action.proposeAlliance')}
-        </ActionButton>
-      </StickyFooter>
+      {w.state.blocs ? <Blocs w={w} onErrors={onErrors} /> : null}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Country row
-// ---------------------------------------------------------------------------
-
-function CountryRow({
-  country,
-  relation,
-  expanded,
-  playerName,
-  otherName,
-  onToggle,
-  onAction,
-  onConfirmAction,
-  onErrors,
-  fmt,
-  tCommon,
-}: {
-  country: Country;
-  relation: Relation | null;
-  expanded: boolean;
-  playerName: string;
-  otherName: string;
-  onToggle: () => void;
-  onAction: (kind: DiplomacyKind) => Promise<string[]>;
-  onConfirmAction: (
-    kind: DiplomacyKind,
-    titleKey: string,
-    descriptionKey: string,
-    tone?: 'primary' | 'danger',
-  ) => void;
-  onErrors?: (errors: string[]) => void;
-  fmt: ReturnType<typeof useFormatter>;
-  tCommon: ReturnType<typeof useTranslations<'common'>>;
-}) {
+/** Hero: allies first, then the temperature of the world and the win track. */
+function Standing({ w }: { w: World }) {
   const t = useTranslations('panelDiplomacy');
+  const rels = w.others.map((c) => w.relation(c.id));
+  const allies = rels.filter((r) => r.treaties.includes('alliance')).length;
+  const wars = rels.filter((r) => r.atWar).length;
+  const sanctions = rels.filter((r) => r.treaties.includes('sanctions')).length;
+  const trade = rels.filter((r) => r.treaties.includes('tradeDeal')).length;
+  const tension = w.state.worldTension;
 
-  const attitude = relation?.attitude ?? 0;
-  const attitudeTone =
-    attitude >= 30
-      ? 'text-success'
-      : attitude <= -30
-        ? 'text-danger'
-        : 'text-fg';
-  const treaties = relation?.treaties ?? [];
-  const atWar = !!relation?.atWar;
-  const allied = treaties.includes('alliance');
-  const sanctioned = treaties.includes('sanctions');
-  const trading = treaties.includes('tradeDeal');
-
-  // Suppress unused
-  void tCommon;
-  void fmt;
+  const rule = w.scenario?.victoryConditions.find((v) => v.id === w.state.selectedVictoryCondition)?.rule;
+  const goal = allianceGoal(rule, w.others.length);
 
   return (
-    <article>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        className={cn(
-          'flex w-full items-center gap-2 py-2 text-left transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
-          expanded ? 'text-fg' : 'text-fg-muted hover:text-fg',
-        )}
-      >
-        <span
-          aria-hidden
-          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-          style={{ backgroundColor: country.color }}
+    <section
+      aria-label={t('hero.label')}
+      className="rounded-xl border border-accent/25 bg-gradient-to-br from-accent/[0.09] via-transparent to-success/[0.05] p-4"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <Stat
+          size="lg"
+          label={t('hero.allies')}
+          value={
+            <>
+              {allies}
+              <span className="ml-1.5 text-sm font-normal text-fg-faint">{t('hero.ofNations', { n: w.others.length })}</span>
+            </>
+          }
         />
-        <span className="flex-1 truncate text-xs font-medium text-fg">
-          {otherName}
-        </span>
-        <span className={cn('font-mono text-[11px] numeric-tabular', attitudeTone)}>
-          {attitude > 0 ? `+${attitude}` : attitude}
-        </span>
-        {atWar ? (
-          <span className="font-mono text-[10px] uppercase tracking-wider text-danger">
-            {t('atWar')}
-          </span>
-        ) : null}
-        {treaties.length > 0 ? (
-          <span className="font-mono text-[10px] text-fg-faint">{treaties.length}</span>
-        ) : null}
-      </button>
+        {wars > 0 ? (
+          <Chip tone="danger">{t('hero.wars', { n: wars })}</Chip>
+        ) : (
+          <Chip tone="success" icon={Handshake}>
+            {t('hero.atPeace')}
+          </Chip>
+        )}
+      </div>
 
-      {expanded ? (
-        <div className="flex flex-col gap-2 border-t border-border py-3">
-          {/* Treaties */}
-          {treaties.length > 0 ? (
-            <ul className="flex flex-wrap gap-1">
-              {treaties.map((tr) => (
-                <li
-                  key={tr}
-                  className={cn(
-                    'rounded-sm border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider',
-                    TREATY_TONE[tr],
-                  )}
-                >
-                  {t(`treaty.${tr}`)}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-[11px] italic text-fg-faint">{t('noTreaties')}</p>
-          )}
-
-          {/* Actions */}
-          <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-            {/* Alliance proposal — requires friendly attitude and no war */}
-            {!allied && !atWar ? (
-              <ActionButton
-                tone="primary"
-                disabledReason={
-                  attitude < 30 ? t('reason.attitudeTooLow') : null
-                }
-                onClick={() => onAction('proposeAlliance')}
-                onErrors={onErrors}
-              >
-                {t('action.proposeAlliance')}
-              </ActionButton>
-            ) : null}
-
-            {allied ? (
-              <ActionButton
-                tone="neutral"
-                onClick={() => onAction('breakAlliance')}
-                onErrors={onErrors}
-              >
-                {t('action.breakAlliance')}
-              </ActionButton>
-            ) : null}
-
-            {/* Sanctions */}
-            {!sanctioned ? (
-              <ActionButton
-                tone="neutral"
-                onClick={() => onAction('imposeSanction')}
-                onErrors={onErrors}
-              >
-                {t('action.imposeSanction')}
-              </ActionButton>
-            ) : (
-              <ActionButton
-                tone="neutral"
-                onClick={() => onAction('liftSanction')}
-                onErrors={onErrors}
-              >
-                {t('action.liftSanction')}
-              </ActionButton>
-            )}
-
-            {/* Trade */}
-            {!trading && !atWar ? (
-              <ActionButton
-                tone="neutral"
-                onClick={() => onAction('tradeDeal')}
-                onErrors={onErrors}
-              >
-                {t('action.tradeDeal')}
-              </ActionButton>
-            ) : null}
-
-            {/* War / peace — gated through confirm */}
-            {atWar ? (
-              <ActionButton
-                tone="primary"
-                onClick={() =>
-                  onConfirmAction(
-                    'sueForPeace',
-                    'panelDiplomacy.confirm.peace.title',
-                    'panelDiplomacy.confirm.peace.description',
-                    'primary',
-                  )
-                }
-                onErrors={onErrors}
-              >
-                {t('action.sueForPeace')}
-              </ActionButton>
-            ) : (
-              <ActionButton
-                tone="danger"
-                onClick={() =>
-                  onConfirmAction(
-                    'declareWar',
-                    'panelDiplomacy.confirm.war.title',
-                    'panelDiplomacy.confirm.war.description',
-                    'danger',
-                  )
-                }
-                onErrors={onErrors}
-              >
-                {t('action.declareWar')}
-              </ActionButton>
-            )}
-          </div>
-
-          <p className="text-[10px] text-fg-faint">
-            {t('hint.relation', { player: playerName, other: otherName })}
-          </p>
-        </div>
+      {goal ? (
+        <Meter
+          className="mt-3"
+          tone="accent"
+          value={goal.need > 0 ? allies / goal.need : 1}
+          label={
+            goal.kind === 'coverage'
+              ? t('hero.goalCoverage', { pct: percent(goal.value / 100, w.locale) })
+              : t('hero.goalControl', { n: goal.value })
+          }
+          valueLabel={`${allies}/${goal.need}`}
+        />
       ) : null}
-    </article>
+
+      <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-white/10 pt-3">
+        <Stat size="sm" label={t('hero.trade')} value={trade} tone={trade > 0 ? 'info' : 'neutral'} />
+        <Stat size="sm" label={t('hero.sanctions')} value={sanctions} tone={sanctions > 0 ? 'warning' : 'neutral'} />
+        <Stat size="sm" label={t('hero.tension')} value={`${Math.round(tension)}/100`} tone={tension >= 75 ? 'danger' : tension >= 50 ? 'warning' : 'neutral'} />
+      </dl>
+      <p className="mt-2 text-[11px] leading-snug text-fg-faint">{t('hero.tensionHint')}</p>
+    </section>
   );
 }
 
