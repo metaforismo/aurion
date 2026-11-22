@@ -191,7 +191,7 @@ test.describe('Phase 3 — UN panel', () => {
 
     // Click the ONU tab. The label is set in messages/it.json::panelUN.tabLabel
     // (or similar). We try the canonical labels with a permissive regex.
-    const unTab = page.getByRole('tab', { name: /ONU|UN/i });
+    const unTab = page.getByRole('tab', { name: 'ONU', exact: true });
     await expect(unTab).toBeVisible();
     await unTab.click();
 
@@ -223,7 +223,7 @@ test.describe('Phase 3 — UN panel', () => {
     await waitForPlayReady(page, 'it');
     await dismissAllEventModals(page);
 
-    const unTab = page.getByRole('tab', { name: /ONU|UN/i });
+    const unTab = page.getByRole('tab', { name: 'ONU', exact: true });
     await expect(unTab).toBeVisible();
     await unTab.click();
 

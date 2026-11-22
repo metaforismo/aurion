@@ -104,8 +104,9 @@ test.describe('Phase 3 — nuclear launch', () => {
     });
 
 
-    // Switch to the Military panel. The tab label is "Militare" in IT.
-    await page.getByRole('tab', { name: /^Militare$/ }).click();
+    // Switch to the Military panel. With a war on and nothing deployed the
+    // tab's accessible name also carries the warning, so match its start.
+    await page.getByRole('tab', { name: /^Militare/ }).click();
 
     // The arsenal section is keyed by the localised section title. Scope all
     // further selectors to it so we don't collide with the (visually similar)

@@ -206,7 +206,11 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
                 if (active) setPanelOpen(false);
                 else setSelectedPanel(id);
               }}
-              title={`${t(id)} · ${tRail('shortcutHint', { key: shortcut })}`}
+              title={
+                badge
+                  ? `${t(id)} · ${badge.ariaLabel}`
+                  : `${t(id)} · ${tRail('shortcutHint', { key: shortcut })}`
+              }
               className={cn(
                 'group relative flex h-[52px] w-[60px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium leading-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
                 active
@@ -219,14 +223,15 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
                 <Icon aria-hidden className="h-[18px] w-[18px]" />
                 {badge ? (
                   <span
-                    role="status"
-                    aria-label={badge.ariaLabel}
+                    aria-hidden
                     className="absolute -right-1.5 -top-1 h-2 w-2 rounded-full ring-2 ring-black/70"
                     style={{ backgroundColor: BADGE_COLOR[badge.tone] }}
                   />
                 ) : null}
               </span>
               <span className="max-w-full truncate px-0.5">{t(id)}</span>
+              {/* The dot is decorative; the reason is read after the name. */}
+              {badge ? <span className="sr-only"> — {badge.ariaLabel}</span> : null}
               {active ? (
                 <span aria-hidden className="absolute inset-y-2 left-0 hidden w-0.5 rounded-full bg-accent lg:block" />
               ) : null}

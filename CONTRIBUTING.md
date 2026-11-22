@@ -25,13 +25,15 @@ If anything here is wrong, missing, or out of date, that itself is worth a PR.
 
 ## Project goals and roadmap
 
-Aurion is decomposed into three phases. The full spec lives in [`docs/SPEC.md`](./docs/SPEC.md) — read it before doing any non-trivial work.
+The game is playable end to end: eight systems, five game modes, four scenarios, megaprojects up the Kardashev scale, Italian and English. The original design specs live in [`docs/SPEC.md`](./docs/SPEC.md) (and its phase 2 / 3 companions); the interface rules live in [`docs/DESIGN.md`](./docs/DESIGN.md). Read both before non-trivial work.
 
-- **Phase 1 (in progress)** — core engine, one scenario (*Ascesa di Aurion*), six systems (Economy, Research, Military, Spies, Diplomacy, Internal Politics), five selectable victory conditions, IT + EN.
-- **Phase 2 (planned)** — additional scenarios, multiple difficulties, deeper balancing.
-- **Phase 3 (planned)** — polish, deeper tech tree, advanced narrative events, audio, achievements.
+What helps most right now:
 
-Issues and PRs targeting Phase 2/3 work are welcome but won't be merged until Phase 1 is feature-complete unless they're trivial fixes.
+- **Balance** — the megaproject ladder and the rival space race (`packages/engine/scripts/sim-cosmos.ts` is the probe).
+- **Content** — events, technologies and scenarios are data; see "Adding a scenario" below.
+- **Engine depth** — every rule belongs in `packages/engine` with tests; the UI only presents what the engine reports.
+
+Two house rules: build interface from `apps/web/components/ui` and follow `docs/DESIGN.md`; and never edit `apps/web/messages/*.json` by hand — add `(key, italian, english)` entries to a file in `scripts/i18n/` and run it.
 
 ---
 

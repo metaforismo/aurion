@@ -29,6 +29,7 @@
 
 'use client';
 
+import { Trophy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { VictoryConditionDef, VictoryConditionId } from '@aurion/engine';
@@ -126,10 +127,11 @@ export function VictoryCounter() {
                 : 'text-fg-muted hover:text-accent',
         )}
       >
-        <span aria-hidden="true">🏆</span>
+        <Trophy aria-hidden className="h-4 w-4" />
         <span className="numeric-tabular font-mono">
           {count}/{total}
         </span>
+        <span className="hidden text-xs xl:inline">{t('unlocked')}</span>
       </button>
       {showProgress ? (
         <span

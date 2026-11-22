@@ -24,8 +24,6 @@
 
 'use client';
 
-import { useCallback, useState } from 'react';
-
 import {
   selectOpenEvent,
   selectShouldShowEternalFirstVictory,
@@ -37,15 +35,10 @@ import { EraTransitionModal } from './EraTransitionModal';
 import { EternalFirstVictoryModal } from './EternalFirstVictoryModal';
 import { EventModal } from './EventModal';
 import { NuclearStrikeIncomingModal } from './NuclearStrikeIncomingModal';
-import {
-  UNResolutionModal,
-  pickPendingUNResolution,
-} from './UNResolutionModal';
 import { WinLossModal } from './WinLossModal';
 
 export function ModalRoot() {
   const winLoss = useGameStore((s) => s.state?.winLoss);
-  const state = useGameStore((s) => s.state);
   const scenario = useGameStore((s) => s.scenario);
   const openEvent = useGameStore(selectOpenEvent);
   const pendingConfirm = useGameStore((s) => s.pendingConfirm);
@@ -62,22 +55,9 @@ export function ModalRoot() {
     (s) => s.state?.eraState?.pendingTransition ?? null,
   );
 
-  // Track which UN resolutions the player has explicitly dismissed in this
-  // session so we don't re-pop the modal on every tick. We use plain state
-  // (a frozen Set replaced on update) rather than a ref so we don't read a
-  // mutable value during render — keeps the component compatible with React
-  // 18+ strict-mode and the project's react-hooks/refs lint rule.
-  const [dismissedUN, setDismissedUN] = useState<ReadonlySet<string>>(
-    () => new Set<string>(),
-  );
-  const dismissUN = useCallback((id: string) => {
-    setDismissedUN((prev) => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-  }, []);
+  // UN ballots are deliberately NOT a dialog: they have a deadline rather
+  // than stopping the clock, so they surface as a dock badge, a briefing
+  // entry and a map pin, and are voted from the UN panel.
 
   if (winLoss && winLoss !== 'playing') {
     return <WinLossModal />;
@@ -95,22 +75,6 @@ export function ModalRoot() {
 
   if (pendingEraTransition) {
     return <EraTransitionModal />;
-  }
-
-  // UN modal — only when a scenario + state are loaded. The selector handles
-  // the "no ONU / no eligible resolution" cases by returning null.
-  if (state && scenario) {
-    const pendingUN = pickPendingUNResolution(state, scenario, dismissedUN);
-    if (pendingUN) {
-      return (
-        <UNResolutionModal
-          resolution={pendingUN}
-          state={state}
-          scenario={scenario}
-          onDismiss={() => dismissUN(pendingUN.id)}
-        />
-      );
-    }
   }
 
   if (openEvent && scenario) {

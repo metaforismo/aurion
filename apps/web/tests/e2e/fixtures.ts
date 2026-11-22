@@ -147,7 +147,10 @@ export async function startNewGame(
 
   // Launch summary → start. (Phone layouts use `wizard-start-compact` /
   // `wizard-next-compact` in the bottom bar instead.)
-  await page.getByTestId('wizard-start').click();
+  await page
+    .locator('[data-testid="wizard-start"]:visible, [data-testid="wizard-start-compact"]:visible')
+    .first()
+    .click();
 
   // Wait for redirect to /<locale>/play/<saveId>
   await page.waitForURL(new RegExp(`/${locale}/play/[^/?#]+`), {
@@ -169,7 +172,11 @@ async function pickOption(page: Page, testId: string): Promise<void> {
 
 /** Click the wizard's "Next" button (desktop layout). */
 async function clickNext(page: Page): Promise<void> {
-  await page.getByTestId('wizard-next').click();
+  // Desktop rail button or the phone bottom bar, whichever is on screen.
+  await page
+    .locator('[data-testid="wizard-next"]:visible, [data-testid="wizard-next-compact"]:visible')
+    .first()
+    .click();
 }
 
 /** Click one of the speed buttons in the HUD. */

@@ -79,8 +79,10 @@ test.describe('play page — golden path', () => {
     await waitForPlayReady(page, 'it');
     await dismissAllEventModals(page);
 
-    // Economy is the default panel, but click anyway to be explicit.
-    await page.getByRole('tab', { name: 'Economia' }).click();
+    // Economy is the default panel. Clicking the active tab would close the
+    // drawer, so only click when another panel is showing.
+    const economyTab = page.getByRole('tab', { name: 'Economia' });
+    if ((await economyTab.getAttribute('aria-selected')) !== 'true') await economyTab.click();
     await expect(page.getByText('Politica fiscale')).toBeVisible();
 
     const slider = page.getByLabel(/Aliquota fiscale/i).first();

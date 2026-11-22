@@ -6,11 +6,6 @@ export { EternalFirstVictoryModal } from './EternalFirstVictoryModal';
 export { EventModal } from './EventModal';
 export type { EventModalProps } from './EventModal';
 export { WinLossModal } from './WinLossModal';
-export {
-  UNResolutionModal,
-  pickPendingUNResolution,
-} from './UNResolutionModal';
-export type { UNResolutionModalProps } from './UNResolutionModal';
 export { NuclearLaunchConfirm } from './NuclearLaunchConfirm';
 export type {
   NuclearLaunchConfirmProps,

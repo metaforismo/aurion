@@ -29,63 +29,6 @@ import {
 } from './helpers/phase3';
 
 test.describe('Phase 3 — UN vote flow', () => {
-  test('player votes Yes on an injected sanctions resolution', async ({
-    page,
-  }) => {
-    // Mondo Contemporaneo + mc-italy → player is on the UN council
-    // (verified by phase3.spec.ts "Mondo Contemporaneo grants the player UN
-    // council status when picking Italy"). Council members can vote.
-    await startNewGame(page, {
-      locale: 'it',
-      scenarioId: 'mondo-contemporaneo',
-      countryId: 'mc-italy',
-      victoryId: 'economic',
-      difficultyId: 'normal',
-      gameMode: 'classic',
-    });
-    await waitForPlayReady(page, 'it');
-    await dismissAllEventModals(page);
-    await waitForStore(page);
-
-    // Inject a synthetic sanctions resolution proposed by mc-usa targeting
-    // mc-china. As soon as the resolution lands in `state.unResolutions`,
-    // the app auto-opens the "Nuova risoluzione ONU" notification modal
-    // with the Vote buttons rendered inline — perfect for an E2E flow.
-    const resolutionId = await injectUNResolution(page, {
-      kind: 'sanctions',
-      proposerCountryId: 'mc-usa',
-      targetCountryId: 'mc-china',
-      votingDurationTicks: 52,
-    });
-    expect(resolutionId).toMatch(/^test_sanctions_/);
-
-    // The new-resolution modal should pop up automatically. Match by the IT
-    // dialog title.
-    const newResolutionDialog = page.getByRole('dialog', {
-      name: /Nuova risoluzione ONU/i,
-    });
-    await expect(newResolutionDialog).toBeVisible({ timeout: 5_000 });
-
-    // Click "Sì" inside the dialog (same labels as the panel's ballot).
-    await newResolutionDialog.getByRole('button', { name: /^Sì$/ }).click();
-
-    // Engine assertion: the vote was recorded against the player on the
-    // synthetic resolution. We poll because the store update is async (the
-    // ActionButton awaits applyAction before the dialog re-renders).
-    await expect
-      .poll(
-        async () => {
-          const resolutions = await readStateField<
-            { id: string; votes: Record<string, string> }[]
-          >(page, 'unResolutions');
-          const ours = resolutions?.find((r) => r.id === resolutionId);
-          return ours?.votes['mc-italy'] ?? null;
-        },
-        { timeout: 5_000, intervals: [100, 250, 500] },
-      )
-      .toBe('yes');
-  });
-
   test('player votes Yes from the resolution card in the UN panel', async ({ page }) => {
     await startNewGame(page, {
       locale: 'it',
@@ -106,13 +49,9 @@ test.describe('Phase 3 — UN vote flow', () => {
       votingDurationTicks: 52,
     });
 
-    // Put the dialog aside and vote from the panel instead.
-    const newResolutionDialog = page.getByRole('dialog', {
-      name: /Nuova risoluzione ONU/i,
-    });
-    await expect(newResolutionDialog).toBeVisible({ timeout: 5_000 });
-    await newResolutionDialog.getByRole('button', { name: /Per ora salta/ }).click();
-    await expect(newResolutionDialog).toBeHidden();
+    // UN ballots do not interrupt play with a dialog: they are voted from
+    // the UN panel.
+    await expect(page.getByRole('dialog')).toHaveCount(0);
 
     // Open the UN panel through the store so the test does not depend on
     // the dock's markup.

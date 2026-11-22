@@ -231,9 +231,11 @@ function clamp(n: number, lo: number, hi: number): number {
 }
 
 export function tickPolicies(state: GameState): GameState {
+  // Saves from before the system existed get an empty slate on first tick.
+  if (!state.policies) return { ...state, policies: initPolicies() };
   const policies = state.policies;
   const player = state.countries[state.playerCountryId];
-  if (!policies || policies.active.length === 0 || !player) return state;
+  if (policies.active.length === 0 || !player) return state;
 
   const income = player.economy.weeklyIncome;
   const basis = Math.max(0, income);

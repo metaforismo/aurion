@@ -595,6 +595,7 @@ export default function GlobeMap() {
   return (
     <div
       className="absolute inset-0"
+      role="region"
       data-testid="world-map"
       tabIndex={0}
       aria-label={t('label')}
@@ -643,7 +644,10 @@ export default function GlobeMap() {
         </div>
       </div>
 
-      <div className="glass-panel pointer-events-auto absolute bottom-3 right-3 z-10 flex flex-col rounded-xl p-0.5">
+      <div
+        className="glass-panel pointer-events-auto absolute bottom-3 z-10 flex flex-col rounded-xl p-0.5"
+        style={{ right: wide && insets ? insets.right + 4 : 12 }}
+      >
         <IconButton icon={Plus} label={tGlobe('zoomIn')} onClick={() => viewRef.current?.zoomBy(0.78)} disabled={zoomDistance <= 1.3} />
         <IconButton icon={Minus} label={tGlobe('zoomOut')} onClick={() => viewRef.current?.zoomBy(1.28)} disabled={zoomDistance >= 4.15} />
         <IconButton icon={LocateFixed} label={tGlobe('home')} onClick={goHome} />

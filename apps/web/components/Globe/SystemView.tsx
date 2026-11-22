@@ -165,7 +165,7 @@ export default function SystemView() {
               </span>
               <span
                 className={cn(
-                  'absolute top-full mt-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-medium tracking-wide',
+                  'absolute top-full z-10 mt-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-medium tracking-wide',
                   selected === b.id ? 'bg-accent text-black' : 'bg-black/50 text-white/75 group-hover:text-white',
                 )}
               >
