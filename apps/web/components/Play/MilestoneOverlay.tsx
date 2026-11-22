@@ -58,6 +58,19 @@ export function MilestoneOverlay() {
     return () => window.clearTimeout(id);
   }, [current]);
 
+  // Enter / Escape / Space move on, like a click anywhere.
+  useEffect(() => {
+    if (!current) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== 'Escape' && e.key !== ' ') return;
+      e.preventDefault();
+      e.stopPropagation();
+      setQueue((q) => q.slice(1));
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [current]);
+
   if (!current) return null;
   const dismiss = () => setQueue((q) => q.slice(1));
   const isType = current.kind === 'type';
