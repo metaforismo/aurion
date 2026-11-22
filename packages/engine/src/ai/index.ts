@@ -126,6 +126,8 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     launchStrategic: 0,
     dismantleNuclear: 0,
     acknowledgeEraTransition: 0,
+    startProject: 0,
+    cancelProject: 0,
   },
   regional_bully: {
     invest: 0.6,
@@ -143,6 +145,8 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     launchStrategic: 0,
     dismantleNuclear: 0,
     acknowledgeEraTransition: 0,
+    startProject: 0,
+    cancelProject: 0,
   },
   cold_isolationist: {
     invest: 0.8,
@@ -160,6 +164,8 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     launchStrategic: 0,
     dismantleNuclear: 0,
     acknowledgeEraTransition: 0,
+    startProject: 0,
+    cancelProject: 0,
   },
   opportunist: {
     invest: 0.7,
@@ -177,6 +183,8 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     launchStrategic: 0,
     dismantleNuclear: 0,
     acknowledgeEraTransition: 0,
+    startProject: 0,
+    cancelProject: 0,
   },
   superpower: {
     invest: 0.7,
@@ -195,6 +203,8 @@ const ARCHETYPE_BASE: Record<AiArchetype, Record<ActionType, number>> = {
     launchStrategic: 0,
     dismantleNuclear: 0,
     acknowledgeEraTransition: 0,
+    startProject: 0,
+    cancelProject: 0,
   },
 };
 

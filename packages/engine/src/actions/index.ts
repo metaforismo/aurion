@@ -32,6 +32,7 @@ import { applyLaunchTactical } from './launchTactical.js';
 import { applyLaunchStrategic } from './launchStrategic.js';
 import { applyDismantleNuclear } from './dismantleNuclear.js';
 import { ensureRelation } from './helpers.js';
+import { applyCancelProject, applyStartProject } from '../cosmos/index.js';
 import { maybeTriggerFromAction } from '../un/index.js';
 
 export {
@@ -114,6 +115,12 @@ export function applyAction(
       result = applyAcknowledgeEraTransition(state, action, actor);
       break;
     // Phase 3 Wave 10: nuclear actions.
+    case 'startProject':
+      result = applyStartProject(state, action, actor, techCatalog);
+      break;
+    case 'cancelProject':
+      result = applyCancelProject(state, action, actor);
+      break;
     case 'launchTactical':
       result = applyLaunchTactical(state, action, actor, scenario);
       break;

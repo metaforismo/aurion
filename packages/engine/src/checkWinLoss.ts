@@ -274,6 +274,8 @@ export function evaluateVictory(state: GameState, rule: VictoryRule): boolean {
       }
       return (allied / total) * 100 >= rule.minPercent;
     }
+    case 'kardashev':
+      return (state.cosmos?.kardashev ?? 0) >= rule.atLeast;
     case 'and':
       return rule.rules.every((r) => evaluateVictory(state, r));
     case 'or':

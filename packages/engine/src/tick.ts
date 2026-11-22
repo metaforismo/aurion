@@ -33,6 +33,7 @@ import { tickUN } from './un/index.js';
 import { tickEra } from './era/index.js';
 import { recordTechCompletion, tickSpace } from './space/index.js';
 import { tickNuclear } from './nuclear/index.js';
+import { tickCosmos } from './cosmos/index.js';
 
 export type TickContext = {
   /** Tech catalog from the current scenario; used to complete research and apply effects. */
@@ -142,6 +143,9 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
   //       inside stepResearch via recordTechCompletion); kept as an
   //       explicit step so future passive milestone effects plug in here.
   if (ctx.scenario) next = tickSpace(next, ctx.scenario);
+
+  // 13.6. Cosmos: megaproject construction + the rival space race.
+  next = tickCosmos(next, { rivalSpeed: aiResearchMul });
 
   // 13.7. Nuclear tick step. Keeps `mad` flag in sync with warhead count and
   //       handles auto-warhead production (1/50 ticks) for countries that

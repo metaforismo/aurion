@@ -32,3 +32,22 @@ export type {
   AchievementDef,
   AchievementCondition,
 } from './types.js';
+export {
+  COSMOS_PROJECTS,
+  KARDASHEV_START,
+  CANCEL_REFUND_SHARE,
+  COSMOS_REASON_FIRST,
+  getCosmosProject,
+  initCosmos,
+  tickCosmos,
+  getProjectStatus,
+  cosmosSlots,
+  cosmosColonists,
+  projectCost,
+  settledBodies,
+  spaceTechShare,
+  highestStage,
+  kardashevToWatts,
+  kardashevType,
+} from './cosmos/index.js';
+export type { CosmosProjectStatus } from './cosmos/index.js';

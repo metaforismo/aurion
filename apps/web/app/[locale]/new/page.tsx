@@ -18,6 +18,7 @@ import {
   Flag,
   Gauge,
   Globe,
+  Rocket,
   Handshake,
   Infinity as InfinityIcon,
   Microscope,
@@ -69,6 +70,7 @@ const VICTORY_IDS: readonly VictoryConditionId[] = [
   'scientific',
   'diplomatic',
   'domination',
+  'ascension',
 ];
 
 /** Difficulty id treated as the recommended default in the picker. */
@@ -184,6 +186,7 @@ const VICTORY_ICONS: Readonly<Record<VictoryConditionId, IconComponent>> = {
   scientific: Microscope,
   diplomatic: Handshake,
   domination: Globe,
+  ascension: Rocket,
 };
 
 const DIFFICULTY_ICONS: Readonly<Record<string, IconComponent>> = {
