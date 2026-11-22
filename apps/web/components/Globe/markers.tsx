@@ -55,6 +55,7 @@ export function CapitalMarker({
     <button
       type="button"
       data-testid={testId}
+      data-player-capital={tone === 'accent' ? 'true' : undefined}
       aria-label={ariaLabel ?? name}
       aria-pressed={selected}
       onClick={onClick}

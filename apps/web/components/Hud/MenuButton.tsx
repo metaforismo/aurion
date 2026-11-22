@@ -5,7 +5,19 @@
 
 'use client';
 
-import { useTranslations } from 'next-intl';
+import {
+  BookOpen,
+  ChevronLeft,
+  Download,
+  FolderOpen,
+  LogOut,
+  Menu,
+  Play,
+  Save,
+  Upload,
+  type LucideIcon,
+} from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 
 import { useRouter } from '../../i18n/navigation';
@@ -19,6 +31,8 @@ import {
   type SaveSummary,
 } from '../../lib/persistence';
 import { selectIronMan, useGameStore } from '../../lib/store';
+import { useTicker } from '../../lib/ticker';
+import { IconButton, Kbd } from '../ui';
 
 export type MenuButtonProps = {
   /** Toast emitter so menu actions can surface feedback in the play page. */
@@ -30,6 +44,12 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('errors');
   const tIronMan = useTranslations('hud.ironMan');
+  const tMenu = useTranslations('pauseMenu');
+  const locale = useLocale();
+  const ticker = useTicker();
+  const saveName = useGameStore((s) => s.saveName);
+  // Speed to restore when the menu closes: opening it pauses the game.
+  const resumeSpeed = useRef<number | null>(null);
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -53,45 +73,38 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
 
   // Close on outside click. Capturing click + tab.
   useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      const node = containerRef.current;
-      if (!node) return;
-      if (e.target instanceof Node && !node.contains(e.target)) {
-        setOpen(false);
-        setShowSaves(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  // Close with ESC.
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setOpen(false);
-        setShowSaves(false);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [open]);
-
-  // Lazy-load save list when the user expands the "Load" submenu.
-  useEffect(() => {
     if (!showSaves || saves !== null) return;
     void listSaves()
       .then((entries) => setSaves(entries))
       .catch(() => setSaves([]));
   }, [showSaves, saves]);
 
+  const openMenu = () => {
+    resumeSpeed.current = ticker.speed;
+    if (ticker.speed !== 0) ticker.setSpeed(0);
+    setOpen(true);
+  };
+
   const closeMenu = () => {
     setOpen(false);
     setShowSaves(false);
+    const speed = resumeSpeed.current;
+    resumeSpeed.current = null;
+    if (speed === 1 || speed === 2 || speed === 4) ticker.setSpeed(speed);
   };
 
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeMenu();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+    // closeMenu only reads refs and stable setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Lazy-load save list when the user expands the "Load" submenu.
   const handleSave = async () => {
     closeMenu();
     try {
@@ -183,177 +196,180 @@ export function MenuButton({ onNotify }: MenuButtonProps) {
       : undefined;
 
   return (
-    <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={t('menu')}
-        className={cn(
-          'flex h-8 w-8 items-center justify-center rounded-sm transition-colors',
-          open ? 'text-accent' : 'text-fg-muted hover:text-accent',
-        )}
-      >
-        <GearIcon />
-      </button>
-
-      {open ? (
-        <div
-          role="menu"
-          aria-label={t('menu')}
-          className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-lg border border-border-strong bg-surface-1/95 text-sm shadow-2xl backdrop-blur"
-        >
-          {ironManLocked ? (
-            <div
-              role="note"
-              className="border-b border-danger/30 bg-danger/10 px-3 py-2 text-[11px] leading-snug text-danger"
-            >
-              {tIronMan('menuHint')}
-            </div>
-          ) : null}
-          <MenuItem
-            label={t('save')}
-            onSelect={handleSave}
-            disabled={!persistenceOk || ironManLocked}
-            disabledHint={storageDisabledHint}
-          />
-          <MenuItem
-            label={t('load')}
-            onSelect={() => setShowSaves((v) => !v)}
-            disabled={!persistenceOk || ironManLocked}
-            disabledHint={storageDisabledHint}
-            expanded={ironManLocked ? undefined : showSaves}
-          />
-          {showSaves && !ironManLocked ? (
-            <ul
-              className="max-h-56 overflow-y-auto border-t border-border bg-bg/40 px-1 py-1"
-              aria-label={t('savesList')}
-            >
-              {saves === null ? (
-                <li className="px-3 py-2 text-xs text-fg-faint">
-                  {tCommon('loading')}
-                </li>
-              ) : saves.length === 0 ? (
-                <li className="px-3 py-2 text-xs text-fg-faint">
-                  {t('noSaves')}
-                </li>
-              ) : (
-                saves.map((s) => (
-                  <li key={s.id}>
-                    <button
-                      type="button"
-                      onClick={() => handleLoad(s.id)}
-                      className={cn(
-                        'flex w-full flex-col gap-0.5 rounded-md px-3 py-2 text-left transition hover:bg-surface-2/70',
-                        s.id === saveId && 'bg-accent/10',
-                      )}
-                    >
-                      <span className="truncate text-xs font-semibold text-fg">
-                        {s.name}
-                      </span>
-                      <span className="text-[10px] uppercase tracking-wider text-fg-faint">
-                        {new Date(s.savedAt).toLocaleString()}
-                      </span>
-                    </button>
-                  </li>
-                ))
-              )}
-            </ul>
-          ) : null}
-          <MenuItem
-            label={t('export')}
-            onSelect={handleExport}
-            disabled={!saveId || ironManLocked}
-            disabledHint={ironManLocked ? tIronMan('menuDisabled') : undefined}
-          />
-          <MenuItem
-            label={t('import')}
-            onSelect={handleImportPick}
-            disabled={!persistenceOk || ironManLocked}
-            disabledHint={storageDisabledHint}
-          />
-          <div className="border-t border-border" />
-          <MenuItem label={t('exit')} onSelect={handleExit} tone="danger" />
-        </div>
-      ) : null}
-
+    <div ref={containerRef}>
+      <IconButton icon={Menu} label={t('menu')} onClick={openMenu} aria-haspopup="menu" aria-expanded={open} />
       <input
         ref={fileInputRef}
         type="file"
         accept="application/json,.json"
-        className="hidden"
-        onChange={handleImportChange}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => void handleImportChange(e)}
       />
+
+      {open ? (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center p-4"
+          style={{
+            backgroundColor: 'color-mix(in oklch, var(--color-bg) 62%, transparent)',
+            backdropFilter: 'blur(3px)',
+            animation: 'modal-backdrop-enter 180ms cubic-bezier(0, 0, 0.2, 1) both',
+          }}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeMenu();
+          }}
+          role="presentation"
+        >
+          <div
+            role="menu"
+            aria-label={t('menu')}
+            className="glass-panel flex max-h-[calc(100dvh-2rem)] w-full max-w-sm flex-col overflow-hidden rounded-2xl"
+            style={{ animation: 'rise-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both' }}
+          >
+            <header className="border-b border-white/10 px-5 py-4">
+              <h2 className="text-lg font-semibold text-fg">{tMenu('title')}</h2>
+              {saveName ? <p className="mt-0.5 truncate text-xs text-fg-faint">{tMenu('savedAs', { name: saveName })}</p> : null}
+            </header>
+
+            <div className="thin-scroll flex flex-col gap-1 overflow-y-auto p-2">
+              {showSaves ? (
+                <>
+                  <MenuItem icon={ChevronLeft} onClick={() => setShowSaves(false)}>
+                    {tMenu('loadBack')}
+                  </MenuItem>
+                  <div role="group" aria-label={t('savesList')} className="flex flex-col gap-1">
+                    {saves === null ? (
+                      <p className="px-3 py-2 text-xs text-fg-faint">{tCommon('loading')}</p>
+                    ) : saves.length === 0 ? (
+                      <p className="px-3 py-2 text-xs text-fg-faint">{t('noSaves')}</p>
+                    ) : (
+                      saves.map((s) => (
+                        <MenuItem key={s.id} icon={FolderOpen} onClick={() => void handleLoad(s.id)}>
+                          <span className="truncate">{s.name}</span>
+                        </MenuItem>
+                      ))
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <MenuItem icon={Play} onClick={closeMenu} primary autoFocus>
+                    {tMenu('resume')}
+                  </MenuItem>
+                  <MenuItem
+                    icon={Save}
+                    onClick={() => void handleSave()}
+                    disabled={ironManLocked || !persistenceOk}
+                    hint={storageDisabledHint}
+                  >
+                    {t('save')}
+                  </MenuItem>
+                  <MenuItem
+                    icon={FolderOpen}
+                    onClick={() => setShowSaves(true)}
+                    disabled={!persistenceOk}
+                    hint={!persistenceOk ? t('persistenceUnavailable') : undefined}
+                  >
+                    {t('load')}
+                  </MenuItem>
+                  <MenuItem
+                    icon={Download}
+                    onClick={() => void handleExport()}
+                    disabled={ironManLocked || !persistenceOk}
+                    hint={storageDisabledHint}
+                  >
+                    {t('export')}
+                  </MenuItem>
+                  <MenuItem icon={Upload} onClick={handleImportPick}>
+                    {t('import')}
+                  </MenuItem>
+                  <a
+                    role="menuitem"
+                    href={`/${locale}/guida`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={ITEM_CLASS}
+                  >
+                    <BookOpen aria-hidden className="h-4 w-4 text-fg-faint" />
+                    <span className="flex-1">{tMenu('guide')}</span>
+                    <span className="text-[10px] text-fg-faint">{tMenu('guideHint')}</span>
+                  </a>
+
+                  <section aria-label={tMenu('shortcuts')} className="mx-1 my-1 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+                    <h3 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-faint">{tMenu('shortcuts')}</h3>
+                    <dl className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 text-xs text-fg-muted">
+                      <dt><Kbd>{tMenu('space')}</Kbd></dt>
+                      <dd>{tMenu('keys.pause')}</dd>
+                      <dt><Kbd>1</Kbd>–<Kbd>8</Kbd></dt>
+                      <dd>{tMenu('keys.panels')}</dd>
+                      <dt><Kbd>{tMenu('arrows')}</Kbd></dt>
+                      <dd>{tMenu('keys.map')}</dd>
+                      <dt><Kbd>+</Kbd> <Kbd>−</Kbd></dt>
+                      <dd>{tMenu('keys.zoom')}</dd>
+                      <dt><Kbd>1</Kbd>–<Kbd>3</Kbd></dt>
+                      <dd>{tMenu('keys.choice')}</dd>
+                      <dt><Kbd>Esc</Kbd></dt>
+                      <dd>{tMenu('keys.deselect')}</dd>
+                    </dl>
+                  </section>
+
+                  <MenuItem icon={LogOut} onClick={handleExit} danger>
+                    {t('exit')}
+                  </MenuItem>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
+const ITEM_CLASS =
+  'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-fg transition-colors hover:bg-white/[0.07] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:text-fg-faint disabled:hover:bg-transparent';
+
 function MenuItem({
-  label,
-  onSelect,
+  icon: Icon,
+  children,
+  onClick,
   disabled,
-  disabledHint,
-  tone = 'default',
-  expanded,
+  hint,
+  primary,
+  danger,
+  autoFocus,
 }: {
-  label: ReactNode;
-  onSelect: () => void;
+  icon: LucideIcon;
+  children: ReactNode;
+  onClick: () => void;
   disabled?: boolean;
-  /** Tooltip shown when the item is disabled (typed in by the caller). */
-  disabledHint?: string;
-  tone?: 'default' | 'danger';
-  expanded?: boolean;
+  /** Why the item is disabled — shown inline, not only as a tooltip. */
+  hint?: string;
+  primary?: boolean;
+  danger?: boolean;
+  autoFocus?: boolean;
 }) {
   return (
     <button
       type="button"
       role="menuitem"
-      onClick={onSelect}
+      onClick={onClick}
       disabled={disabled}
-      aria-disabled={disabled || undefined}
-      title={disabled ? disabledHint : undefined}
-      aria-expanded={typeof expanded === 'boolean' ? expanded : undefined}
+      title={hint}
+      autoFocus={autoFocus}
       className={cn(
-        'flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-semibold transition',
-        tone === 'danger'
-          ? 'text-danger hover:bg-danger/10'
-          : 'text-fg-muted hover:bg-surface-2/70',
-        disabled && 'cursor-not-allowed text-fg-faint hover:bg-transparent',
+        ITEM_CLASS,
+        primary && 'bg-accent font-semibold text-black hover:bg-accent-strong',
+        danger && 'text-[#ff8a7d] hover:bg-[#ff5d4d]/15',
       )}
     >
-      <span className="flex flex-col gap-0.5">
-        <span>{label}</span>
-        {disabled && disabledHint ? (
-          <span className="text-[10px] font-normal normal-case tracking-normal text-fg-faint">
-            {disabledHint}
-          </span>
-        ) : null}
+      <Icon aria-hidden className={cn('h-4 w-4 shrink-0', primary ? 'text-black' : danger ? 'text-[#ff8a7d]' : 'text-fg-faint')} />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="flex items-center gap-2">{children}</span>
+        {disabled && hint ? <span className="text-[11px] font-normal text-fg-faint">{hint}</span> : null}
       </span>
-      {typeof expanded === 'boolean' ? (
-        <span aria-hidden="true" className="text-fg-faint">
-          {expanded ? '▾' : '▸'}
-        </span>
-      ) : null}
     </button>
-  );
-}
-
-function GearIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path
-        fillRule="evenodd"
-        d="M8.34 1.804a1 1 0 0 1 1.32 0l1.027.91a1 1 0 0 0 .82.245l1.36-.214a1 1 0 0 1 1.143.66l.46 1.293a1 1 0 0 0 .576.578l1.293.46a1 1 0 0 1 .66 1.143l-.214 1.36a1 1 0 0 0 .245.82l.91 1.026a1 1 0 0 1 0 1.32l-.91 1.026a1 1 0 0 0-.245.82l.214 1.36a1 1 0 0 1-.66 1.143l-1.293.46a1 1 0 0 0-.578.576l-.46 1.293a1 1 0 0 1-1.143.66l-1.36-.214a1 1 0 0 0-.82.245l-1.026.91a1 1 0 0 1-1.32 0l-1.026-.91a1 1 0 0 0-.82-.245l-1.36.214a1 1 0 0 1-1.143-.66l-.46-1.293a1 1 0 0 0-.578-.576l-1.293-.46a1 1 0 0 1-.66-1.143l.214-1.36a1 1 0 0 0-.245-.82l-.91-1.026a1 1 0 0 1 0-1.32l.91-1.026a1 1 0 0 0 .245-.82l-.214-1.36a1 1 0 0 1 .66-1.143l1.293-.46a1 1 0 0 0 .578-.578l.46-1.293a1 1 0 0 1 1.143-.66l1.36.214a1 1 0 0 0 .82-.245l1.026-.91Zm.66 11.696a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
-        clipRule="evenodd"
-      />
-    </svg>
   );
 }
 

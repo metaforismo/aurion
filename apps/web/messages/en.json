@@ -20,130 +20,283 @@
   },
   "home": {
     "title": "Aurion",
-    "subtitle": "Lead a small nation to global supremacy",
+    "subtitle": "Lead a nation from Earth to the stars. The world won't wait — but you can always stop the clock.",
     "newGame": "New game",
     "continue": "Continue",
-    "noSaves": "No saved games",
     "settings": "Settings",
-    "languageSwitch": "Switch language",
-    "saveSavedAt": "Saved {date}",
-    "import": "Import save",
-    "emptyHint": "Start a new game to see it here.",
-    "exportSave": "Export save",
-    "deleteSave": "Delete save",
-    "deleteConfirm": "Delete this save?",
-    "deleteFailed": "Failed to delete the save.",
-    "renameSave": "Rename save",
-    "renameFailed": "Failed to rename the save.",
     "quickPlay": "Quick play",
-    "quickPlayHint": "Jump straight into a starter run — no setup."
+    "quickPlayHint": "A small world, recommended choices: straight in",
+    "savedAgo": "saved {when}",
+    "resume": "Resume game",
+    "reviewGame": "Review game",
+    "economyRank": "{rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} economy of {total}",
+    "newGameHint": "Choose a mode, a world and a nation",
+    "loadGame": "Load game",
+    "loadGameHint": "Saves, import and export",
+    "trophies": "Trophies",
+    "trophiesHint": "What you've earned so far",
+    "guide": "How to play",
+    "guideHint": "Goals, systems, megaprojects, shortcuts",
+    "settingsHint": "Sound, language, data",
+    "firstVisit": {
+      "eyebrow": "First time here?",
+      "body": "Start here: six nations, a one-minute tutorial and a game that fits in an evening. You'll pick up the rest as you play."
+    },
+    "keysHint": "↑ ↓ to move · Enter to select",
+    "ladderLabel": "The road ahead",
+    "saves": {
+      "title": "Load game",
+      "subtitle": "{count, plural, =0 {No saves on this device} =1 {# save on this device} other {# saves on this device}}",
+      "sortLabel": "Sort by",
+      "sort": {
+        "recent": "Recent",
+        "name": "Name",
+        "world": "World"
+      },
+      "import": "Import",
+      "importHint": "Load an exported save (.json) and pick it up right away",
+      "empty": {
+        "title": "No saved games",
+        "body": "Games save themselves as you play. You can also import a save exported from another device."
+      },
+      "listLabel": "Saves",
+      "rename": "Rename",
+      "renameLabel": "Save name",
+      "renameFailed": "Couldn't rename it. Try again.",
+      "savedAt": "Saved {date}",
+      "deleteTitle": "Delete this save?",
+      "deleteBody": "“{name}” will be removed from this device. This can't be undone — export it first if you want a copy.",
+      "deleteConfirm": "Delete for good",
+      "deleteFailed": "Couldn't delete it. Try again.",
+      "load": "Load",
+      "review": "Review",
+      "export": "Export",
+      "exportHint": "Download the save as a .json file",
+      "exportFailed": "Export failed. Try again.",
+      "unreadable": "This save's details can't be read. You can still try loading or exporting it.",
+      "fact": {
+        "mode": "Mode",
+        "difficulty": "Difficulty",
+        "treasury": "Treasury",
+        "economy": "GDP",
+        "rank": "{rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} of {total}",
+        "popularity": "Popularity",
+        "kardashev": "Kardashev",
+        "projects": "{count, plural, =0 {no megaprojects} =1 {# megaproject} other {# megaprojects}}",
+        "milestones": "Milestones"
+      }
+    }
   },
   "trofei": {
     "pageTitle": "Trophies",
-    "linkLabel": "Trophies",
-    "counterLabel": "{unlocked} of {total} trophies unlocked"
+    "counterLabel": "{unlocked} of {total} trophies unlocked",
+    "eyebrow": "Trophy case",
+    "lead": "You unlock them by playing and they stay yours, whatever game you're in.",
+    "progress": "Unlocked",
+    "summary": {
+      "none": "None yet. The first comes quickly: complete a research project or sign an alliance.",
+      "all": "You have them all. From here on you play for the love of it.",
+      "some": "{left} to go{secrets, plural, =0 {} other {, # of them secret}}."
+    },
+    "latest": "Latest unlock",
+    "latestNone": "Your latest trophy will show up here.",
+    "unlockedOn": "Unlocked {date}",
+    "unlockedOnIn": "Unlocked {date} · {world}",
+    "locked": "Not yet unlocked",
+    "secret": {
+      "name": "Secret trophy",
+      "body": "Revealed only when you unlock it.",
+      "label": "Secret"
+    },
+    "filter": {
+      "statusLabel": "Show",
+      "all": "All",
+      "unlocked": "Unlocked",
+      "locked": "Locked",
+      "tierLabel": "Tier",
+      "anyTier": "Any tier",
+      "count": "{count, plural, =0 {No trophies} =1 {# trophy} other {# trophies}} listed"
+    },
+    "emptyFilter": {
+      "title": "Nothing to show",
+      "unlocked": "You haven't unlocked any trophies of this kind yet.",
+      "locked": "You've already unlocked every trophy in this group."
+    }
   },
   "setup": {
     "title": "New game",
     "stepOf": "Step {current} of {total}",
-    "breadcrumbs": {
-      "label": "Game setup",
-      "scenario": "Scenario",
-      "country": "Country",
-      "victory": "Victory",
-      "difficulty": "Difficulty",
-      "gameMode": "Mode"
-    },
-    "stepScenario": {
-      "title": "Choose a scenario",
-      "description": "The scenario defines the world, nations and tech tree."
-    },
-    "stepCountry": {
-      "title": "Choose your country",
-      "description": "You will start as the head of state of this nation."
-    },
-    "stepVictory": {
-      "title": "Choose a victory condition",
-      "description": "Sets your long-term objective."
-    },
-    "stepDifficulty": {
-      "title": "Choose difficulty",
-      "description": "Tune the challenge before you begin. Each preset shows what changes.",
-      "recommended": "Recommended",
-      "ironManWarning": "Iron Man mode: no autosave, one shot only. A defeat ends the game.",
-      "modifier": {
-        "aiAggression": "AI aggression",
-        "aiResearchSpeed": "AI research speed",
-        "playerIncome": "Player income",
-        "eventDifficulty": "Event severity",
-        "aiAllianceBias": "AI coalitions",
-        "spyDetectionAgainstPlayer": "Spy detection",
-        "lossToleranceWeeks": "Loss tolerance",
-        "eventChanceMultiplier": "Event frequency",
-        "easierLabel": "easier",
-        "harderLabel": "harder",
-        "neutralLabel": "unchanged",
-        "deltaPositive": "+{percent}%",
-        "deltaNegative": "{percent}%",
-        "neutral": "—"
-      },
-      "empty": "This scenario does not declare any difficulty preset. The scenario data may be incomplete — go back and pick another scenario."
-    },
-    "scenario": {
-      "status": {
-        "available": "Available",
-        "planned": "Coming soon"
-      },
-      "fallback": {
-        "name": "Scenario {id}",
-        "description": "Preview not available."
-      }
-    },
-    "country": {
-      "stats": {
-        "gdp": "GDP",
-        "popularity": "Popularity",
-        "factions": "Factions"
-      }
-    },
     "difficulty": {
-      "fallback": {
-        "name": "Preset {id}"
+      "emptyTitle": "No levels available",
+      "emptyBody": "This world declares no difficulty levels. Go back and pick another one.",
+      "reference": "The reference rules, untouched.",
+      "mod": {
+        "playerIncome": "Your income",
+        "aiAggression": "Rival aggression",
+        "aiResearchSpeed": "Rival research",
+        "eventDifficulty": "Event severity",
+        "aiAllianceBias": "Rival alliances",
+        "spyDetectionAgainstPlayer": "Risk to your spies",
+        "lossToleranceWeeks": "Time before defeat",
+        "eventChanceMultiplier": "Event frequency"
       }
     },
     "start": "Start game",
-    "preparing": "Preparing game…",
-    "gameMode": {
-      "title": "Choose a game mode",
-      "description": "Decides when (and whether) the game can end. You'll feel the difference within the first hours.",
-      "recommended": "Recommended",
-      "classic": {
-        "name": "Classic",
-        "description": "Win once, game over. The traditional flow: meet your victory condition and you're done."
+    "preparing": "Preparing…",
+    "railLabel": "Game setup",
+    "recommended": "Recommended",
+    "recommendedF": "Recommended",
+    "keys": {
+      "choose": "choose",
+      "enterKey": "Enter",
+      "next": "next",
+      "back": "back",
+      "start": "start"
+    },
+    "steps": {
+      "mode": {
+        "label": "Mode",
+        "title": "What kind of game do you want?",
+        "description": "The mode decides how you win, how you lose and how long it lasts. Everything else follows."
       },
-      "eternal": {
-        "name": "Eternal",
-        "description": "Never ends. Victories become milestones; you keep playing as long as you want. 30 minutes or dozens of hours — your call."
+      "world": {
+        "label": "World",
+        "title": "In which world?",
+        "description": "Each world has its own map, its own nations and its own rules in play."
       },
-      "era-paced": {
-        "name": "Era-paced",
-        "description": "The run advances through narrative eras; every transition opens a chapter screen. Available only for scenarios that declare eras (Mondo Contemporaneo, Guerra Fredda)."
+      "nation": {
+        "label": "Nation",
+        "title": "Who will you lead?",
+        "description": "These are day-one numbers. The lower you start in the table, the steeper the climb."
       },
-      "eraPaced": {
-        "available": "Available in this scenario.",
-        "unavailable": "Not available in this scenario."
+      "victory": {
+        "label": "Victory",
+        "title": "How do you want to win?",
+        "description": "Only one road ends the game. The concrete target depends on the world you chose."
       },
-      "dethrone": {
-        "name": "Dethrone",
-        "description": "Become #1 and hold the throne: drop out of the top 3 for 5 years and you lose. For players who want tension even after winning.",
-        "isolationUnavailable": "This scenario doesn't support the isolation trigger; you'll only win or lose by GDP rank."
+      "difficulty": {
+        "label": "Difficulty",
+        "title": "How hard should it be?",
+        "description": "Each level states exactly what it changes from the reference rules."
+      },
+      "launch": {
+        "label": "Launch",
+        "title": "Ready to launch",
+        "description": "One last check before you set off. You can still change anything."
       }
     },
-    "disclaimer": {
-      "nuclearWarfare": "This scenario includes nuclear warfare mechanics, including civilian consequences and MAD exchanges."
+    "modeField": {
+      "do": "What you do",
+      "win": "How you win",
+      "lose": "How you lose",
+      "length": "How long it takes",
+      "forWho": "Who it's for",
+      "changes": "What it changes in the next steps"
     },
-    "summary": {
-      "title": "Your run"
+    "manifest": {
+      "title": "Expedition plan",
+      "default": "recommended",
+      "goal": "Goal",
+      "hint": "You can start right now: wherever you haven't chosen, the recommended options apply."
+    },
+    "world": {
+      "needsEras": "{mode} is only played in worlds with historical eras.",
+      "nations": "{count} nations",
+      "playable": "{count} playable",
+      "blocs": "Blocs",
+      "council": "UN council",
+      "eras": "{count} historical eras",
+      "nuclear": "{count, plural, =1 {# nuclear power} other {# nuclear powers}}",
+      "nuclearNote": "This world includes nuclear warfare, with its consequences for civilians and mutually assured destruction."
+    },
+    "worlds": {
+      "quick-start": {
+        "tagline": "The right place to learn.",
+        "body": "Six nations around one sea. Few moving parts, every mechanic.",
+        "feel": "Short, readable games. No blocs, no nuclear arsenals."
+      },
+      "ascesa-aurion": {
+        "tagline": "The main campaign.",
+        "body": "Twenty-five fictional nations and no history written in advance: an industrial republic among the ambitions of great powers.",
+        "feel": "The most balanced world: plenty of diplomacy, no bomb."
+      },
+      "mondo-contemporaneo": {
+        "tagline": "The world today.",
+        "body": "Thirty real nations, in the present day. You inherit a middle power and try to take it to the top.",
+        "feel": "The richest in systems: blocs, the UN, nuclear deterrence, historical eras."
+      },
+      "guerra-fredda": {
+        "tagline": "Two blocs, one bomb, one race.",
+        "body": "The 1960s of a world split in two: decolonisation, the non-aligned and a space race that has only just begun.",
+        "feel": "Tense from day one: every move shifts a balance."
+      }
+    },
+    "nation": {
+      "failed": "This world failed to load. Go back and pick another one.",
+      "capitalAndGov": "Capital {capital} · {government}",
+      "nuclear": "Nuclear power",
+      "gdp": "GDP",
+      "forces": "Armed forces",
+      "population": "Population",
+      "popularity": "Popularity",
+      "rank": "{rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} of {total}",
+      "treasury": "Treasury",
+      "stripLabel": "The world's economies · yours in gold",
+      "start": {
+        "gentle": {
+          "label": "Gentle start",
+          "hint": "You start near the top: room to make mistakes and learn."
+        },
+        "balanced": {
+          "label": "Balanced start",
+          "hint": "Mid-table: everything is possible, nothing is handed to you."
+        },
+        "steep": {
+          "label": "Uphill start",
+          "hint": "You start well behind: you'll need patience and allies."
+        }
+      },
+      "government": {
+        "democracy": "Democracy",
+        "autocracy": "Autocracy",
+        "oligarchy": "Oligarchy",
+        "theocracy": "Theocracy",
+        "monarchy": "Monarchy"
+      },
+      "summary": "Capital {capital} · {government} · popularity {popularity}"
+    },
+    "victory": {
+      "target": {
+        "gdpRank": "{rank, plural, =1 {Become the world's largest economy by GDP.} other {Break into the world's top # economies by GDP.}}",
+        "allies": "{count, plural, =1 {Form an alliance with one other nation.} other {Hold alliances with # nations.}}",
+        "tech": "Complete the “{tech}” research.",
+        "coverage": "Be allied with at least {percent}% of all nations.",
+        "kardashev": "Take your civilisation to Kardashev Type {type}."
+      }
+    },
+    "ironMan": {
+      "title": "Iron Man",
+      "body": "One life. For players who want every decision to truly count.",
+      "consequence": {
+        "saves": "No saves during the game, neither automatic nor manual.",
+        "defeat": "The first defeat is final. Quitting abandons the game too.",
+        "rules": "Its own rules, harsher than “Hard”."
+      },
+      "rulesIntro": "With Iron Man on, these rules apply instead of the level you picked:",
+      "unavailable": "This world doesn't offer Iron Man.",
+      "warning": "No saves, and the first defeat is final."
+    },
+    "launch": {
+      "loadingWorld": "Loading the world…",
+      "headline": "You will lead {nation} — {world}",
+      "alwaysLose": "In every mode you lose to:",
+      "rules": "Rules",
+      "change": "Change",
+      "saveName": "Save name (optional)",
+      "saveNameHint": "Leave it empty and the game names it.",
+      "saveNameIron": "In Iron Man the game is only saved once it's over.",
+      "ready": "All set: start from the expedition plan.",
+      "inThisWorld": "{victory}, in this world:"
     }
   },
   "hud": {
@@ -158,7 +311,10 @@
       "paused": "Paused",
       "x1": "1×",
       "x2": "2×",
-      "x4": "4×"
+      "x4": "4×",
+      "play": "Resume",
+      "pauseHint": "Pause (Space)",
+      "speedHint": "Speed {n}×"
     },
     "menu": "Menu",
     "save": "Save game",
@@ -230,7 +386,55 @@
       "dec": "Dec"
     },
     "autoPausedDotLabel": "Auto-pause indicator",
-    "persistenceUnavailable": "Saving is unavailable — this browser blocks local storage."
+    "persistenceUnavailable": "Saving is unavailable — this browser blocks local storage.",
+    "mode": {
+      "classic": "Campaign",
+      "eternal": "Odyssey",
+      "space-race": "Space Race",
+      "dethrone": "Throne",
+      "era-paced": "Chronicles"
+    },
+    "dateFictional": "Year {year}",
+    "dateTooltip": "Week {week} of 52 · time advances in weeks",
+    "monthsLong": {
+      "jan": "January",
+      "feb": "February",
+      "mar": "March",
+      "apr": "April",
+      "may": "May",
+      "jun": "June",
+      "jul": "July",
+      "aug": "August",
+      "sep": "September",
+      "oct": "October",
+      "nov": "November",
+      "dec": "December"
+    },
+    "treasuryTooltip": "Treasury: what you can spend right now. Below it, your weekly balance.",
+    "weekly": "{value}/wk",
+    "popularityTooltip": "Popularity: under 10% for twelve weeks and the government falls.",
+    "autoPausedHint": "Time is stopped until you decide",
+    "goal": {
+      "label": "Goal",
+      "open": "Open goal details",
+      "race": {
+        "you": "You",
+        "title": "Race to Type I",
+        "hint": "Whoever finishes the Planetary Grid first wins.",
+        "noRival": "No rival in the race"
+      },
+      "rank": "#{rank} economy",
+      "rankTarget": "target: top {n}",
+      "allies": "{n}/{target} allies",
+      "coverage": "{pct}% allied · target {target}%",
+      "tech": "Complete: {name}",
+      "kardashev": "Kardashev {value} · target {target}",
+      "throne": "On the podium: {held} of {target} years",
+      "throneOut": "Off the podium: {years} years left",
+      "odyssey": "Climb the Kardashev scale",
+      "throneClimb": "#{rank} economy · reach the podium within {years} years"
+    },
+    "shortcuts": "Shortcuts"
   },
   "notifications": {
     "title": "Notifications",
@@ -293,7 +497,7 @@
         "bankruptcy": "The treasury stayed empty for too long: the nation went bankrupt.",
         "occupation": "Your capital was occupied by an enemy power.",
         "factionRevolt": "Every faction withdrew its support: a coup d'état.",
-        "dethroned": "You stayed out of the GDP top 3 for 5 straight years: dethroned by rival powers.",
+        "dethroned": "You stayed off the podium of economies for too long.",
         "isolated": "Your reputation collapsed below -50 in every bloc for 5 years: completely isolated."
       },
       "ticksPlayed": "Weeks: {tick}",
@@ -414,460 +618,6 @@
       "newIntel": "New intelligence available"
     }
   },
-  "panelShared": {
-    "noPlayer": "No player country selected.",
-    "insufficientTreasury": "Insufficient treasury.",
-    "enterAmount": "Enter a valid amount.",
-    "prereqsMissing": "Prerequisites missing.",
-    "cancel": "Cancel",
-    "moreDetails": "More details",
-    "stickyAction": {
-      "selectFirst": "Select first…",
-      "economyHint": "Enter an amount above",
-      "researchHint": "Pick a technology above",
-      "researchInProgress": "Research already in progress",
-      "militaryHint": "Pick a region and units above",
-      "intelHint": "Open the launch composer above",
-      "diplomacyHint": "Pick a country with attitude ≥ 30",
-      "politicsHint": "Select a faction to placate",
-      "unNotCouncil": "Only council members may propose",
-      "unUnavailable": "UN not available in this scenario",
-      "openComposer": "Open launch composer"
-    }
-  },
-  "panelEconomy": {
-    "title": "Economy",
-    "treasury": "Treasury",
-    "weeklyIncome": "Weekly income",
-    "weeklyDelta": "{value}/wk",
-    "gdp": "GDP",
-    "taxRate": "Tax rate",
-    "details": "Sectors, fiscal policy & investments",
-    "sectors": {
-      "title": "GDP composition",
-      "agriculture": "Agriculture",
-      "industry": "Industry",
-      "services": "Services",
-      "tech": "Technology"
-    },
-    "tax": {
-      "title": "Fiscal policy",
-      "label": "Tax rate",
-      "preview": "Projected income: {income}/wk."
-    },
-    "invest": {
-      "title": "Investments",
-      "amountLabel": "Amount to invest",
-      "infra": "Invest in infrastructure",
-      "economy": "Invest in the economy"
-    },
-    "history": {
-      "title": "Income trend",
-      "label": "Weekly income trend",
-      "empty": "Collecting data… income will appear over the next ticks.",
-      "note": "Shows the last ~12 observations while this panel is open."
-    }
-  },
-  "panelResearch": {
-    "title": "Research",
-    "heroActive": "Active research",
-    "heroIdle": "No active research",
-    "heroAvailable": "{n} available",
-    "details": "Browse full tech tree by branch",
-    "tab": {
-      "label": "Research section",
-      "techTree": "Tech tree",
-      "spaceRace": "Space race"
-    },
-    "active": {
-      "title": "Active research",
-      "empty": "No active research. Start one below.",
-      "outputPerTick": "{n} pts/wk",
-      "progressLabel": "Progress",
-      "progressPct": "{pct}% complete",
-      "eta": "≈ {ticks} weeks",
-      "etaUnknown": "ETA unknown"
-    },
-    "filter": {
-      "label": "Filter by branch",
-      "all": "All",
-      "civil": "Civil",
-      "military": "Military",
-      "intelligence": "Intelligence",
-      "space": "Space"
-    },
-    "branch": {
-      "civil": "Civil branch",
-      "military": "Military branch",
-      "intelligence": "Intelligence branch",
-      "space": "Space branch"
-    },
-    "status": {
-      "completed": "Completed",
-      "inProgress": "In progress",
-      "available": "Available",
-      "locked": "Locked"
-    },
-    "disabled": {
-      "otherActive": "A research is already in progress."
-    },
-    "cost": "Cost: {n}",
-    "noPrereqs": "No prerequisites",
-    "start": "Start research",
-    "emptyBranch": "No technology in this branch.",
-    "completed": "Completed",
-    "pointsPerWeek": "{n} pts/wk",
-    "pointsPerWeekLabel": "pts/wk"
-  },
-  "panelSpaceRace": {
-    "title": "Space race",
-    "noMilestones": "This scenario doesn't track space milestones.",
-    "achievedAt": "Achieved by {country} on week {tick}.",
-    "notYetAchieved": "No nation has reached this milestone yet.",
-    "achievers": "Other achievers ({count})",
-    "prestigeFirst": "+{value} reputation (first)",
-    "prestigeFollow": "+{value} reputation (followers)",
-    "status": {
-      "first": "First achiever",
-      "follower": "Follower",
-      "inProgress": "In progress",
-      "locked": "Not yet achieved"
-    }
-  },
-  "panelMilitary": {
-    "title": "Military",
-    "heroAtPeace": "At peace",
-    "heroAtWar": "At war with {name}",
-    "heroAtWarMany": "At war ({count})",
-    "details": "Forces, deployments & war history",
-    "armySize": "Army",
-    "navy": "Navy",
-    "airforce": "Air force",
-    "doctrineLevel": "Doctrine",
-    "train": {
-      "title": "Training",
-      "amountLabel": "Training budget",
-      "cta": "Train units",
-      "hint": "Each 100k invested adds 1 unit."
-    },
-    "deploy": {
-      "title": "Deployment",
-      "regionLabel": "Region",
-      "regionPlaceholder": "Pick a region…",
-      "unitsLabel": "Units to deploy",
-      "cta": "Deploy units",
-      "pickRegion": "Pick a region.",
-      "notEnough": "Not enough units."
-    },
-    "deployed": {
-      "title": "Deployed units",
-      "empty": "No units currently deployed.",
-      "units": "units",
-      "age": "Deployed for {weeks} wk."
-    },
-    "wars": {
-      "title": "Active wars",
-      "empty": "No ongoing war."
-    },
-    "nuclear": {
-      "section": {
-        "title": "Nuclear Arsenal"
-      },
-      "warningPermanent": "The use of nuclear weapons has permanent consequences.",
-      "arsenal": {
-        "count": "Available warheads",
-        "deliveryLabel": "Delivery system",
-        "deliverySystem": {
-          "0": "Bombers",
-          "1": "ICBM",
-          "2": "Hypersonic"
-        },
-        "noWarheads": "No warheads available."
-      },
-      "button": {
-        "tactical": "Launch tactical",
-        "strategic": "Launch strategic",
-        "dismantle": "Dismantle arsenal ({count} warheads, +{boost} rep)"
-      },
-      "target": {
-        "region": "Target region (tactical)",
-        "regionPlaceholder": "Pick a region…",
-        "country": "Target country (strategic)",
-        "countryPlaceholder": "Pick a country…",
-        "pickRegion": "Pick a target region.",
-        "pickCountry": "Pick a target country."
-      },
-      "dismantle": {
-        "boostFull": "Non-proliferation treaty active: full reputation boost (+{perWarhead} per warhead, total +{total}).",
-        "boostHalved": "No active treaty: boost halved (+{perWarhead} per warhead, total +{total}).",
-        "confirm": "Dismantle every warhead"
-      }
-    }
-  },
-  "panelSpies": {
-    "title": "Intelligence",
-    "heroActiveOps": "Active operations",
-    "heroAvgIntel": "Avg intel",
-    "details": "Operations history, intel by country & spy roster",
-    "spyCount": "Available spies",
-    "counterIntel": "Counter-intelligence",
-    "composer": {
-      "title": "Launch operation",
-      "open": "Launch operation",
-      "type": "Operation type",
-      "target": "Target country",
-      "targetPlaceholder": "Pick a country…",
-      "noEligibleTargets": "No targets with sufficient intel. Add spies to gather intelligence.",
-      "stealTech": "Tech to steal",
-      "stealTechPlaceholder": "Pick a technology…",
-      "noStealable": "The target has no technology you lack.",
-      "sabotageTarget": "Sabotage target",
-      "propagandaFaction": "Target faction",
-      "propagandaAny": "Any faction",
-      "assassinateRole": "Target role (i18n key)",
-      "successPreview": "Success probability",
-      "detectionPreview": "Detection risk",
-      "submit": "Launch operation",
-      "pickTarget": "Pick a target.",
-      "pickPayload": "Complete the operation parameters."
-    },
-    "type": {
-      "steal_tech": "Steal technology",
-      "sabotage": "Sabotage",
-      "propaganda": "Propaganda",
-      "destabilize": "Destabilisation",
-      "assassinate": "Targeted assassination"
-    },
-    "sabotage": {
-      "agriculture": "Agriculture",
-      "industry": "Industry",
-      "services": "Services",
-      "tech": "Technology",
-      "military": "Military",
-      "science": "Science"
-    },
-    "faction": {
-      "army": "Military",
-      "business": "Business",
-      "religious": "Religious",
-      "populist": "Populist",
-      "reformist": "Reformist"
-    },
-    "active": {
-      "title": "Active operations",
-      "empty": "No active operation.",
-      "progressLabel": "Progress",
-      "eta": "≈ {ticks} wk",
-      "success": "Success",
-      "detection": "Detection"
-    },
-    "intelSummary": {
-      "title": "Intelligence summary"
-    },
-    "intel": {
-      "none": "None",
-      "rumors": "Rumours",
-      "partial": "Partial",
-      "full": "Full"
-    }
-  },
-  "panelDiplomacy": {
-    "title": "Diplomacy",
-    "heroAllies": "Allies",
-    "heroOpenRequests": "Open requests",
-    "heroTensionsHigh": "{n} tense",
-    "details": "Browse every nation, treaties & trade flows",
-    "countries": {
-      "title": "Nations"
-    },
-    "sort": {
-      "label": "Sort",
-      "alpha": "A-Z",
-      "attitude": "Attitude",
-      "treaties": "Treaties"
-    },
-    "atWar": "At war",
-    "noTreaties": "No active treaty.",
-    "treaty": {
-      "alliance": "Alliance",
-      "tradeDeal": "Trade",
-      "nonAggression": "Non-aggression",
-      "sanctions": "Sanctions"
-    },
-    "action": {
-      "proposeAlliance": "Propose alliance",
-      "breakAlliance": "Break alliance",
-      "imposeSanction": "Impose sanctions",
-      "liftSanction": "Lift sanctions",
-      "tradeDeal": "Propose trade deal",
-      "declareWar": "Declare war",
-      "sueForPeace": "Sue for peace"
-    },
-    "reason": {
-      "attitudeTooLow": "Attitude too low for an alliance."
-    },
-    "hint": {
-      "relation": "{player} ↔ {other}"
-    },
-    "confirm": {
-      "war": {
-        "title": "Declare war?",
-        "description": "This action is irreversible and will trigger diplomatic and military consequences."
-      },
-      "peace": {
-        "title": "Sue for peace?",
-        "description": "The opponent may refuse. Proceed?"
-      }
-    }
-  },
-  "panelPolitics": {
-    "title": "Internal politics",
-    "heroFactions": "Factions",
-    "heroAvgSatisfaction": "Avg satisfaction",
-    "details": "Factions, government type & political timeline",
-    "callElections": "Call elections",
-    "popularity": "Popularity",
-    "governmentType": "Government type",
-    "government": {
-      "democracy": "Democracy",
-      "autocracy": "Autocracy",
-      "oligarchy": "Oligarchy",
-      "theocracy": "Theocracy",
-      "monarchy": "Monarchy"
-    },
-    "factions": {
-      "title": "Factions",
-      "satisfaction": "Satisfaction",
-      "influence": "Influence {n}",
-      "placate": "Placate the faction"
-    },
-    "faction": {
-      "army": "Military",
-      "business": "Business",
-      "religious": "Religious",
-      "populist": "Populist",
-      "reformist": "Reformist"
-    },
-    "events": {
-      "title": "Recent political events",
-      "empty": "No recent political event.",
-      "atTick": "Wk {tick}"
-    }
-  },
-  "panelUN": {
-    "title": "UN council",
-    "heroActiveResolutions": "Active resolutions",
-    "heroVotesWon": "Votes won",
-    "heroProposed": "Proposed",
-    "councilYes": "Yes",
-    "councilNo": "No",
-    "details": "Resolution history & bloc voting record",
-    "active": "Resolutions in voting",
-    "history": "Recent history",
-    "empty": "No resolution currently in voting.",
-    "historyEmpty": "No recently resolved resolution.",
-    "unavailable": "UN not available in this scenario.",
-    "councilMember": "Council member",
-    "notCouncilMember": "Only council members may vote.",
-    "alreadyVoted": "You already voted: {vote}.",
-    "detailedVotes": "View detailed votes",
-    "proposer": "Proposer:",
-    "votingClosesAt": "Voting closes:",
-    "weeksRemaining": "{n, plural, one {1 week} other {# weeks}}",
-    "tally": {
-      "label": "Vote distribution"
-    },
-    "target": {
-      "label": "Target:",
-      "country": "Country",
-      "region": "Region",
-      "none": "None"
-    },
-    "kind": {
-      "label": "Kind:",
-      "sanctions": "Sanctions",
-      "peacekeeping": "Peacekeeping",
-      "recognition": "Recognition",
-      "humanitarian": "Humanitarian aid",
-      "climate": "Climate accord",
-      "nonProliferation": "Non-proliferation",
-      "condemnation": "Condemnation"
-    },
-    "kindDescription": {
-      "sanctions": "Impose economic sanctions on a target nation.",
-      "peacekeeping": "Deploy blue helmets in a contested region.",
-      "recognition": "Diplomatically recognise a new state or government.",
-      "humanitarian": "Coordinate an international emergency fund.",
-      "climate": "Sign on to a global climate accord.",
-      "nonProliferation": "Ban new weapons of mass destruction.",
-      "condemnation": "Formally condemn a nation's actions."
-    },
-    "status": {
-      "voting": "Voting",
-      "passed": "Passed",
-      "failed": "Failed",
-      "vetoed": "Vetoed"
-    },
-    "vote": {
-      "yes": "Yes",
-      "no": "No",
-      "abstain": "Abstain",
-      "veto": "Veto",
-      "vetoHint": "High reputation cost.",
-      "pending": "Pending"
-    },
-    "propose": {
-      "title": "Propose resolution",
-      "kindLabel": "Resolution kind",
-      "targetCountryLabel": "Target country",
-      "targetRegionLabel": "Target region",
-      "targetPlaceholder": "Pick one…",
-      "previewLabel": "Expected effects",
-      "submit": "Propose to UN",
-      "notCouncil": "Only permanent council members can propose resolutions.",
-      "pickCountry": "Pick a target country.",
-      "pickRegion": "Pick a target region.",
-      "preview": {
-        "sanctions": {
-          "income": "−20% target weekly income for 52 weeks.",
-          "tension": "+8 global tension.",
-          "repCost": "Reputation: bloc-dependent."
-        },
-        "peacekeeping": {
-          "tension": "−10 tension in the affected region.",
-          "repWestern": "+5 reputation in the Western bloc.",
-          "cost": "Cost: 50M from the proposer."
-        },
-        "recognition": {
-          "attitude": "+15 attitude with the recognised country.",
-          "repNonAligned": "+5 non-aligned reputation."
-        },
-        "humanitarian": {
-          "cost": "Cost: 100M shared across signatories.",
-          "repAll": "+3 reputation in every bloc."
-        },
-        "climate": {
-          "cost": "Cost: 80M from the proposer.",
-          "repWestern": "+5 reputation in the Western bloc.",
-          "repNonAligned": "+5 non-aligned reputation."
-        },
-        "nonProliferation": {
-          "tension": "−12 global tension.",
-          "repAll": "+4 reputation in every bloc."
-        },
-        "condemnation": {
-          "attitude": "−15 attitude with the condemned country.",
-          "tension": "+5 global tension."
-        }
-      }
-    },
-    "confirm": {
-      "veto": {
-        "title": "Cast a veto?",
-        "description": "Vetoing blocks the resolution but costs −10 reputation in every active bloc. Proceed?"
-      }
-    }
-  },
   "victory": {
     "economic": {
       "name": "Economic victory",
@@ -930,15 +680,6 @@
       "description": "Fictional 1962. Bipolar world, decolonisation, space race."
     }
   },
-  "victoryScreen": {
-    "wonTitle": "You won!",
-    "lostTitle": "You lost",
-    "summary": "Game summary",
-    "ticksPlayed": "Weeks played: {tick}",
-    "backHome": "Back to home",
-    "dethroned": "You stayed out of the GDP top 3 for 5 straight years: dethroned by rival powers.",
-    "isolated": "Your reputation collapsed below -50 in every bloc for 5 years: completely isolated."
-  },
   "errors": {
     "crash": {
       "title": "Aurion crashed",
@@ -985,6 +726,15 @@
       "noFreeSlot": "Every construction slot is busy.",
       "insufficientTreasury": "Not enough treasury.",
       "notBuilding": "That project is not under construction."
+    },
+    "policy": {
+      "playerOnly": "Only the player can change policies.",
+      "unknown": "Unknown policy.",
+      "alreadyActive": "That policy is already in force.",
+      "cooldown": "That policy was repealed too recently.",
+      "excluded": "Incompatible with a policy in force.",
+      "noSlot": "You have reached the maximum number of policies.",
+      "notActive": "That policy is not in force."
     }
   },
   "play": {
@@ -1077,7 +827,7 @@
   "tutorial": {
     "title": "Welcome to Aurion",
     "intro": {
-      "body": "Aurion is a real-time strategy game: the world keeps moving, but you can pause whenever you need to plan. Let's give you a quick tour of the essential controls — it takes under a minute."
+      "body": "You lead a nation, then a civilisation. Time runs in weeks and you can stop it whenever you like. Here is where things are: it takes under a minute."
     },
     "start": "Start tour",
     "next": "Next",
@@ -1085,43 +835,54 @@
     "skip": "Skip all",
     "complete": "Tutorial complete",
     "dontShowAgain": "Don't show again",
-    "footerNote": "Press ESC at any time to advance to the next step.",
+    "footerNote": "Press Esc to move to the next step.",
     "stepLabel": "Step {current} of {total}",
     "steps": {
       "hud": {
-        "title": "The top bar",
-        "body": "Here you'll find the current date, your treasury, popularity, and the speed controls. Keep an eye on these numbers — they're your main health indicators."
+        "title": "Your vital signs",
+        "body": "Date, treasury, popularity and your civilisation's level on the Kardashev scale. Click a number to open the system behind it."
       },
       "map": {
-        "title": "The world map",
-        "body": "Click a nation to select it; hover for a quick summary. The buttons below the map toggle informational overlays: tension, alliances, and intelligence."
+        "title": "The world",
+        "body": "Drag to rotate, scroll to zoom. Your nation has the gold border. Click a country to see who they are and what you can do; the labels flag what is happening."
       },
       "panels": {
-        "title": "The system panels",
-        "body": "On the left you have the six game panels: Economy, Research, Military, Spies, Diplomacy, Politics. The active one is highlighted in amber."
+        "title": "The eight systems",
+        "body": "Economy, Research, Military, Intelligence, Diplomacy, Internal politics, UN and Cosmos. One click opens the panel, another closes it. A dot means something needs you."
       },
       "speed": {
-        "title": "Control time",
-        "body": "Pause, 1×, 2×, and 4× set the game speed. Spacebar is a shortcut: it toggles pause and play when you aren't typing in a field."
+        "title": "Time is yours",
+        "body": "Pause, 1×, 2×, 4×. The space bar pauses and resumes. When a decision arrives, time stops by itself."
       },
       "outro": {
-        "title": "That's it!",
-        "body": "You've seen the essentials. The game will resume at 1× speed as soon as you close this window. Have fun."
+        "title": "Over to you",
+        "body": "Start from the briefing: begin a research and your first megaproject. Govern well."
       },
       "intro": {
         "title": "Welcome to Aurion",
-        "body": "Aurion is a real-time strategy game: the world keeps moving, but you can pause whenever you need to plan. Let's give you a quick tour of the essential controls — it takes under a minute."
+        "body": "You lead a nation, then a civilisation. Time runs in weeks and you can stop it whenever you like. Here is where things are: it takes under a minute."
+      },
+      "cosmos": {
+        "title": "The long game",
+        "body": "In Cosmos you start megaprojects: from the power grid to the Moon, Mars and a Dyson sphere. Each one makes your civilisation stronger, for good."
+      },
+      "views": {
+        "title": "Other worlds",
+        "body": "Switch from Earth to the Moon, Mars and the solar-system map to see where your projects stand."
+      },
+      "briefing": {
+        "title": "The briefing",
+        "body": "Suggested next steps on top, dispatches below: decisions, UN votes and your rivals' progress in the space race."
       }
     }
   },
   "achievements": {
     "toast": {
-      "unlocked": "Achievement unlocked",
+      "unlocked": "Trophy unlocked",
       "dismiss": "Dismiss"
     },
     "list": {
-      "title": "Achievements",
-      "locked": "???",
+      "title": "Trophies",
       "tier": {
         "bronze": "Bronze",
         "silver": "Silver",
@@ -1325,34 +1086,74 @@
       }
     }
   },
-  "onboarding": {
-    "dismiss": "Got it",
-    "hints": {
-      "speed": "Space to pause · Click 1×/2×/4× to change speed",
-      "panels": "Strategy tabs · 1-7 from the keyboard",
-      "map": "Your map · Click a nation for details",
-      "notifications": "Important events will appear here"
-    }
-  },
   "settings": {
     "pageTitle": "Settings",
-    "audioTitle": "Audio",
-    "gameplayTitle": "Gameplay",
-    "languageTitle": "Language",
-    "replayRecording": "Record replays",
-    "replayRecordingHint": "Stores the full action log inside each save so future versions can replay your runs.",
-    "tutorialReset": "Show tutorial again",
-    "tutorialResetDone": "The tutorial will appear at the start of your next game.",
-    "unavailable": "Settings need local storage, which this browser blocks."
-  },
-  "advisor": {
-    "title": "What now",
-    "military": "You are at war with no units deployed — rally the army",
-    "un": "A UN resolution is awaiting your vote",
-    "research": "Your labs are idle — start a research project",
-    "politics": "Popularity is slipping — placate a faction",
-    "spies": "You are blind abroad — deploy a spy to gather intel",
-    "diplomacy": "No treaties signed yet — open talks with a neighbour"
+    "unavailable": "This browser blocks local storage: game preferences and data aren't available.",
+    "eyebrow": "Preferences",
+    "lead": "They apply to every game and stay on this device.",
+    "audio": {
+      "title": "Sound",
+      "music": "Music",
+      "sfx": "Effects",
+      "muted": "muted",
+      "on": "On",
+      "tryLabel": "Try the effects at this volume:",
+      "tryMuted": "Effects are switched off",
+      "sample": {
+        "confirm": "Confirm",
+        "treaty": "Treaty",
+        "launch": "Launch",
+        "trophy": "Trophy"
+      },
+      "note": "Music starts on your first click on the page: browsers won't let it begin on its own."
+    },
+    "language": {
+      "title": "Language",
+      "note": "It changes immediately, even mid-game: saves don't depend on the language."
+    },
+    "game": {
+      "title": "Game",
+      "replay": "Record replays",
+      "replayHint": "Stores the full log of your actions in each save, so future versions can replay it. Saves get a little larger.",
+      "tutorial": "Opening tutorial",
+      "tutorialHint": "The guided tour of the controls at the start of a game.",
+      "tutorialReset": "Show again",
+      "tutorialDone": "Done: the tutorial will reappear at the start of your next game.",
+      "tutorialFailed": "Couldn't save that. Try again."
+    },
+    "display": {
+      "title": "Display and motion",
+      "motion": "Animations",
+      "motionReduced": "Reduced",
+      "motionFull": "Full",
+      "motionReducedHint": "Your device asks for less motion: the planet doesn't turn on its own and transitions are instant. Change it in your system's accessibility settings.",
+      "motionFullHint": "Aurion follows your device's “reduce motion” option: turn it on and the planet stops turning on its own and transitions become instant.",
+      "renderer": "Graphics engine",
+      "rendererNote": "The planet is drawn by your graphics card. The game picks the best engine your browser offers.",
+      "rendererFallback": "WebGPU isn't available in this browser: the planet uses WebGL 2. The game is the same.",
+      "rendererStatic": "Still backdrop",
+      "rendererStaticNote": "This device has no graphics acceleration: in the menus the planet is a still image, so it doesn't slow everything else down. In game the planet stays 3D, but may feel slow."
+    },
+    "data": {
+      "title": "Data on this device",
+      "saves": "Saves",
+      "trophies": "Trophies",
+      "space": "Space used",
+      "note": "Games and trophies live in this device's browser, not on a server. Export the games you care about: clear the browser's data and they're gone.",
+      "exportAll": "Export all",
+      "exportHint": "Download one .json file per save",
+      "exportDone": "{count, plural, =1 {# file downloaded.} other {# files downloaded.}}",
+      "exportFailed": "Export failed. Try again.",
+      "nothingToExport": "There's nothing to export",
+      "nothingToDelete": "There's nothing to delete",
+      "deleteAll": "Delete all saves",
+      "deleteTitle": "Delete all saves?",
+      "deleteBody": "{count, plural, =1 {# save} other {# saves}} will be removed from this device. Trophies stay. This can't be undone.",
+      "deleteConfirm": "{count, plural, =1 {Delete # save} other {Delete # saves}}",
+      "deleteDone": "Saves deleted.",
+      "deleteFailed": "Couldn't delete them all. Try again.",
+      "empty": "No saves on this device."
+    }
   },
   "panelIntro": {
     "economy": "Tax, invest and grow your GDP — money funds everything else.",
@@ -1363,15 +1164,6 @@
     "politics": "Keep your factions happy or lose your grip on power.",
     "un": "Propose and vote on resolutions that bind the whole world.",
     "cosmos": "Megaprojects: from Earth to the stars, up the Kardashev scale."
-  },
-  "objectives": {
-    "title": "First objectives",
-    "progress": "{done} of {total}",
-    "research": "Start your first research project",
-    "intel": "Gather intel on a rival nation",
-    "treaty": "Sign your first treaty",
-    "popularity": "Bring popularity to 60%",
-    "bloc": "Join a bloc"
   },
   "cosmos": {
     "kardashev": {
@@ -1642,7 +1434,13 @@
         "propaganda": "Propaganda in progress",
         "destabilize": "Destabilisation in progress",
         "assassinate": "Wet operation in progress"
-      }
+      },
+      "alliance": "Alliance: {a} – {b}",
+      "allianceBroken": "Alliance broken: {a} – {b}",
+      "peace": "Peace: {a} – {b}",
+      "sanctions": "Sanctions: {a} – {b}",
+      "trade": "Trade deal: {a} – {b}",
+      "warStart": "War declared: {a} – {b}"
     },
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
@@ -1691,5 +1489,1594 @@
       "close": "Close panel",
       "open": "Open {name}"
     }
+  },
+  "policies": {
+    "title": "National policies",
+    "intro": "Choices that stay in force until you repeal them. Every week they pay out, and cost.",
+    "slots": "{used}/{total} in force",
+    "none": "No policy in force. Pick one: its effects start next week.",
+    "category": {
+      "label": "Area",
+      "economy": "Economy",
+      "society": "Society",
+      "security": "Security",
+      "science": "Science"
+    },
+    "enact": "Enact",
+    "enactCost": "Costs {n} popularity points now",
+    "repeal": "Repeal",
+    "repealHint": "You cannot re-enact it for {weeks} weeks",
+    "active": "In force",
+    "status": {
+      "cooldown": "Available again in {weeks, plural, =1 {# week} other {# weeks}}",
+      "excluded": "Incompatible with: {list}",
+      "noSlot": "You already have {total} policies in force: repeal one"
+    },
+    "slotHint": "A fourth slot unlocks at Type I on the Kardashev scale.",
+    "weekly": "Weekly policy balance",
+    "fx": {
+      "income": "{v}% income",
+      "upkeep": "costs {v}% of income",
+      "gdp": "+{v}% GDP a year",
+      "popularity": "{v} popularity/wk",
+      "army": "+{v}% army/wk",
+      "counterIntel": "counter-intelligence rising",
+      "research": "+{v}% research",
+      "projectCost": "megaprojects {v}%",
+      "projectSpeed": "builds +{v}% faster",
+      "factionUp": "{name} happier",
+      "factionDown": "{name} unhappier"
+    },
+    "faction": {
+      "army": "Military",
+      "business": "Business",
+      "religious": "Clergy",
+      "populist": "Populists",
+      "reformist": "Reformists"
+    },
+    "items": {
+      "austerity": {
+        "name": "Austerity",
+        "desc": "Spending cuts: more cash today, colder streets tomorrow."
+      },
+      "stimulus": {
+        "name": "Economic stimulus",
+        "desc": "The state spends to grow GDP week after week."
+      },
+      "free_trade": {
+        "name": "Free trade",
+        "desc": "Open borders for goods: business cheers, workers less so."
+      },
+      "industrial_plan": {
+        "name": "Industrial plan",
+        "desc": "Home-grown supply chains for the big builds: cheaper megaprojects."
+      },
+      "welfare": {
+        "name": "Welfare state",
+        "desc": "Healthcare, pensions, benefits. Costly, but support holds."
+      },
+      "state_media": {
+        "name": "State media",
+        "desc": "One voice, yours. The reformists do not take it well."
+      },
+      "open_society": {
+        "name": "Open society",
+        "desc": "A free press and independent universities: better ideas, faster."
+      },
+      "faith_accord": {
+        "name": "Accord with the clergy",
+        "desc": "A concordat that keeps the religious faction content."
+      },
+      "conscription": {
+        "name": "Conscription",
+        "desc": "The army grows by itself; the economy and your support pay for it."
+      },
+      "surveillance": {
+        "name": "Domestic surveillance",
+        "desc": "Harder to spy on you. Harder to trust you, too."
+      },
+      "research_grants": {
+        "name": "Research grants",
+        "desc": "Money poured into the labs: research races ahead."
+      },
+      "space_program": {
+        "name": "National space programme",
+        "desc": "Top priority for the yards: megaprojects finish sooner."
+      }
+    }
+  },
+  "eventFx": {
+    "title": "Consequences",
+    "none": "No immediate effect",
+    "choose": "Choose how to respond. Time is stopped.",
+    "option": "Option {n}",
+    "stat": {
+      "economy": {
+        "treasury": "treasury",
+        "gdp": "GDP",
+        "weeklyIncome": "income/wk",
+        "sectors": {
+          "agriculture": "agriculture",
+          "industry": "industry",
+          "services": "services",
+          "tech": "tech sector"
+        }
+      },
+      "intelligence": {
+        "counterIntelLevel": "counter-intelligence",
+        "spyCount": "agents"
+      },
+      "military": {
+        "airforce": "air force",
+        "armySize": "army",
+        "doctrineLevel": "military doctrine",
+        "navy": "navy"
+      },
+      "politics": {
+        "popularity": "popularity",
+        "factions": {
+          "army": {
+            "satisfaction": "military faction"
+          },
+          "business": {
+            "satisfaction": "business"
+          },
+          "populist": {
+            "satisfaction": "populists"
+          },
+          "reformist": {
+            "satisfaction": "reformists"
+          },
+          "religious": {
+            "satisfaction": "clergy"
+          }
+        }
+      },
+      "population": "population",
+      "science": {
+        "researchOutput": "research"
+      },
+      "worldTension": "world tension"
+    },
+    "other": "{name}: {label}",
+    "attitude": "relations with {name}",
+    "research": "starts research: {name}",
+    "spy": "covert operation against {name}",
+    "tag": {
+      "politics": "Politics",
+      "faction": "Factions",
+      "economy": "Economy",
+      "military": "Military",
+      "diplomacy": "Diplomacy",
+      "intelligence": "Intelligence",
+      "space": "Space",
+      "social": "Society",
+      "crisis": "Crisis",
+      "opportunity": "Opportunity",
+      "narrative": "Dispatch",
+      "default": "Event"
+    }
+  },
+  "briefing": {
+    "title": "Briefing",
+    "collapse": "Collapse briefing",
+    "expand": "Open briefing",
+    "next": {
+      "title": "Next steps",
+      "progress": "{done} of {total}",
+      "allDone": "Every step done. From here the course is yours.",
+      "chapter": {
+        "basics": "First steps",
+        "power": "Building a power",
+        "space": "Toward space",
+        "stars": "Beyond Earth"
+      }
+    },
+    "step": {
+      "research": "Start a research",
+      "policy": "Enact a national policy",
+      "intel": "Gather intel on a rival",
+      "treaty": "Sign a treaty",
+      "project": "Start your first megaproject",
+      "popularity": "Reach 60% popularity",
+      "alliance": "Form an alliance",
+      "techs": "Complete 3 technologies",
+      "fusion": "Complete the Fusion reactor",
+      "bloc": "Join a bloc",
+      "spaceport": "Build the Spaceport",
+      "station": "Put a station in orbit",
+      "moon": "Found a base on the Moon",
+      "mars": "Send a mission to Mars",
+      "typeOne": "Become a Type I civilisation",
+      "swarm": "Light the first Dyson swarm",
+      "typeTwo": "Become a Type II civilisation",
+      "proxima": "Found a colony on Proxima b"
+    },
+    "feed": {
+      "title": "Dispatches",
+      "empty": "All quiet. When something happens in the world, you will read it here.",
+      "pending": "Decision required",
+      "chose": "You chose: {label}",
+      "cosmosYou": "You completed {project}",
+      "cosmosRival": "{name} completed {project}",
+      "first": "World first",
+      "un": {
+        "voting": "UN: vote open",
+        "passed": "UN: resolution passed",
+        "failed": "UN: resolution failed",
+        "vetoed": "UN: resolution vetoed"
+      }
+    },
+    "age": {
+      "now": "now",
+      "weeks": "{n}w ago",
+      "years": "{n}y ago"
+    },
+    "unread": "{n, plural, =1 {# update} other {# updates}}"
+  },
+  "endScreen": {
+    "won": {
+      "kicker": "Mission accomplished",
+      "raceReason": "You finished the Planetary Grid first: yours is the first Type I civilisation.",
+      "chronicles": "You made it through every era of the scenario.",
+      "throne": "Ten years on the podium of economies: the throne is yours."
+    },
+    "lost": {
+      "kicker": "End of the line",
+      "outpaced": "{name} finished the Planetary Grid before you. The race is lost.",
+      "unknown": "Your government did not hold."
+    },
+    "tip": {
+      "popularity": "Next time: watch the factions and use social policies before support drops under 30%.",
+      "bankruptcy": "Next time: invest in the economy early and avoid stacking costly builds and policies.",
+      "occupation": "Next time: find allies before an aggressive neighbour declares war.",
+      "factionRevolt": "Next time: keep at least one influential faction happy when the others harden.",
+      "dethroned": "Next time: megaprojects multiply GDP. Start them early.",
+      "isolated": "Next time: avoid stacking sanctions and wars; reputation recovers slowly.",
+      "outpaced": "Next time: research space technology early and enact the National space programme."
+    },
+    "stats": {
+      "title": "Your run",
+      "duration": "Length",
+      "durationValue": "{years, plural, =0 {} =1 {# year } other {# years }}{weeks} wk",
+      "kardashev": "Kardashev",
+      "projects": "Megaprojects",
+      "firsts": "World firsts",
+      "techs": "Technologies",
+      "rank": "Economy",
+      "rankValue": "#{rank} of {total}",
+      "allies": "Allies",
+      "popularity": "Popularity"
+    },
+    "continue": "Keep playing as Odyssey",
+    "continueHint": "The game goes on with no ending: victories become milestones.",
+    "newGame": "New game",
+    "home": "Main menu"
+  },
+  "pauseMenu": {
+    "title": "Paused",
+    "resume": "Resume",
+    "loadBack": "Back to menu",
+    "guide": "How to play",
+    "guideHint": "Opens in a new tab",
+    "shortcuts": "Keyboard shortcuts",
+    "keys": {
+      "pause": "Pause / resume",
+      "panels": "Open a system",
+      "map": "Rotate the globe",
+      "zoom": "Zoom",
+      "choice": "Pick in an event",
+      "deselect": "Deselect the nation"
+    },
+    "arrows": "Arrows",
+    "space": "Space",
+    "savedAs": "Game: {name}"
+  },
+  "menu": {
+    "backToMenu": "Main menu",
+    "mainMenu": "Main menu",
+    "soundOff": "Mute sound",
+    "soundOn": "Unmute sound",
+    "language": "Language",
+    "localeName": {
+      "it": "Italiano",
+      "en": "English"
+    },
+    "gameDate": "Year {year}, week {week}",
+    "outcome": {
+      "won": "Victory",
+      "lost": "Defeat"
+    },
+    "saveName": "{nation} · {mode}"
+  },
+  "modes": {
+    "odyssey": {
+      "name": "Odyssey",
+      "pitch": "The long game: from your capital to the first colony among the stars.",
+      "lengthShort": "Many hours",
+      "do": "You govern with no finish line to end the game. Economy, alliances and research all feed the megaprojects that take your civilisation to orbit, the Moon, Mars and beyond.",
+      "win": "There's no victory screen: every victory condition becomes a milestone to collect. The real aim is the Kardashev scale: Type I, Type II, the first interstellar colony.",
+      "lose": "By collapse: popularity on the floor, bankruptcy, your capital occupied or every faction against you.",
+      "length": "Many hours. It saves itself: pick it up whenever you like.",
+      "forWho": "For players who want to see how far they can go. The recommended way to get to know Aurion.",
+      "changes": "No victory to choose: you go straight from nation to difficulty.",
+      "goal": "Climb the Kardashev scale. Victories are milestones: the game doesn't end."
+    },
+    "campaign": {
+      "name": "Campaign",
+      "pitch": "One goal, chosen by you. Reach it and you've won.",
+      "lengthShort": "1–2 hours",
+      "do": "You pick one road to victory and bend everything else to it: every decision is judged by how much closer it gets you.",
+      "win": "By reaching your chosen goal: economic, diplomatic, scientific, military, total domination or Ascension (Kardashev Type I).",
+      "lose": "By collapse: popularity on the floor, bankruptcy, your capital occupied or every faction against you.",
+      "length": "One to two hours, depending on the goal and the world.",
+      "forWho": "For players who want a game with a beginning and an end, or to try one playstyle at a time.",
+      "changes": "Adds a step: after the nation you choose your road to victory.",
+      "goal": "Reach the goal you chose: the game ends there, in victory."
+    },
+    "spaceRace": {
+      "name": "Space Race",
+      "pitch": "A straight race: first to complete the Planetary Grid wins.",
+      "lengthShort": "A few hours",
+      "do": "Everything serves one thing: space research, treasury and construction sites to reach the Planetary Grid before the rival nations racing alongside you.",
+      "win": "By being first to complete the Planetary Grid, the megaproject that takes a civilisation to Kardashev Type I.",
+      "lose": "If a rival nation completes the Planetary Grid before you. Or by collapse, as in every mode.",
+      "length": "A few hours, with rivals on your heels from start to finish.",
+      "forWho": "For players who love a race and a tight build order.",
+      "changes": "No victory to choose: the goal is already set.",
+      "goal": "Complete the Planetary Grid before your rivals. If they get there first, you lose."
+    },
+    "throne": {
+      "name": "Throne",
+      "pitch": "Climb onto the podium of economies and hold it for ten years.",
+      "lengthShort": "A few hours",
+      "do": "You take your nation into the world's top three economies, then defend the spot. You have ten years to get there the first time; from then on every week on the podium counts toward victory.",
+      "win": "Ten years on the podium of economies, in total.",
+      "lose": "Ten years without ever reaching the podium, or five straight years off it once you have been there. Where blocs exist, also five years as a pariah in all of them. Or by collapse.",
+      "length": "A few hours. The pressure never lets up, not even when you're ahead.",
+      "forWho": "For players who want constant pressure and already know how to grow an economy.",
+      "changes": "No victory to choose. A nation with an already solid economy helps: check the ranking in the “Nation” step.",
+      "goal": "Reach the top three economies within ten years and stay there for ten years in total.",
+      "noteIsolation": "In this world the pariah defeat applies too: reputation below −50 in every bloc for five years in a row.",
+      "noteNoIsolation": "In this world the pariah defeat doesn't apply: only the economic podium counts."
+    },
+    "chronicles": {
+      "name": "Chronicles",
+      "pitch": "History in chapters: you play through the world's eras, with a recap between each.",
+      "lengthShort": "In chapters",
+      "do": "You play the chosen world's historical eras, one after another. At each change of era the game pauses to show how the world has changed and where you stand.",
+      "win": "By still being in power at the end of the last era. Achieve Total domination before that and the story closes there, in victory.",
+      "lose": "By collapse, in any era: popularity on the floor, bankruptcy, your capital occupied or every faction against you.",
+      "length": "A long game, but with natural places to stop: the end of each era.",
+      "forWho": "For players who'd rather have a story with its own rhythm than a race to a goal.",
+      "changes": "Limits the choice of world to those with historical eras. No victory to choose.",
+      "goal": "Stay in power until the end of the last era.",
+      "badge": "Era worlds only",
+      "note": "Only played in worlds with historical eras: {worlds}. If your plan had a different one, it switches to {world}: you can change it in the next step."
+    }
+  },
+  "guide": {
+    "eyebrow": "Codex",
+    "title": "How to play",
+    "lead": "Everything you need to know, in seven sections to skim. Nothing you couldn't also learn by playing.",
+    "navLabel": "Guide sections",
+    "nav": {
+      "goal": "In short",
+      "modes": "Modes",
+      "screen": "The screen",
+      "systems": "The systems",
+      "cosmos": "Megaprojects",
+      "lose": "How you lose",
+      "keys": "Shortcuts"
+    },
+    "goal": {
+      "title": "In short",
+      "body": "You run a nation. Time passes in weeks and can always be stopped: pause, decide, resume. With a few levers — taxes, research, alliances, spies, the army — you grow the country and hold it together; with what's left over you build the megaprojects that take your civilisation off Earth.",
+      "pillar": {
+        "glance": {
+          "title": "One planet, one glance",
+          "body": "What's happening is on the globe: wars, alliances, construction. If something needs a decision from you, the briefing says so."
+        },
+        "levers": {
+          "title": "Few levers, big effects",
+          "body": "Every action states its price and its effect before the click. You don't need to micromanage: you need to choose."
+        },
+        "long": {
+          "title": "The long game",
+          "body": "From the power grid to the Dyson sphere: megaprojects are the road, the Kardashev scale is the odometer."
+        }
+      },
+      "tip": "If it's your first time, start with Quick play: six nations, a one-minute tutorial and no mistake you can't recover from."
+    },
+    "modes": {
+      "title": "The five modes",
+      "lead": "You choose the mode first, because it decides how the game ends.",
+      "win": "Win",
+      "lose": "Lose",
+      "cta": "Length, who it's for and what changes in the following steps: it's all in the first step of a new game.",
+      "ctaLink": "New game"
+    },
+    "screen": {
+      "title": "The game screen",
+      "lead": "The planet fills the screen. Everything else floats over it, always in the same place.",
+      "diagramLabel": "Diagram of the game screen: status bar on top, systems on the left, briefing on the right, planet in the centre, views at the bottom.",
+      "hud": {
+        "name": "Status bar.",
+        "body": "On top: date, treasury, popularity, Kardashev rating and the time controls."
+      },
+      "dock": {
+        "name": "Systems.",
+        "body": "On the left: the eight systems of government. A click, or keys 1 to 8, opens the panel beside it."
+      },
+      "stage": {
+        "name": "Stage.",
+        "body": "The world you're looking at. Drag to rotate it, click a nation to select it."
+      },
+      "briefing": {
+        "name": "Briefing.",
+        "body": "On the right: what needs your attention right now, and the latest news."
+      },
+      "views": {
+        "name": "Views.",
+        "body": "At the bottom: switch from Earth to the Moon, Mars and the Solar system. A world opens once you complete your first project there."
+      },
+      "card": {
+        "name": "Nation card.",
+        "body": "Appears when you select a nation: the essential numbers and quick actions towards it."
+      }
+    },
+    "systems": {
+      "title": "The eight systems",
+      "lead": "Each has its own panel and its own key. For each: what it's for, and one practical tip.",
+      "economy": {
+        "name": "Economy",
+        "what": "Taxes, economic sectors and trade: the system that pays for all the others. The treasury moves every week with your income.",
+        "tip": "High taxes fill the coffers but eat popularity. Raise them to fund something specific, then bring them back down."
+      },
+      "research": {
+        "name": "Research",
+        "what": "One technology at a time, across four branches: civil, military, intelligence and space. Each discovery unlocks new actions or permanent bonuses.",
+        "tip": "Never leave the labs idle: when a project finishes, pick the next one straight away."
+      },
+      "military": {
+        "name": "Military",
+        "what": "Army, navy and air force, and where to deploy them. They win wars and, before that, deter those who'd like to declare them.",
+        "tip": "Don't strip the homeland: if the enemy outnumbers the forces defending your capital for long, the game is lost."
+      },
+      "intel": {
+        "name": "Intelligence",
+        "what": "Spies and counter-intelligence: stealing technology, sabotage, propaganda, destabilising a government.",
+        "tip": "Every operation shows the odds of success and of being detected. Watch the second: getting caught damages relations and raises tension."
+      },
+      "diplomacy": {
+        "name": "Diplomacy",
+        "what": "Your relations with every nation: trade deals, alliances, sanctions, declarations of war and peace treaties.",
+        "tip": "An alliance needs groundwork: improve relations first, and propose it only once the other nation looks on you kindly."
+      },
+      "politics": {
+        "name": "Internal politics",
+        "what": "Popularity and five factions — the army, business, the religious, populists, reformists — each with its own weight and mood.",
+        "tip": "Watch the factions before popularity: trouble starts there. One unhappy faction can be placated; all of them at once can't."
+      },
+      "un": {
+        "name": "UN",
+        "what": "Resolutions to vote on and to propose. Where there's a Council, permanent members hold a veto. How you vote shifts your reputation with the blocs.",
+        "tip": "Before voting, look at who the resolution targets: a vote against an ally has a price."
+      },
+      "cosmos": {
+        "name": "Cosmos",
+        "what": "The megaprojects, from the power grid to the Proxima colony. You pay up front, they take weeks, and they pay back forever.",
+        "tip": "Open your first construction site early: the Continental power grid is cheap and lifts GDP for the whole game."
+      }
+    },
+    "cosmos": {
+      "title": "Kardashev and megaprojects",
+      "lead": "The Kardashev scale measures how much energy a civilisation controls. You start at 0.70 and climb by completing megaprojects, in seven stages.",
+      "ladderLabel": "The seven megaproject stages",
+      "milestone": {
+        "typeI": "Type I · Planetary grid",
+        "typeII": "Type II · Dyson sphere",
+        "colony": "First interstellar colony"
+      },
+      "rule": {
+        "cost": {
+          "title": "You pay up front.",
+          "body": "The cost leaves the treasury at the start and scales with your starting economy: the same project weighs the same for a small nation and a superpower."
+        },
+        "time": {
+          "title": "It takes weeks.",
+          "body": "Ten for the first projects, several years for the last. Meanwhile the world moves on."
+        },
+        "sites": {
+          "title": "One site at a time.",
+          "body": "At first you build one project at a time. The Orbital shipyard, the Mass driver and Ceres station each add one more site."
+        },
+        "tech": {
+          "title": "It needs space research.",
+          "body": "Some stages need a share of the space technologies: your first discovery for the Spaceport, 40% for the Moon, 70% for Mars."
+        },
+        "rivals": {
+          "title": "Rivals race you.",
+          "body": "Other nations climb the same ladder. Whoever completes a project first takes the record, and the prestige that comes with it."
+        },
+        "cancel": {
+          "title": "You can cancel.",
+          "body": "Stopping a build returns half of what you paid."
+        }
+      },
+      "tip": "Bonuses are permanent and they stack: every project that lifts GDP makes the next one easier to afford."
+    },
+    "lose": {
+      "title": "How you lose",
+      "lead": "Four ways, the same in every mode. None comes out of the blue: there's always a countdown.",
+      "avoid": "To avoid it:",
+      "popularity": {
+        "title": "Popularity collapse",
+        "body": "Popularity stays below 10% for twelve weeks in a row.",
+        "avoid": "lower taxes, placate the factions that matter most, end the wars you aren't winning."
+      },
+      "bankruptcy": {
+        "title": "Bankruptcy",
+        "body": "The treasury stays in the red for twenty-six weeks in a row.",
+        "avoid": "cut spending before you go below zero. In the red you also lose popularity, every week."
+      },
+      "capital": {
+        "title": "Capital occupied",
+        "body": "Enemy forces larger than yours stay in your capital's region for twenty-six weeks.",
+        "avoid": "don't empty the homeland for campaigns abroad, and sue for peace when the war turns against you."
+      },
+      "factions": {
+        "title": "Every faction hostile",
+        "body": "All five factions stay below 20 satisfaction for twelve weeks.",
+        "avoid": "keeping one on your side is enough. Pick the most influential and don't lose it."
+      },
+      "note": "These timings are for Normal difficulty: they can be longer on Easy and get shorter on Hard and in Iron Man. Space Race and Throne add a defeat of their own, described under the modes."
+    },
+    "keys": {
+      "title": "Keyboard shortcuts",
+      "lead": "Everything can also be done from the keyboard alone: Tab moves through the controls, Enter activates them.",
+      "pause": "Pause and resume",
+      "systems": "Open a system",
+      "rotate": "Rotate the planet",
+      "zoom": "Zoom in and out",
+      "escape": "Deselect the nation",
+      "spaceKey": "Space"
+    }
+  },
+  "panelEconomy": {
+    "perWeek": "per week",
+    "hero": {
+      "treasury": "Treasury",
+      "gdp": "GDP",
+      "rank": "World rank",
+      "rankValue": "#{rank} of {total}",
+      "taxRate": "Tax rate"
+    },
+    "trend": {
+      "collecting": "The income chart draws itself week by week: let time run.",
+      "aria": "Income over the last {weeks} weeks: from {from} to {to}",
+      "span": "Income · {weeks} wk",
+      "range": "{min} – {max}",
+      "flat": "steady"
+    },
+    "warning": {
+      "inTheRed": "The treasury has been in the red {weeks, plural, =0 {since this week} =1 {for one week} other {for # weeks}}. After {limit} straight weeks below zero the government falls: you have {left, plural, =1 {one left} other {# left}}. While you stay in the red you also lose half a popularity point a week.",
+      "runway": "You are spending more than you earn: at this pace the treasury runs dry in {weeks, plural, =0 {under a week} =1 {one week} other {# weeks}}. {limit} straight weeks below zero and the game is lost."
+    },
+    "sources": {
+      "title": "Where the money comes from",
+      "tax": "Tax take",
+      "taxHint": "{rate}% of GDP, spread over 52 weeks",
+      "sectors": "Services and tech",
+      "sectorsHint": "They pay more tax: +{pct} on the take",
+      "trade": "{n, plural, =1 {One trade deal} other {# trade deals}}",
+      "tradeHint": "+{pct} income each",
+      "sanctions": "{n, plural, =1 {One sanction in force} other {# sanctions in force}}",
+      "sanctionsHint": "−{pct} income each",
+      "wars": "{n, plural, =1 {One war under way} other {# wars under way}}",
+      "warsHint": "Each war costs € 50 a week per army unit",
+      "difficulty": "Difficulty level",
+      "difficultyHint": "Adjustment to your income",
+      "policies": "National policies",
+      "policiesHint": "Bonuses and upkeep of those in force",
+      "net": "Into the treasury each week",
+      "noTrade": "No trade deals yet: each one adds {pct} to your income.",
+      "openDiplomacy": "Open Diplomacy"
+    },
+    "tax": {
+      "title": "Tax policy",
+      "label": "Tax rate",
+      "inForce": "in force: {rate}%",
+      "incomeChange": "Income",
+      "perWeek": "per week",
+      "reactions": "How the factions take it (satisfaction points)",
+      "apply": "Apply {rate}%",
+      "reset": "Reset",
+      "tradeOff": "More tax, more income. But each extra point costs Business 0.4 satisfaction and gives Populists 0.3 and Reformists 0.1; Military and Clergy barely notice. And popularity follows the factions. Move the slider to see the bill.",
+      "applied": "Tax rate set to {rate}%."
+    },
+    "invest": {
+      "title": "Investments",
+      "intro": "You pay once, up front. The effect stays.",
+      "targetLabel": "Where to invest",
+      "target": {
+        "economy": {
+          "name": "Economy",
+          "rate": "Every euro adds 4 to GDP"
+        },
+        "infra": {
+          "name": "Infrastructure",
+          "rate": "2 of GDP per euro, and up to +5 popularity"
+        },
+        "research": {
+          "name": "Research",
+          "rate": "+1 research point a week per € 5M"
+        },
+        "military": {
+          "name": "Army",
+          "rate": "One new unit per € 100,000"
+        },
+        "intel": {
+          "name": "Intelligence",
+          "rate": "One spy per € 50M, plus counter-intelligence"
+        }
+      },
+      "amountLabel": "How much",
+      "custom": "Custom",
+      "customLabel": "Amount in millions of euros",
+      "customPlaceholder": "e.g. 250",
+      "shareHint": "Share of today’s treasury.",
+      "blocked": {
+        "empty": "The treasury is empty: there is nothing to invest.",
+        "enter": "Type the amount, in millions of euros.",
+        "invalid": "The amount must be a number above zero.",
+        "tooMuch": "That is more than you have in the treasury ({treasury}).",
+        "noUnit": "Too little: one unit costs {cost}."
+      },
+      "preview": {
+        "title": "What you get",
+        "gdp": "GDP from {from} to {to}",
+        "income": "Income {gain} a week: pays for itself in {weeks, plural, =1 {one week} other {# weeks}}",
+        "incomeNone": "No income gain at the current tax rate",
+        "popularity": "Popularity +{points} right away",
+        "research": "Research from {from} to {to} points a week, for good",
+        "military": "+{units} units: the army grows to {total}",
+        "spies": "{n, plural, =0 {No new spy (they cost € 50M each)} =1 {One new spy: {total} in all} other {# new spies: {total} in all}}",
+        "counterIntel": "Counter-intelligence from {from} to {to}",
+        "treasuryAfter": "You keep {value} in the treasury"
+      },
+      "confirm": "Invest {amount} in {target}",
+      "confirmIdle": "Invest",
+      "done": "Done: {amount} invested in {target}."
+    },
+    "sectors": {
+      "title": "What the country lives on",
+      "agriculture": "Agriculture",
+      "industry": "Industry",
+      "services": "Services",
+      "tech": "Technology",
+      "note": "Every 10 points of Services lift the tax take by {services}%, every 10 of Technology by {tech}%. Agriculture and Industry make GDP but pay no extra tax."
+    },
+    "mega": {
+      "title": "Megaprojects",
+      "building": "{n, plural, =0 {Nothing under construction} =1 {One project under construction} other {# projects under construction}}",
+      "next": "Ready to start: {name} · {price}",
+      "none": "Nothing to start right now: see what is missing in Cosmos"
+    },
+    "errors": {
+      "invest": {
+        "invalidAmount": "That is not a valid amount to invest.",
+        "insufficientTreasury": "The treasury cannot cover this investment."
+      },
+      "tax": {
+        "outOfRange": "The tax rate must be between 0 and 100%."
+      },
+      "country": {
+        "notFound": "Your country is no longer in play."
+      }
+    }
+  },
+  "panelResearch": {
+    "hero": {
+      "active": "Researching",
+      "idle": "Labs are idle",
+      "idleHint": "This week’s research points are wasted until you pick something to study.",
+      "weeksUnit": "{weeks, plural, =0 {ready this week} =1 {week to discovery} other {weeks to discovery}}",
+      "neverUnit": "stalled: research output is zero",
+      "thenTry": "Good next pick: {name}",
+      "allDone": "You have discovered everything",
+      "allDoneHint": "This scenario’s tree is complete. From here, science means megaprojects."
+    },
+    "branch": {
+      "civil": "Civil",
+      "military": "Military",
+      "intelligence": "Intel",
+      "space": "Space"
+    },
+    "branchHint": {
+      "civil": "Economy, society and consent.",
+      "military": "Doctrine and the armed forces.",
+      "intelligence": "Spies, covert operations and counter-intelligence.",
+      "space": "The road to orbit, the Moon and Mars."
+    },
+    "recommended": {
+      "label": "Recommended",
+      "chip": "Recommended",
+      "reason": "{weeks, plural, =1 {One week} other {# weeks}} of work{opens, plural, =0 {} =1 {, and it opens the way to one more technology} other {, and it opens the way to # more technologies}}.",
+      "reasonNoOutput": "{opens, plural, =0 {The cheapest one available.} =1 {It opens the way to one more technology.} other {It opens the way to # more technologies.}}"
+    },
+    "start": "Start research",
+    "startNamed": "Start research · {points} points",
+    "startCost": "{points} points: about {weeks, plural, =1 {one week} other {# weeks}} at {output} points a week",
+    "startCostNoOutput": "{points} points. You produce none today: it will not advance.",
+    "started": "Research started: {name}.",
+    "stats": {
+      "output": "Output",
+      "outputValue": "{n} points/wk",
+      "done": "Discovered"
+    },
+    "rules": "One project at a time, no queue: once started it cannot be stopped, and you pick the next when it is done.",
+    "rulesNoOutput": "You produce no research points: invest in Research from the Economy panel to get the labs moving.",
+    "tree": {
+      "title": "Tech tree",
+      "count": "{done}/{total} in branch",
+      "branchLabel": "Tree branch",
+      "empty": "This scenario has no technologies in this branch.",
+      "tier": "Tier {n}"
+    },
+    "row": {
+      "done": "Discovered",
+      "researching": "Researching · {pct}%",
+      "locked": "Needs {list}",
+      "cost": "{points} points",
+      "costWeeks": "{points} points · {weeks, plural, =1 {1 week} other {# weeks}}"
+    },
+    "status": {
+      "done": "Discovered",
+      "researching": "Researching",
+      "available": "Available",
+      "locked": "Locked"
+    },
+    "detail": {
+      "effects": "What it brings",
+      "requires": "Requires",
+      "leadsTo": "Leads to",
+      "progress": "Progress"
+    },
+    "points": "{done} / {total} points",
+    "eta": {
+      "weeks": "{weeks, plural, =0 {Ready this week.} =1 {Ready in one week.} other {Ready in # weeks.}}",
+      "never": "Stalled: you produce no research points."
+    },
+    "blocked": {
+      "busy": "The labs are busy with {name}. You can start this once they are done.",
+      "busyWeeks": "The labs are busy with {name}: you can start this in {weeks, plural, =0 {a few days} =1 {one week} other {# weeks}}.",
+      "locked": "Discover this first: {list}."
+    },
+    "milestone": {
+      "badge": "A world first is at stake",
+      "open": "Still unclaimed: whoever gets here first earns {first} reputation in every bloc, followers earn {follow}.",
+      "yours": "The first is yours since week {week}: {first} reputation in every bloc.",
+      "taken": "{country} got here first, in week {week}. You can still earn {follow} reputation.",
+      "followers": "Then came: {list}."
+    },
+    "fx": {
+      "stat": {
+        "researchOutput": "Research",
+        "weeklyIncome": "Income",
+        "gdp": "GDP",
+        "agriculture": "Agriculture",
+        "industry": "Industry",
+        "services": "Services",
+        "tech": "Tech sector",
+        "popularity": "Popularity",
+        "army": "Military faction",
+        "business": "Business",
+        "religious": "Clergy",
+        "populist": "Populists",
+        "reformist": "Reformists",
+        "doctrineLevel": "Military doctrine",
+        "counterIntelLevel": "Counter-intelligence",
+        "spyCount": "Spies",
+        "armySize": "Army",
+        "navy": "Navy",
+        "airforce": "Air force",
+        "population": "Population"
+      },
+      "spyUnlock": "Operation: {name}",
+      "spy": {
+        "steal_tech": "tech theft",
+        "sabotage": "sabotage",
+        "propaganda": "propaganda",
+        "destabilize": "destabilisation",
+        "assassinate": "targeted killing"
+      },
+      "action": {
+        "fiscal_audit": "Fiscal audits",
+        "deterrence": "Nuclear deterrence",
+        "thermonuclear_deterrence": "Thermonuclear deterrence"
+      },
+      "actionOther": "New capability",
+      "other": "Special effect"
+    },
+    "space": {
+      "title": "Space technology",
+      "count": "{done} of {total}",
+      "why": "You hold {pct}% of the branch. That share is what opens the megaprojects beyond Earth:",
+      "gateReached": "unlocked",
+      "gateMissing": "{n, plural, =1 {1 technology to go} other {# technologies to go}}",
+      "openCosmos": "Go to megaprojects",
+      "firsts": {
+        "title": "World firsts",
+        "intro": "Whoever reaches these first earns reputation in every bloc. Followers get far less.",
+        "open": "open · +{points}",
+        "yours": "yours"
+      }
+    },
+    "errors": {
+      "research": {
+        "techNotFound": "That technology does not exist in this scenario.",
+        "alreadyCompleted": "You have already discovered it.",
+        "alreadyActive": "The labs are already working on something else.",
+        "missingPrereq": "The technologies that come before it are still missing."
+      },
+      "country": {
+        "notFound": "Your country is no longer in play."
+      }
+    }
+  },
+  "panelPolitics": {
+    "hero": {
+      "popularity": "Popularity",
+      "weekly": "{points} per week",
+      "crisisMark": "below {pct}%: crisis",
+      "settles": "With today’s factions it settles around {pct} (the white tick). Popularity chases the factions’ mood, weighted by influence, and drifts slowly back towards 50%.",
+      "government": "Government",
+      "mood": "Faction mood",
+      "hostile": "Hostile"
+    },
+    "standing": {
+      "crisis": "In crisis",
+      "uneasy": "At risk",
+      "steady": "Steady",
+      "strong": "Strong"
+    },
+    "danger": {
+      "title": "How a government falls",
+      "popularity": "Popularity below {pct}% for {weeks} weeks in a row.",
+      "popularityActive": "You have been below {pct}% {weeks, plural, =0 {since this week} =1 {for one week} other {for # weeks}}: {left, plural, =1 {one more} other {# more}} and the government falls. Make a concession to the heaviest faction now.",
+      "factions": "All five factions below {pct}% for {weeks} weeks in a row. {hostile, plural, =0 {None is hostile today.} =1 {One is hostile today.} other {# are hostile today.}}",
+      "factionsActive": "Every faction has been below {pct}% {weeks, plural, =0 {since this week} =1 {for one week} other {for # weeks}}: {left, plural, =1 {one more} other {# more}} and they overthrow you. Lifting a single one above the line stops the clock."
+    },
+    "government": {
+      "title": "Form of government",
+      "nudgeNote": "Satisfaction points per week.",
+      "democracy": {
+        "name": "Democracy",
+        "desc": "You rule by consent: reformists, business and populists feel represented."
+      },
+      "autocracy": {
+        "name": "Autocracy",
+        "desc": "Power sits in a few hands: the military is at home, reformists chafe."
+      },
+      "oligarchy": {
+        "name": "Oligarchy",
+        "desc": "Big money decides: business thrives, populists nurse a grudge."
+      },
+      "theocracy": {
+        "name": "Theocracy",
+        "desc": "Law follows faith: the clergy at the centre, reformists at the edge."
+      },
+      "monarchy": {
+        "name": "Monarchy",
+        "desc": "The crown rests on army and clergy; populists get little room."
+      }
+    },
+    "faction": {
+      "army": {
+        "name": "Military",
+        "wants": "General staff and veterans. They want a strong government; taxes barely touch them."
+      },
+      "business": {
+        "name": "Business",
+        "wants": "Industry and finance. They want low taxes: nobody reacts to the tax rate like they do."
+      },
+      "religious": {
+        "name": "Clergy",
+        "wants": "The religious authorities. They want a government close to the faith; taxes barely touch them."
+      },
+      "populist": {
+        "name": "Populists",
+        "wants": "The street. They want high taxes, which they read as redistribution."
+      },
+      "reformist": {
+        "name": "Reformists",
+        "wants": "Universities and the urban class. They want an open country and like taxes a little higher."
+      }
+    },
+    "mood": {
+      "hostile": "Hostile",
+      "unhappy": "Unhappy",
+      "lukewarm": "Lukewarm",
+      "content": "Content",
+      "loyal": "Loyal"
+    },
+    "factions": {
+      "title": "Factions",
+      "count": "{n} power groups",
+      "intro": "A concession costs {cost} and lifts one faction’s satisfaction by {points} points at once. The more a faction weighs, the more it moves popularity.",
+      "weight": "weight {pct}",
+      "urgent": "Most urgent"
+    },
+    "placate": {
+      "button": "Concede · {cost}",
+      "effectLabel": "With a concession",
+      "maxed": "Satisfaction is already at the top: a concession would be wasted.",
+      "cannotAfford": "You need {cost} in the treasury",
+      "blocked": "A concession costs {cost}: you have {treasury}. Raise your income from the Economy panel.",
+      "done": "Concession made: {name} at {value}."
+    },
+    "moves": {
+      "title": "What moves them",
+      "taxDown": "Taxes: each extra point of tax costs {points} satisfaction.",
+      "taxUp": "Taxes: each extra point of tax is worth {points} satisfaction.",
+      "governmentUp": "{government}: it favours them, +{points} per week.",
+      "governmentDown": "{government}: it holds them back, −{points} per week.",
+      "likes": "Policies they like: {list}.",
+      "dislikes": "Policies they resent: {list}.",
+      "drift": "Left alone they drift back to 50%: {points} this week."
+    },
+    "news": {
+      "title": "Political news",
+      "empty": "No political news so far. Strikes, scandals and reforms will show up here.",
+      "week": "wk {week}"
+    },
+    "errors": {
+      "placate": {
+        "insufficientTreasury": "The treasury cannot cover a concession.",
+        "unknownFaction": "That faction does not exist."
+      },
+      "country": {
+        "notFound": "Your country is no longer in play."
+      }
+    }
+  },
+  "panelDiplomacy": {
+    "title": "Diplomacy",
+    "stance": {
+      "war": "At war",
+      "ally": "Ally",
+      "sanctions": "Sanctions",
+      "trade": "Trade",
+      "pact": "Non-aggression",
+      "neutral": "Neutral"
+    },
+    "picker": {
+      "search": "Search for a nation",
+      "filterLabel": "Show",
+      "sortLabel": "Sort by",
+      "all": "All",
+      "noMatch": "No nation matches.",
+      "showAll": "Show all {n}",
+      "showLess": "Show fewer",
+      "clear": "Deselect this nation"
+    },
+    "hero": {
+      "label": "Your standing in the world",
+      "allies": "Allies",
+      "ofNations": "of {n} nations",
+      "wars": "{n, plural, =1 {1 war under way} other {# wars under way}}",
+      "atPeace": "At peace",
+      "goalCoverage": "Goal: ally with {pct} of all nations",
+      "goalControl": "Goal: a front of {n} nations, yours included",
+      "trade": "Trade deals",
+      "sanctions": "Sanctions",
+      "tension": "Tension",
+      "tensionHint": "World tension rises by 5 for every war under way and by 1 for every sanctions regime or recently exposed spy."
+    },
+    "pick": {
+      "title": "Pick a nation",
+      "body": "Tap it on the globe or in the list below to see what it thinks of you and what you can offer."
+    },
+    "countries": {
+      "title": "All nations"
+    },
+    "sort": {
+      "attitude": "Attitude",
+      "alpha": "Name"
+    },
+    "filter": {
+      "allies": "Allies",
+      "open": "Open",
+      "hostile": "Hostile"
+    },
+    "noTreaties": "No treaties",
+    "atWar": "At war",
+    "treaty": {
+      "alliance": "Alliance",
+      "tradeDeal": "Trade deal",
+      "nonAggression": "Non-aggression pact",
+      "sanctions": "Sanctions"
+    },
+    "dossier": {
+      "label": "Relations with {name}",
+      "attitude": "Attitude toward you",
+      "scaleHint": "war possible from −25",
+      "gdp": "GDP",
+      "army": "Army",
+      "unknown": "GDP and army stay unknown until you have reliable sources in the country.",
+      "actions": "Available moves",
+      "attitudeShift": "Attitude {from} → {to}"
+    },
+    "action": {
+      "proposeAlliance": "Propose an alliance",
+      "breakAlliance": "Break the alliance",
+      "tradeDeal": "Sign a trade deal",
+      "imposeSanction": "Impose sanctions",
+      "liftSanction": "Lift the sanctions",
+      "declareWar": "Declare war",
+      "sueForPeace": "Make peace"
+    },
+    "cta": {
+      "proposeAlliance": "Propose",
+      "breakAlliance": "Break",
+      "tradeDeal": "Sign",
+      "imposeSanction": "Impose",
+      "liftSanction": "Lift",
+      "declareWar": "Declare",
+      "sueForPeace": "Peace"
+    },
+    "effect": {
+      "proposeAlliance": "They accept unless they are hostile. Attitude +20; an ally cannot be attacked, opens its borders to your troops and counts toward victory.",
+      "breakAlliance": "Attitude −30. It no longer counts toward victory and closes its borders to your troops.",
+      "tradeDeal": "Attitude +10 and 2% more income for both sides: about {gain} a week for you. Only a war dissolves it.",
+      "imposeSanction": "Attitude −25. Takes 5% of income from both sides (about {loss} a week from you), raises world tension by 1 and gives you grounds for war.",
+      "liftSanction": "Attitude +10. You recover about {gain} a week and world tension drops by 1.",
+      "declareWar": "Attitude −50, alliances and trade deals are torn up, world tension +5. Keeping the army at war costs you about {cost} a week.",
+      "sueForPeace": "The war ends at once. Attitude +15, world tension −5 and you save about {saving} a week."
+    },
+    "done": {
+      "proposeAlliance": "Alliance signed with {name}.",
+      "breakAlliance": "Alliance with {name} broken.",
+      "tradeDeal": "Trade deal signed with {name}.",
+      "imposeSanction": "Sanctions now in force against {name}.",
+      "liftSanction": "Sanctions against {name} lifted.",
+      "declareWar": "You are at war with {name}.",
+      "sueForPeace": "Peace signed with {name}."
+    },
+    "confirm": {
+      "breakAlliance": {
+        "title": "Break the alliance?",
+        "description": "Their attitude toward you drops by 30 and the ally no longer counts toward victory. To ally again it must climb back to at least 0."
+      },
+      "declareWar": {
+        "title": "Declare war?",
+        "description": "Attitude −50, trade deals end, world tension +5 and a weekly cost for every garrisoned unit. The war lasts until either side makes peace."
+      },
+      "sueForPeace": {
+        "title": "Make peace?",
+        "description": "The war ends at once and their attitude recovers by 15. Troops already deployed stay where they are."
+      }
+    },
+    "error": {
+      "atWar": "You are at war: make peace first.",
+      "alreadyAllied": "You are already allies.",
+      "attitudeTooLow": "They are hostile to you: attitude must be 0 or higher.",
+      "noAlliance": "There is no alliance to break.",
+      "alreadySanctioned": "Sanctions are already in force.",
+      "notSanctioned": "There are no sanctions to lift.",
+      "alreadyTrading": "You already have a trade deal.",
+      "alreadyAtWar": "You are already at war.",
+      "alliedCannotWar": "You cannot attack an ally: break the alliance first.",
+      "nonAggressionPact": "A non-aggression pact binds you: war is off the table.",
+      "attitudeTooHighForWar": "No casus belli: attitude must be −25 or worse, or sanctions must be in force.",
+      "notAtWar": "You are not at war.",
+      "selfTarget": "You cannot negotiate with yourself.",
+      "bloc": {
+        "notAvailable": "There are no blocs in this scenario.",
+        "notFound": "That bloc no longer exists.",
+        "alreadyMember": "You are already a member of this bloc.",
+        "notMember": "You are not a member of any bloc."
+      }
+    },
+    "blocs": {
+      "title": "Blocs",
+      "unaligned": "Unaligned",
+      "intro": "Your bloc backs your UN proposals. Reputation collapses if you use nuclear weapons, grows with disarmament and space firsts, and drifts half a point back toward zero every week.",
+      "leader": "Led by {name}",
+      "noLeader": "No leader",
+      "members": "{n, plural, =0 {no members} =1 {1 member} other {# members}}",
+      "yours": "Your bloc",
+      "reputation": "Your reputation",
+      "showMembers": "Members",
+      "empty": "No nation belongs to it for now.",
+      "join": "Join",
+      "leave": "Leave",
+      "confirm": {
+        "join": {
+          "title": "Join the bloc?",
+          "description": "Membership is immediate. As a member, the bloc backs your UN proposals.",
+          "switch": "You leave your current bloc and join the new one at once; from now on it backs your UN proposals."
+        },
+        "leave": {
+          "title": "Leave the bloc?",
+          "description": "You become unaligned: no bloc will back your UN proposals any more. You can rejoin whenever you like."
+        }
+      }
+    }
+  },
+  "panelMilitary": {
+    "title": "Military",
+    "hero": {
+      "label": "Your armed forces",
+      "garrison": "Garrison",
+      "ready": "units ready to move",
+      "deployed": "plus {n} deployed",
+      "wars": "{n, plural, =1 {1 war} other {# wars}}",
+      "atPeace": "At peace",
+      "doctrine": "Doctrine",
+      "navy": "Navy",
+      "airforce": "Air force",
+      "rank": "Strength",
+      "rankValue": "#{rank} of {total}",
+      "upkeep": "The wars under way cost you {cost} a week: 50 per garrisoned unit, per war."
+    },
+    "wars": {
+      "title": "Wars under way",
+      "emptyTitle": "No open front",
+      "empty": "Declaring war takes an attitude of −25 or worse, or sanctions in force.",
+      "toDiplomacy": "Open Diplomacy",
+      "attitude": "attitude",
+      "balanceLabel": "You hold {pct} of the forces in the field",
+      "you": "You {n}",
+      "them": "Them {n}",
+      "clash": "{own} yours · {foe} theirs",
+      "noContact": "No contact: fighting only happens where both of you have troops in the same region.",
+      "deployThere": "Deploy to {region}",
+      "peace": "Peace",
+      "howItEnds": "A war only ends when either side makes peace. If enemy troops in your region outnumber your defenders for 26 weeks running, you lose the game.",
+      "capitalThreat": "{enemy} enemy units are in your region, against {own} defenders. If they outnumber you for {limit} weeks running you lose the game.",
+      "capitalFallen": "The capital has been overrun for {weeks, plural, =1 {1 week} other {# weeks}}: at {limit} you lose the game. Recruit units or make peace."
+    },
+    "balance": {
+      "title": "Balance of power",
+      "aside": "units × (1 + doctrine)",
+      "you": "{name} — you",
+      "sortPower": "Strength",
+      "sortName": "Name",
+      "hint": "Strength counts garrison and deployed troops: it is the sum that decides battles. Values marked ≈ are estimates; exact figures take at least partial intel."
+    },
+    "matchup": {
+      "stronger": "You are clearly stronger than {name}.",
+      "weaker": "{name} is clearly stronger than you.",
+      "even": "You and {name} are evenly matched.",
+      "you": "You {n}",
+      "them": "Them {n}",
+      "estimate": "Their strength is an estimate."
+    },
+    "deploy": {
+      "title": "Deploy troops",
+      "intro": "Units leave the garrison and stay in the region: they cannot be recalled. Every week they fight any enemy present in the same region.",
+      "regionLabel": "Destination region",
+      "access": {
+        "home": "Your territory",
+        "free": "Nobody controls it",
+        "ally": "Open: you are allied with {name}",
+        "war": "Open: you are at war with {name}",
+        "closed": "Closed: needs an alliance or a war with {name}"
+      },
+      "home": "Home",
+      "howMany": "Share of the garrison",
+      "unitsOf": "{n} of {total} units",
+      "cta": "Deploy {n} units to {region}",
+      "ctaIdle": "Deploy units",
+      "pickRegion": "Pick a region above, or a nation on the globe.",
+      "noAccess": "Region closed: it takes an alliance or a war with {name}.",
+      "noUnits": "The garrison is empty: recruit new units.",
+      "done": "{n} units on their way to {region}."
+    },
+    "deployed": {
+      "title": "Deployed troops",
+      "empty": "All your units are in garrison.",
+      "units": "{n} units",
+      "age": "{weeks, plural, =0 {Just arrived} =1 {In place for 1 week} other {In place for # weeks}}",
+      "fighting": "Fighting {foes} enemy units"
+    },
+    "recruit": {
+      "title": "Recruit",
+      "rate": "{cost} per unit",
+      "budget": "Share of the treasury",
+      "cta": "Recruit {n} units · {cost}",
+      "ctaIdle": "Recruit units",
+      "noFunds": "The treasury cannot pay for even one unit.",
+      "tooLittle": "Raise the share to recruit at least one unit.",
+      "done": "{n} new units in garrison."
+    },
+    "nuclear": {
+      "section": {
+        "title": "Nuclear Arsenal"
+      },
+      "deterrent": {
+        "on": "Deterrent active",
+        "off": "Arsenal empty",
+        "hint": "As long as you hold one warhead, anyone watching you with enough intel thinks twice before declaring war on you.",
+        "hintOff": "No warheads, no deterrent."
+      },
+      "arsenal": {
+        "count": "Warheads",
+        "deliveryLabel": "Delivery",
+        "deliverySystem": {
+          "0": "Bombers",
+          "1": "Intercontinental missiles",
+          "2": "Hypersonic missiles"
+        },
+        "production": "Production",
+        "productionNone": "halted — needs the advanced arsenal",
+        "productionFull": "at the cap ({max})",
+        "productionNext": "{weeks, plural, =1 {next warhead in 1 week} other {next warhead in # weeks}}",
+        "noWarheads": "You have no warheads to launch."
+      },
+      "tactical": {
+        "title": "Tactical strike — one region",
+        "units": "Destroys every unit deployed in the region, yours included.",
+        "host": "The country that controls the region loses 30 popularity.",
+        "world": "World tension +30 and reputation −50 with every bloc. Uses one warhead.",
+        "worldNoBlocs": "World tension +30. Uses one warhead.",
+        "noTargets": "No enemy region: you can only strike where a country you are at war with is based or has troops."
+      },
+      "strategic": {
+        "title": "Strategic strike — one nation",
+        "target": "The target loses half its GDP and 70% of its treasury; popularity to zero, deployed troops wiped out.",
+        "mad": "If it holds warheads it answers: mutual destruction. Both of you lose 80% of GDP, the whole treasury and all popularity; the rest of the world loses 30% of GDP.",
+        "world": "World tension +60 and reputation −100 with every bloc. Uses one warhead.",
+        "worldNoBlocs": "World tension +60. Uses one warhead.",
+        "noTargets": "No target: you can only strike a country you are at war with."
+      },
+      "target": {
+        "region": "Target region",
+        "country": "Target nation",
+        "pickRegion": "Choose the region to strike.",
+        "pickCountry": "Choose the nation to strike."
+      },
+      "mad": {
+        "certain": "Holds warheads: it will answer",
+        "unknown": "Arsenal unknown: expect an answer",
+        "none": "No warheads: it cannot answer"
+      },
+      "button": {
+        "tactical": "Launch tactical",
+        "strategic": "Launch strategic",
+        "dismantle": "{count, plural, =1 {Dismantle 1 warhead} other {Dismantle # warheads}} · +{boost} reputation",
+        "dismantlePlain": "{count, plural, =1 {Dismantle 1 warhead} other {Dismantle # warheads}}"
+      },
+      "dismantle": {
+        "title": "Disarmament",
+        "noBlocs": "In this scenario disarmament earns no reputation: it only shrinks the arsenal.",
+        "boostFull": "A non-proliferation treaty is in force: every warhead dismantled is worth +{perWarhead} reputation with every bloc.",
+        "boostHalved": "Every warhead dismantled is worth +{perWarhead} reputation with every bloc; +{full} once the UN passes a non-proliferation treaty.",
+        "fewer": "One warhead fewer",
+        "more": "One warhead more"
+      },
+      "confirm": {
+        "title": "Dismantle the warheads?",
+        "description": "Dismantled warheads do not come back. Empty the arsenal and you lose your deterrent.",
+        "cta": "Dismantle"
+      }
+    },
+    "error": {
+      "deploy": {
+        "invalidUnits": "Say how many units to deploy.",
+        "notEnoughUnits": "You do not have enough units in garrison.",
+        "invalidRegion": "Choose a region.",
+        "foreignRegionNoAccess": "That region is closed: it takes an alliance or a war with whoever controls it."
+      },
+      "nuclear": {
+        "noArsenal": "You have no nuclear arsenal.",
+        "noWarheads": "You have no warheads.",
+        "invalidRegion": "Choose the region to strike.",
+        "regionNotEnemy": "You can only strike regions where a country you are at war with is based or has troops.",
+        "selfTarget": "You cannot strike yourself.",
+        "targetNotEnemy": "You can only strike a country you are at war with.",
+        "invalidCount": "Say how many warheads to dismantle.",
+        "tooMany": "You do not have that many warheads."
+      },
+      "invest": {
+        "invalidAmount": "Invalid amount.",
+        "insufficientTreasury": "The treasury cannot cover it."
+      }
+    }
+  },
+  "panelSpies": {
+    "title": "Intelligence",
+    "network": {
+      "label": "Your network",
+      "agents": "Agents available",
+      "agentsHint": "one per operation",
+      "inField": "{n, plural, =0 {None in the field} =1 {1 in the field} other {# in the field}}",
+      "counterIntel": "Counter-intelligence",
+      "counterIntelHint": "Takes {points} points off the success of operations against you and adds them to the risk of their exposure.",
+      "recruit": "An agent goes out and does not come back. Recruiting one costs {cost} invested in intelligence.",
+      "toEconomy": "Open Economy"
+    },
+    "pick": {
+      "title": "Pick a target",
+      "body": "Tap a nation on the globe or in the list at the bottom to open its file and plan an operation."
+    },
+    "dossier": {
+      "label": "File on {name}",
+      "intel": "What you know about them",
+      "intelScale": "Levels of knowledge",
+      "edge": "Edge in operations",
+      "edgeValue": "{points, plural, =0 {none} other {+# points}}",
+      "defences": "Counter-intelligence",
+      "techs": "Technologies completed",
+      "unknown": "unknown"
+    },
+    "intel": {
+      "none": "None",
+      "rumors": "Rumours",
+      "partial": "Partial",
+      "full": "Full"
+    },
+    "intelChip": {
+      "none": "No sources",
+      "rumors": "Rumours",
+      "partial": "Partial",
+      "full": "Full picture"
+    },
+    "intelDetail": {
+      "none": "No source on the ground. Operations start with no edge and the country's figures remain estimates.",
+      "rumors": "Unverified rumours: 5 points more success, 5 less risk. The country's figures remain estimates.",
+      "partial": "Reliable sources: 15 points more success, 15 less risk. You see GDP, army, defences and nuclear arsenal.",
+      "full": "Nothing escapes you: 25 points more success, 25 less risk, and every figure exact."
+    },
+    "composer": {
+      "title": "Plan an operation",
+      "type": "Kind of operation",
+      "lockedBy": "Unlocked by {techs}",
+      "or": " or ",
+      "successShort": "success",
+      "detectionShort": "exposure",
+      "success": "Success",
+      "detection": "Risk of exposure",
+      "duration": "Length",
+      "weeks": "{n} weeks",
+      "cost": "Cost",
+      "oneAgent": "1 agent",
+      "agentsLeft": "{n, plural, =0 {none available} =1 {you have 1} other {you have #}}",
+      "stealTech": "Which technology",
+      "sabotageTarget": "What to hit",
+      "propagandaFaction": "Which faction to work on",
+      "assassinateRole": "Who to hit",
+      "ifSuccess": "If it works:",
+      "ifDetected": "If you are exposed:",
+      "detectedEffect": "the operation comes to light and world tension rises by 1 for ten weeks. If it had worked, the effect stands.",
+      "agentLost": "Either way the agent does not come back.",
+      "submit": "Launch the operation · 1 agent",
+      "allLocked": "No operation is possible against this country for now.",
+      "noAgents": "You have no agents available.",
+      "noStealable": "Nothing to take: {name} has no technology you lack",
+      "pickTech": "Choose the technology to take.",
+      "done": "{op} against {name} under way: outcome in {weeks} weeks."
+    },
+    "type": {
+      "steal_tech": "Technology theft",
+      "sabotage": "Sabotage",
+      "propaganda": "Propaganda",
+      "destabilize": "Destabilisation",
+      "assassinate": "Targeted killing"
+    },
+    "pitch": {
+      "steal_tech": "Copies a technology you lack",
+      "sabotage": "Hits economy, army or research",
+      "propaganda": "Erodes support for the government",
+      "destabilize": "Stirs up every faction",
+      "assassinate": "Removes a key figure"
+    },
+    "outcome": {
+      "steal_tech": "the technology is yours at once, with all its effects.",
+      "sabotage": {
+        "economy": "their GDP drops by 2%.",
+        "military": "they lose 50 garrison units.",
+        "science": "their research loses 1 point a week."
+      },
+      "propaganda": "their government's popularity drops by 5.",
+      "destabilize": "the satisfaction of every one of their factions drops by 5.",
+      "assassinate": "their government's popularity drops by 10."
+    },
+    "sabotage": {
+      "agriculture": "Agriculture",
+      "industry": "Industry",
+      "services": "Services",
+      "tech": "High tech",
+      "military": "Army",
+      "science": "Research"
+    },
+    "faction": {
+      "any": "Any",
+      "army": "Military",
+      "business": "Business",
+      "religious": "Religious",
+      "populist": "Populists",
+      "reformist": "Reformists"
+    },
+    "role": {
+      "head_of_state": "Head of state",
+      "defence_minister": "Defence",
+      "intelligence_chief": "Spy chief"
+    },
+    "active": {
+      "title": "Operations under way",
+      "empty": "No agent in the field.",
+      "line": "{op} · {name}",
+      "show": "File",
+      "eta": "{weeks, plural, =0 {Outcome due} =1 {Outcome in 1 week} other {Outcome in # weeks}}"
+    },
+    "reports": {
+      "title": "Reports",
+      "empty": "No reports yet: the outcome of each operation lands here.",
+      "completed": "{op} against {name} succeeded.",
+      "failed": "{op} against {name} failed: no effect, nobody noticed.",
+      "detected": "{op} against {name} exposed: your agents were identified.",
+      "detectedButDone": "{op} against {name} exposed, but the technology is yours.",
+      "caught": "You exposed an operation by {name} against you: {op}.",
+      "when": "{weeks, plural, =0 {This week} =1 {1 week ago} other {# weeks ago}}"
+    },
+    "list": {
+      "title": "What you know about each nation",
+      "running": "{n, plural, =1 {1 operation under way} other {# operations under way}}",
+      "sortIntel": "Knowledge",
+      "sortName": "Name"
+    },
+    "error": {
+      "ownerMismatch": "That operation is not yours.",
+      "targetNotFound": "The target no longer exists.",
+      "selfTarget": "You cannot spy on yourself.",
+      "noSpies": "You have no agents available.",
+      "invalidDuration": "Invalid operation length."
+    }
+  },
+  "panelUN": {
+    "title": "United Nations",
+    "hero": {
+      "label": "On the floor",
+      "waiting": "Awaiting your vote",
+      "onFloor": "{n, plural, =0 {no resolution on the floor} =1 {1 resolution on the floor} other {# resolutions on the floor}}",
+      "seatCouncil": "You sit on the council: you can veto and table any kind of resolution.",
+      "seatAssembly": "You vote on everything and can table humanitarian aid and climate accords. Vetoes and other proposals belong to the council.",
+      "tabled": "Tabled by you",
+      "passed": "Passed so far",
+      "council": "The council"
+    },
+    "councilMember": "Council member",
+    "assemblyMember": "General assembly",
+    "inactive": {
+      "title": "There is no UN here",
+      "body": "This scenario has no council: no resolutions, no votes. In the larger scenarios this is where the world is counted."
+    },
+    "active": "On the floor",
+    "emptyTitle": "Empty chamber",
+    "empty": "No resolution on the floor. One arrives when a council member tables it — or when you do.",
+    "history": "On the record",
+    "historyEmpty": "No resolution has closed yet.",
+    "historyAll": "Show all {n}",
+    "historyLess": "Show fewer",
+    "card": {
+      "proposer": "Tabled by",
+      "target": "Concerns",
+      "closes": "Voting closes in"
+    },
+    "weeksRemaining": "{n, plural, =0 {less than a week} =1 {1 week} other {# weeks}}",
+    "tally": {
+      "aria": "Yes {yes}, no {no}, abstained {abstain}, vetoes {veto}",
+      "pending": "{n, plural, =1 {1 yet to vote} other {# yet to vote}}"
+    },
+    "detailedVotes": "Who voted what",
+    "effects": {
+      "ifPassed": "If it passes:",
+      "ifFailed": "If it fails:",
+      "applied": "Outcome:",
+      "nothing": "no effect.",
+      "none": "no direct effect; it stays on the record as a statement.",
+      "treaty": "the non-proliferation treaty comes into force: every warhead dismantled is worth +30 reputation instead of +15.",
+      "worldTension": "World tension {delta}.",
+      "you": "You",
+      "attitude": "Attitude between {a} and {b}: {delta}.",
+      "stat": {
+        "popularity": "{name}: popularity {delta}.",
+        "treasury": "{name}: treasury {delta}.",
+        "gdp": "{name}: GDP {delta}.",
+        "armySize": "{name}: garrison {delta} units.",
+        "doctrineLevel": "{name}: military doctrine {delta}.",
+        "taxRate": "{name}: tax rate {delta} points.",
+        "spyCount": "{name}: agents {delta}."
+      }
+    },
+    "vote": {
+      "label": "Your vote",
+      "yes": "Yes",
+      "no": "No",
+      "abstain": "Abstain",
+      "veto": "Veto",
+      "vetoCta": "Cast a veto",
+      "vetoHint": "Blocks the resolution: no effect applies.",
+      "pending": "Pending",
+      "rules": "A vote cannot be changed. It passes if yes outnumbers no; anyone who has not voted by the close counts as abstaining. Other countries vote at the close."
+    },
+    "alreadyVoted": "You voted: {vote}.",
+    "youVoted": "Your vote: {vote}.",
+    "status": {
+      "voting": "Voting",
+      "passed": "Passed",
+      "failed": "Rejected",
+      "vetoed": "Vetoed"
+    },
+    "kind": {
+      "label": "Kind:",
+      "sanctions": "Sanctions",
+      "peacekeeping": "Peacekeeping",
+      "recognition": "Recognition",
+      "humanitarian": "Humanitarian aid",
+      "climate": "Climate accord",
+      "nonProliferation": "Non-proliferation",
+      "condemnation": "Condemnation"
+    },
+    "kindDescription": {
+      "sanctions": "Asks the world to isolate a nation economically.",
+      "peacekeeping": "Asks for blue helmets to be sent to a contested region.",
+      "recognition": "Recognises the legitimacy of a state or a government.",
+      "humanitarian": "Coordinates international emergency aid.",
+      "climate": "Commits everyone to a climate accord.",
+      "nonProliferation": "Bans new weapons of mass destruction.",
+      "condemnation": "Formally condemns the actions of a nation."
+    },
+    "propose": {
+      "title": "Table a resolution",
+      "open": "Table a resolution",
+      "cancel": "Never mind",
+      "introCouncil": "As a council member you can bring any resolution to the floor.",
+      "introAssembly": "From the assembly you can bring humanitarian aid and climate accords to the floor.",
+      "stepKind": "What you are asking for",
+      "stepCountry": {
+        "sanctions": "Against whom",
+        "condemnation": "Whom to condemn",
+        "recognition": "Whom to recognise"
+      },
+      "stepRegion": "In which region",
+      "stepReview": "Before you table it",
+      "councilOnly": "Reserved to council members",
+      "sortHostile": "Most hostile",
+      "sortName": "Name",
+      "reviewVote": "Voting stays open for {weeks} weeks and your yes is already counted.",
+      "reviewRule": "It passes if yes outnumbers no. A veto from a council member blocks it.",
+      "reviewEffects": "A resolution you table has no automatic effect: what counts is the outcome of the vote, which stays on the record.",
+      "reviewTreaty": "If it passes the treaty comes into force: every warhead dismantled is worth +30 reputation instead of +15.",
+      "submit": "Table: {kind}",
+      "submitTarget": "Table: {kind} · {target}",
+      "pickCountry": "Choose the nation the resolution concerns.",
+      "pickRegion": "Choose the region the resolution concerns."
+    },
+    "confirm": {
+      "veto": {
+        "title": "Cast a veto?",
+        "description": "A veto blocks the resolution whatever the others vote: it does not pass and no effect applies. It cannot be withdrawn."
+      }
+    },
+    "error": {
+      "notAvailable": "The UN is not active in this scenario.",
+      "invalidTarget": "That nation does not exist.",
+      "selfTarget": "You cannot table a resolution against yourself.",
+      "notPermanent": "That proposal is reserved to council members.",
+      "resolutionNotFound": "Resolution not found.",
+      "alreadyClosed": "Voting has already closed.",
+      "alreadyVoted": "You have already voted: a vote cannot be changed.",
+      "vetoNotPermitted": "Only council members can cast a veto."
+    },
+    "proposer": "Proposer:",
+    "votingClosesAt": "Voting closes:",
+    "target": {
+      "label": "Target:"
+    },
+    "notCouncilMember": "Only council members may vote."
   }
 }

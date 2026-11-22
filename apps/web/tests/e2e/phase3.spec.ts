@@ -15,13 +15,12 @@
 // `expect.poll` with the existing event-modal drain so narrative events don't
 // pause the loop indefinitely.
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import {
   clickSpeed,
   dismissAllEventModals,
   dismissTutorial,
-  parseTickFromHud,
   readTick,
   startNewGame,
   waitForPlayReady,
@@ -30,101 +29,9 @@ import {
 // Run sequentially (workers: 1 in playwright.config) but DO NOT use
 // serial mode — a single failure should not skip the rest of Phase 3 coverage.
 
-// ---------------------------------------------------------------------------
-// Wizard / picker behaviours
-// ---------------------------------------------------------------------------
-
-test.describe('Phase 3 — wizard', () => {
-  test('breadcrumb back jump from gameMode → scenario re-enables era-paced gating', async ({
-    page,
-  }) => {
-    await dismissTutorial(page);
-    await page.goto('/it/new');
-
-    // Pick Mondo Contemporaneo (era-paced supported), advance to step 5.
-    await page
-      .getByRole('button', { name: /^Mondo Contemporaneo\b/ })
-      .first()
-      .click();
-    await advance(page);
-    await page.getByRole('button', { name: /\bmc-italy\b/ }).first().click();
-    await advance(page);
-    await page
-      .getByRole('button', { name: /Vittoria economica/i })
-      .first()
-      .click();
-    await advance(page);
-    await page.getByRole('button', { name: /^Normale\b/ }).first().click();
-    await advance(page);
-
-    // Step 5: era-paced is enabled (not aria-disabled).
-    const eraPacedCard = page.getByRole('button', { name: /A capitoli/ });
-    await expect(eraPacedCard).toBeVisible();
-    await expect(eraPacedCard).toBeEnabled();
-
-    // Jump back to step 1 via breadcrumb (it's a button when past).
-    await page
-      .getByRole('navigation', { name: 'Configurazione partita' })
-      .getByRole('button', { name: 'Scenario' })
-      .click();
-
-    // Pick Quick Start (no eras schedule).
-    await page.getByRole('button', { name: /^Quick Start\b/ }).first().click();
-    // Forward clicks reset country & difficulty selections so we re-walk.
-    await advance(page);
-    await page
-      .getByRole('button', { name: /\bverm-aurelia\b/ })
-      .first()
-      .click();
-    await advance(page);
-    await page
-      .getByRole('button', { name: /Vittoria economica/i })
-      .first()
-      .click();
-    await advance(page);
-    await page.getByRole('button', { name: /^Normale\b/ }).first().click();
-    await advance(page);
-
-    // Era-paced should now be disabled.
-    const eraPacedDisabled = page.getByRole('button', { name: /A capitoli/ });
-    await expect(eraPacedDisabled).toBeDisabled();
-  });
-
-  test('dethrone on a bloc-less scenario shows the isolation-unavailable note', async ({
-    page,
-  }) => {
-    await dismissTutorial(page);
-    await page.goto('/it/new');
-
-    // Quick Start → no blocs, dethrone "isolation" trigger should warn.
-    await page.getByRole('button', { name: /^Quick Start\b/ }).first().click();
-    await advance(page);
-    await page
-      .getByRole('button', { name: /\bverm-aurelia\b/ })
-      .first()
-      .click();
-    await advance(page);
-    await page
-      .getByRole('button', { name: /Vittoria economica/i })
-      .first()
-      .click();
-    await advance(page);
-    await page.getByRole('button', { name: /^Normale\b/ }).first().click();
-    await advance(page);
-
-    // Pick Detronizzazione card.
-    await page
-      .getByRole('button', { name: /Detronizzazione/ })
-      .first()
-      .click();
-
-    await expect(
-      page.getByText(
-        /Lo scenario non supporta il trigger isolamento|Only the GDP-rank trigger/i,
-      ),
-    ).toBeVisible();
-  });
-});
+// The new-game wizard itself (mode gating, Chronicles availability, the
+// Throne isolation note) is covered by new-game.spec.ts and
+// game-mode-pick.spec.ts.
 
 // ---------------------------------------------------------------------------
 // Eternal mode
@@ -606,21 +513,6 @@ test.describe('Phase 3 — Iron Man + Eternal combo', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Multi-language switch via wizard breadcrumb
-// ---------------------------------------------------------------------------
-
-test.describe('Phase 3 — i18n in wizard', () => {
-  test('English wizard renders English step labels', async ({ page }) => {
-    await dismissTutorial(page);
-    await page.goto('/en/new');
-    await expect(page.getByText('Step 1 of 5')).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: 'Choose a scenario' }),
-    ).toBeVisible();
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Tracked bugs — these tests document Phase 3 issues we found during the
 // sweep but did NOT fix inline. Use `.fixme()` so Playwright reports them as
 // "known fails" without blocking CI.
@@ -715,9 +607,3 @@ test.describe('Phase 3 — known issues', () => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function advance(page: Page) {
-  await page
-    .getByRole('button', { name: 'Avanti', exact: true })
-    .first()
-    .click();
-}

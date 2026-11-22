@@ -37,6 +37,7 @@ export type PlanetViewHandle = {
   nudge: (dLon: number, dLat: number) => void;
   setSun: (lon: number, lat?: number) => void;
   setSunSpeed: (degPerSecond: number) => void;
+  setOffsetX: (fraction: number) => void;
   drawOverlay: (draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void) => void;
   getView: () => { lon: number; lat: number; distance: number } | null;
 };
@@ -55,6 +56,11 @@ export type PlanetViewProps = {
   forceWebGL?: boolean;
   /** Degrees of solar longitude per second. */
   sunSpeed?: number;
+  /**
+   * Horizontal bands (px from each edge) covered by UI. Labels that would
+   * land under them are hidden instead of bleeding through the glass.
+   */
+  insets?: { left: number; right: number };
   ariaLabel?: string;
   onPick?: (lon: number, lat: number) => void;
   onHover?: (coords: { lon: number; lat: number } | null, x: number, y: number) => void;
@@ -78,6 +84,7 @@ const PlanetView = forwardRef<PlanetViewHandle, PlanetViewProps>(function Planet
     offsetX,
     forceWebGL,
     sunSpeed,
+    insets,
     ariaLabel,
     onPick,
     onHover,
@@ -90,6 +97,10 @@ const PlanetView = forwardRef<PlanetViewHandle, PlanetViewProps>(function Planet
   const rendererRef = useRef<PlanetRenderer | null>(null);
   const markerEls = useRef(new Map<string, HTMLDivElement>());
   const markersRef = useRef(markers);
+  const insetsRef = useRef(insets);
+  useEffect(() => {
+    insetsRef.current = insets;
+  }, [insets]);
   const [failed, setFailed] = useState(false);
   const [live, setLive] = useState(false);
   // Flipped when the WebGPU device is lost: the effect re-runs on WebGL2.
@@ -111,6 +122,7 @@ const PlanetView = forwardRef<PlanetViewHandle, PlanetViewProps>(function Planet
       zoomBy: (factor) => rendererRef.current?.zoomBy(factor),
       nudge: (dLon, dLat) => rendererRef.current?.nudge(dLon, dLat),
       setSun: (lon, lat) => rendererRef.current?.setSun(lon, lat),
+      setOffsetX: (v) => rendererRef.current?.setOffsetX(v),
       setSunSpeed: (v) => {
         if (rendererRef.current) rendererRef.current.sunSpeed = v;
       },
@@ -147,7 +159,11 @@ const PlanetView = forwardRef<PlanetViewHandle, PlanetViewProps>(function Planet
         const el = markerEls.current.get(m.id);
         if (!el) continue;
         const p = renderer.project(m.lon, m.lat, 1.004);
-        if (!p.visible) {
+        const band = insetsRef.current;
+        const covered =
+          band !== undefined &&
+          (p.x < band.left || p.x + (m.kind === 'label' ? m.width : 0) > host.clientWidth - band.right);
+        if (!p.visible || covered) {
           el.style.opacity = '0';
           el.style.pointerEvents = 'none';
           continue;
@@ -203,6 +219,10 @@ const PlanetView = forwardRef<PlanetViewHandle, PlanetViewProps>(function Planet
         renderer.onPick = (lon, lat) => cb.current.onPick?.(lon, lat);
         renderer.onHover = (c, x, y) => cb.current.onHover?.(c, x, y);
         renderer.onZoom = (d) => cb.current.onZoom?.(d);
+        // Low-detail mode also drops the (costly) backdrop blur of the glass UI.
+        renderer.onPerformance = (level) => {
+          document.documentElement.dataset.perf = level;
+        };
         renderer.onFrame = layoutMarkers;
         rendererRef.current = renderer;
         await renderer.start();

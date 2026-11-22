@@ -4,7 +4,7 @@
 // scenarios that don't opt into the era system see nothing — the pill
 // hides itself.
 //
-// Visual: 1px hairline pill (`border-border`), `rounded-sm`, small-caps
+// Visual: 1px hairline pill (`border-white/10`), `rounded-lg`, small-caps
 // `text-fg-muted` body, `px-2 py-0.5`. Read-only — no popover, no hover
 // chrome beyond a faint border tint when hovered. The era's localised
 // name comes from the scenario side-car bundle (the same one
@@ -60,7 +60,7 @@ export function EraBadge() {
       aria-label={t('tooltip', { name })}
       title={t('tooltip', { name })}
       data-testid="era-badge"
-      className="rounded-sm border border-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-fg-muted"
+      className="rounded-lg border border-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-fg-muted"
     >
       {name}
     </span>

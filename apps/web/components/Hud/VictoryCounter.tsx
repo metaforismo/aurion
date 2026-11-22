@@ -138,7 +138,7 @@ export function VictoryCounter() {
           aria-valuenow={count}
           aria-valuemin={0}
           aria-valuemax={total}
-          className="block h-[3px] w-[60px] overflow-hidden rounded-sm bg-accent-soft"
+          className="block h-[3px] w-[60px] overflow-hidden rounded-lg bg-accent-soft"
         >
           <span
             aria-hidden="true"
@@ -189,7 +189,7 @@ function VictoryPopover({
       role="dialog"
       aria-modal={false}
       aria-labelledby={titleId}
-      className="glass-surface absolute right-0 z-30 mt-2 w-64 rounded-lg border border-border-strong bg-surface-1/95 p-3 shadow-2xl backdrop-blur"
+      className="glass-surface absolute right-0 z-30 mt-2 w-64 rounded-lg glass-panel p-3 "
     >
       <h3
         id={titleId}
@@ -209,10 +209,10 @@ function VictoryPopover({
             <li
               key={c.id}
               className={cn(
-                'flex items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-xs',
+                'flex items-center justify-between gap-2 rounded-xl border px-2 py-1.5 text-xs',
                 isUnlocked
                   ? 'border-accent/40 bg-accent/10 text-fg'
-                  : 'border-border bg-surface/40 text-fg-muted',
+                  : 'border-white/10 bg-white/[0.04] text-fg-muted',
               )}
             >
               <span className="truncate">{label}</span>

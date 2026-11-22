@@ -1,300 +1,181 @@
-// Game-over screen. Shows different copy for victory vs defeat, summarizes
-// the run (ticks played, peak popularity, peak treasury, techs unlocked, spy
-// ops launched), surfaces the win/loss reason, and offers CTAs to start a new
-// game or return home.
-
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
-import { useEffect, useState, type ReactNode } from 'react';
-import type { GameState, Scenario, WinLossState } from '@aurion/engine';
+// End screen. A run deserves a proper ending: the verdict, why it happened,
+// what the player built along the way, one concrete lesson after a defeat,
+// and a clear next move (including carrying a won game on as an Odyssey).
+
+import { Crown, Home, Infinity as InfinityIcon, RotateCcw, Skull } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useEffect, useRef } from 'react';
+import { kardashevType, spaceRaceLeader, type GameState } from '@aurion/engine';
 
 import { Link } from '../../i18n/navigation';
-import { useCountUp } from '../../lib/animations';
-import { cn } from '../../lib/cn';
+import { money } from '../../lib/format';
 import type { ScenarioId } from '../../lib/scenarios';
-import {
-  selectLossReason,
-  selectPlayerCountry,
-  useGameStore,
-  type LossReason,
-} from '../../lib/store';
+import { selectLossReason, selectPlayerCountry, useGameStore } from '../../lib/store';
 import { useScenarioMessages } from '../Panels/shared/useScenarioMessages';
+import { Button, Stat } from '../ui';
 
-import { Modal } from './Modal';
+function gdpRank(state: GameState): number {
+  const sorted = Object.values(state.countries).sort((a, b) => b.economy.gdp - a.economy.gdp);
+  return sorted.findIndex((c) => c.id === state.playerCountryId) + 1;
+}
 
 export function WinLossModal() {
   const state = useGameStore((s) => s.state);
   const scenario = useGameStore((s) => s.scenario);
   const player = useGameStore(selectPlayerCountry);
   const lossReason = useGameStore(selectLossReason);
+  const continueAsOdyssey = useGameStore((s) => s.continueAsOdyssey);
   const t = useTranslations('modals.winLoss');
-  const tCommon = useTranslations('common');
-  const format = useFormatter();
+  const tEnd = useTranslations('endScreen');
+  const tVictory = useTranslations();
+  const tCosmos = useTranslations('cosmos.kardashev');
+  const locale = useLocale();
+  const { t: tScenario } = useScenarioMessages((scenario?.id as ScenarioId | undefined) ?? null);
+  const primaryRef = useRef<HTMLAnchorElement | null>(null);
 
-  if (!state || state.winLoss === 'playing' || !player) return null;
+  const visible =
+    !!state &&
+    !!player &&
+    state.winLoss !== 'playing' &&
+    // An Odyssey never ends on a win; its milestones are toasts.
+    !((state.gameMode ?? 'classic') === 'eternal' && state.winLoss === 'won');
 
-  // Eternal mode never *wins* — the engine should never set
-  // `winLoss = 'won'` for it, but we defend against a stale reconciliation by
-  // suppressing the modal in that case. Eternal-mode losses still surface
-  // normally so the player gets a post-mortem.
-  const gameMode = state.gameMode ?? 'classic';
-  if (gameMode === 'eternal' && state.winLoss === 'won') return null;
+  useEffect(() => {
+    if (visible) primaryRef.current?.focus();
+  }, [visible]);
 
-  const winLoss: Exclude<WinLossState, 'playing'> = state.winLoss;
-  const isWin = winLoss === 'won';
+  if (!visible || !state || !player) return null;
+
+  const isWin = state.winLoss === 'won';
+  const mode = state.gameMode ?? 'classic';
+
+  let reason: string;
+  if (isWin) {
+    if (mode === 'space-race') reason = tEnd('won.raceReason');
+    else if (mode === 'dethrone') reason = tEnd('won.throne');
+    else if (mode === 'era-paced' && state.eraState) reason = tEnd('won.chronicles');
+    else {
+      const cond = scenario?.victoryConditions.find((v) => v.id === state.selectedVictoryCondition);
+      const fromScenario = cond ? tScenario(cond.nameKey) : '';
+      const name =
+        cond && fromScenario !== cond.nameKey
+          ? fromScenario
+          : cond && tVictory.has(cond.nameKey)
+            ? tVictory(cond.nameKey)
+            : state.selectedVictoryCondition;
+      reason = t('wonReason', { condition: name });
+    }
+  } else if (lossReason === 'outpaced') {
+    const leader = state.cosmos ? spaceRaceLeader(state.cosmos) : null;
+    const c = leader ? state.countries[leader.countryId] : undefined;
+    reason = tEnd('lost.outpaced', { name: c ? tScenario(c.nameKey) : '—' });
+  } else if (lossReason) {
+    reason = t(`lossReason.${lossReason}`);
+  } else {
+    reason = tEnd('lost.unknown');
+  }
+
+  const cosmos = state.cosmos;
+  const rating = cosmos?.kardashev ?? 0.7;
+  const firsts = cosmos ? Object.values(cosmos.firsts).filter((c) => c === player.id).length : 0;
+  const allies = Object.values(state.relations).filter(
+    (r) => (r.countryA === player.id || r.countryB === player.id) && r.treaties.includes('alliance'),
+  ).length;
+  const years = Math.floor(state.tick / 52);
+
+  const stats: { label: string; value: string; hint?: string }[] = [
+    { label: tEnd('stats.duration'), value: tEnd('stats.durationValue', { years, weeks: state.tick % 52 }).trim() },
+    { label: tEnd('stats.kardashev'), value: rating.toFixed(2), hint: tCosmos(`type.${kardashevType(rating)}`) },
+    { label: tEnd('stats.projects'), value: String(cosmos?.completed.length ?? 0) },
+    { label: tEnd('stats.firsts'), value: String(firsts) },
+    { label: tEnd('stats.techs'), value: String(player.science.completedTechs.length) },
+    {
+      label: tEnd('stats.rank'),
+      value: tEnd('stats.rankValue', { rank: gdpRank(state), total: Object.keys(state.countries).length }),
+      hint: money(player.economy.gdp, locale),
+    },
+    { label: tEnd('stats.allies'), value: String(allies) },
+    { label: tEnd('stats.popularity'), value: `${Math.round(player.politics.popularity)}%` },
+  ];
+
+  const tone = isWin ? '#E8B45A' : '#ff5d4d';
+  const Icon = isWin ? Crown : Skull;
 
   return (
-    <Modal
-      title={
-        <span className={cn(isWin ? 'text-success' : 'text-danger')}>
-          {isWin ? t('wonTitle') : t('lostTitle')}
-        </span>
-      }
-      // Win/Loss modal is informational but the player must decide what's
-      // next — keep it non-dismissable so ESC can't drop them back into a
-      // dead game state.
-      dismissable={false}
-      size="md"
-      className={isWin ? 'border-success/60' : 'border-danger/60'}
-      footer={
-        <>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="end-screen-title"
+      data-testid="end-screen"
+      data-outcome={state.winLoss}
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
+      style={{
+        background: `radial-gradient(ellipse 80% 60% at 50% 30%, ${tone}26 0%, transparent 60%), color-mix(in oklch, var(--color-bg) 84%, transparent)`,
+        backdropFilter: 'blur(6px)',
+        animation: 'modal-backdrop-enter 600ms cubic-bezier(0, 0, 0.2, 1) both',
+      }}
+    >
+      <div
+        className="glass-panel my-auto w-full max-w-2xl rounded-3xl p-6 sm:p-8"
+        style={{ animation: 'rise-in 700ms cubic-bezier(0.2, 0.8, 0.2, 1) 150ms both' }}
+      >
+        <div className="flex flex-col items-center text-center">
+          <span
+            className="grid h-14 w-14 place-items-center rounded-full border"
+            style={{ borderColor: `${tone}80`, backgroundColor: `${tone}1f`, color: tone }}
+          >
+            <Icon aria-hidden className="h-6 w-6" />
+          </span>
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.28em]" style={{ color: tone }}>
+            {tEnd(isWin ? 'won.kicker' : 'lost.kicker')}
+          </p>
+          <h2 id="end-screen-title" className="mt-1 text-4xl font-semibold tracking-tight text-fg sm:text-5xl">
+            {t(isWin ? 'wonTitle' : 'lostTitle')}
+          </h2>
+          <p className="mt-3 max-w-md text-[15px] leading-relaxed text-fg-muted">{reason}</p>
+          {!isWin && lossReason ? (
+            <p className="mt-3 max-w-md rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-[13px] leading-relaxed text-fg-muted">
+              {tEnd(`tip.${lossReason}`)}
+            </p>
+          ) : null}
+        </div>
+
+        <h3 className="mt-7 text-[11px] font-semibold uppercase tracking-[0.16em] text-fg-faint">
+          {tEnd('stats.title')}
+        </h3>
+        <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+              <Stat label={s.label} value={s.value} hint={s.hint} />
+            </div>
+          ))}
+        </dl>
+
+        <div className="mt-7 flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
           <Link
             href="/"
-            className="rounded-sm border border-border bg-transparent px-4 py-2 text-xs font-semibold text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-fg-muted transition-colors hover:bg-white/[0.07] hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           >
-            {t('backHome')}
+            <Home aria-hidden className="h-4 w-4" />
+            {tEnd('home')}
           </Link>
+          {isWin ? (
+            <Button icon={InfinityIcon} onClick={continueAsOdyssey} title={tEnd('continueHint')} data-testid="end-continue">
+              {tEnd('continue')}
+            </Button>
+          ) : null}
           <Link
+            ref={primaryRef}
             href="/new"
-            className="rounded-sm border border-accent bg-accent px-4 py-2 text-xs font-semibold text-bg transition hover:border-accent-strong hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-black transition-colors hover:bg-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            {t('newGame')}
+            <RotateCcw aria-hidden className="h-4 w-4" />
+            {tEnd('newGame')}
           </Link>
-        </>
-      }
-    >
-      <Verdict isWin={isWin}>
-        {isWin ? t('wonTitle') : t('lostTitle')}
-      </Verdict>
-      <Reason
-        winLoss={winLoss}
-        lossReason={lossReason}
-        scenario={scenario}
-        selectedVictoryCondition={state.selectedVictoryCondition}
-      />
-      <Summary
-        state={state}
-        format={format}
-        tickLabel={t('ticksPlayed', { tick: state.tick })}
-        labels={{
-          summary: t('summary'),
-          peakPopularity: t('peakPopularity'),
-          peakTreasury: t('peakTreasury'),
-          techsUnlocked: t('techsUnlocked'),
-          spyOpsLaunched: t('spyOpsLaunched'),
-        }}
-        unknownLabel={tCommon('loading')}
-      />
-    </Modal>
-  );
-}
-
-/**
- * Set-piece banner: the big verdict word over a soft semantic glow. Rises
- * with a short delay so the modal card lands first; reduced-motion users get
- * an instant cut via the global animation override.
- */
-function Verdict({ isWin, children }: { isWin: boolean; children: ReactNode }) {
-  return (
-    <div className="relative -mx-2 mb-4 overflow-hidden rounded-md px-2 py-6 text-center">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: isWin
-            ? 'radial-gradient(ellipse 70% 90% at 50% 0%, oklch(0.74 0.09 165 / 0.18), transparent 70%)'
-            : 'radial-gradient(ellipse 70% 90% at 50% 0%, oklch(0.66 0.10 18 / 0.16), transparent 70%)',
-        }}
-      />
-      <p
-        className={cn(
-          'relative text-4xl font-bold uppercase tracking-[0.18em]',
-          isWin ? 'text-success' : 'text-danger',
-        )}
-        style={{
-          animation:
-            'verdict-rise 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms both',
-        }}
-      >
-        {children}
-      </p>
-    </div>
-  );
-}
-
-/**
- * Count-up driver for the end-of-run tally. `useCountUp` only tweens
- * *changes*, so we mount at 0 and flip to the target one frame later — the
- * classic score-reveal. Reduced-motion users snap (handled inside the hook).
- */
-function useTally(target: number): number {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setValue(target));
-    return () => cancelAnimationFrame(id);
-  }, [target]);
-  return useCountUp(value);
-}
-
-function Reason({
-  winLoss,
-  lossReason,
-  scenario,
-  selectedVictoryCondition,
-}: {
-  winLoss: Exclude<WinLossState, 'playing'>;
-  lossReason: LossReason | null;
-  scenario: Scenario | null;
-  selectedVictoryCondition: GameState['selectedVictoryCondition'];
-}) {
-  const t = useTranslations('modals.winLoss');
-  const tVictory = useTranslations('victory');
-  const tVictoryScreen = useTranslations('victoryScreen');
-  // Scenario-scoped victory condition nameKeys (e.g. `victory.qs.economic.name`,
-  // `victory.gf.economic.name`) live ONLY in the scenario side-car bundle.
-  // Generic ones (`victory.economic.name`) ship in the global UI bundle.
-  // We consult the side-car first so QS / GF / MC scenarios resolve cleanly.
-  const scenarioId = (scenario?.id ?? null) as ScenarioId | null;
-  const { t: tScenario } = useScenarioMessages(scenarioId);
-
-  if (winLoss === 'won') {
-    // Look up the descriptive name of the chosen victory condition.
-    const cond = scenario?.victoryConditions.find(
-      (v) => v.id === selectedVictoryCondition,
-    );
-    const nameKey = cond?.nameKey;
-    return (
-      <p className="text-sm text-fg-muted">
-        {t('wonReason', {
-          condition: nameKey
-            ? resolveVictoryName(tScenario, tVictory, nameKey)
-            : selectedVictoryCondition,
-        })}
-      </p>
-    );
-  }
-
-  // Defeat — surface why. Dethrone-mode triggers live in their own
-  // `victoryScreen.*` namespace so the localisation team can iterate on the
-  // post-mortem copy independently from the classic loss reasons.
-  const reason: LossReason = lossReason ?? 'popularity';
-  const message =
-    reason === 'dethroned'
-      ? tVictoryScreen('dethroned')
-      : reason === 'isolated'
-        ? tVictoryScreen('isolated')
-        : t(`lossReason.${reason}`);
-  return <p className="text-sm text-fg-muted">{message}</p>;
-}
-
-/**
- * Resolve a victory-condition nameKey through both the scenario side-car
- * and the global UI bundle. Scenario-scoped variants
- * (`victory.qs.economic.name`, `victory.gf.economic.name`, …) live ONLY in
- * the side-car file; the generic shape (`victory.economic.name`) ships in
- * `messages/{en,it}.json` under the `victory` namespace. We consult the
- * side-car first, then strip the leading `victory.` prefix and ask the
- * global namespaced translator, finally degrading to the raw key.
- */
-function resolveVictoryName(
-  tScenario: (key: string | undefined | null) => string,
-  tVictory: ReturnType<typeof useTranslations<'victory'>>,
-  fullKey: string,
-): string {
-  const scenarioValue = tScenario(fullKey);
-  if (scenarioValue && scenarioValue !== fullKey) return scenarioValue;
-  const prefix = 'victory.';
-  if (!fullKey.startsWith(prefix)) return fullKey;
-  const rel = fullKey.slice(prefix.length);
-  try {
-    return (tVictory as unknown as (k: string) => string)(rel);
-  } catch {
-    return fullKey;
-  }
-}
-
-function Summary({
-  state,
-  format,
-  tickLabel,
-  labels,
-  unknownLabel,
-}: {
-  state: GameState;
-  format: ReturnType<typeof useFormatter>;
-  tickLabel: string;
-  labels: {
-    summary: string;
-    peakPopularity: string;
-    peakTreasury: string;
-    techsUnlocked: string;
-    spyOpsLaunched: string;
-  };
-  unknownLabel: string;
-}) {
-  const player = state.countries[state.playerCountryId];
-  const peakPopularity = Math.round(player?.politics.popularity ?? 0);
-  const peakTreasury = Math.round(player?.economy.treasury ?? 0);
-  const techsUnlocked = player?.science.completedTechs.length ?? 0;
-  const spyOpsLaunched = state.spyOperations.filter(
-    (op) => op.ownerCountryId === state.playerCountryId,
-  ).length;
-
-  // Score-reveal tallies — each stat counts up from zero when the modal
-  // mounts, so the post-mortem reads as a result screen, not a spreadsheet.
-  const tickTally = useTally(state.tick);
-  const popularityTally = useTally(peakPopularity);
-  const treasuryTally = useTally(peakTreasury);
-  const techsTally = useTally(techsUnlocked);
-  const spyOpsTally = useTally(spyOpsLaunched);
-
-  return (
-    <section className="mt-4 space-y-3 border-t border-border pt-4">
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-        {labels.summary}
-      </h3>
-      <dl className="grid grid-cols-2 gap-3 text-sm">
-        <Stat
-          label={tickLabel.split(':')[0] ?? 'Weeks'}
-          value={String(tickTally)}
-        />
-        <Stat label={labels.peakPopularity} value={`${popularityTally}%`} />
-        <Stat
-          label={labels.peakTreasury}
-          value={format.number(treasuryTally, {
-            style: 'currency',
-            currency: 'EUR',
-            notation: 'compact',
-            maximumFractionDigits: 1,
-          })}
-        />
-        <Stat label={labels.techsUnlocked} value={String(techsTally)} />
-        <Stat label={labels.spyOpsLaunched} value={String(spyOpsTally)} />
-      </dl>
-      {/* Sr-only fallback to keep typescript happy when no labels are present */}
-      <span className="sr-only">{unknownLabel}</span>
-    </section>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-        {label}
-      </dt>
-      <dd className="numeric-tabular font-mono text-base text-fg">{value}</dd>
+        </div>
+      </div>
     </div>
   );
 }

@@ -11,9 +11,6 @@ import type {
   AchievementId,
   Action,
   CountryId,
-  Country,
-  EventDefinition,
-  EventEffect,
   GameEvent,
   GameMode,
   GameState,
@@ -24,16 +21,16 @@ import type {
 import {
   BUILTIN_ACHIEVEMENTS,
   evaluateAchievements,
+  resolveEventChoice as engineResolveEventChoice,
+  spaceRaceOutcome,
 } from '@aurion/engine';
 
 import {
   applyAction as engineApplyAction,
-  checkWinLoss as engineCheckWinLoss,
   createGame as engineCreateGame,
   tick as engineTick,
 } from './engine-bridge';
 import {
-  AUTOSAVE_ID,
   autosave as persistenceAutosave,
   generateSaveId,
   getUnlockedAchievements,
@@ -95,7 +92,9 @@ export type LossReason =
   | 'occupation'
   | 'factionRevolt'
   | 'dethroned'
-  | 'isolated';
+  | 'isolated'
+  /** Space Race: a rival reached Type I first. */
+  | 'outpaced';
 
 /**
  * A pending confirmation prompt. The UI renders a generic confirm modal when
@@ -266,6 +265,8 @@ export type GameStoreState = {
   /** Select a country on the map. Pass null to clear. */
   selectCountry: (id: CountryId | null) => void;
   setPanelOpen: (open: boolean) => void;
+  /** After a win: reopen the run as an endless Odyssey. */
+  continueAsOdyssey: () => void;
   setMapView: (view: MapView) => void;
   /** Open a generic confirmation modal. */
   confirm: (request: ConfirmRequest) => void;
@@ -539,11 +540,15 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   applyAction: async (action) => {
     const { state, scenario } = get();
     if (!state) return ['errors.noActiveGame'];
+    // The engine needs the scenario and difficulty for council rules, UN
+    // triggers and odds — not only the tech tree.
     const result = engineApplyAction(
       state,
       action,
       state.playerCountryId,
       scenario?.techTree ?? [],
+      scenario?.difficulties.find((d) => d.id === state.difficultyId),
+      scenario ?? undefined,
     );
     set({ state: result.state, lastErrors: result.errors });
     return result.errors;
@@ -556,12 +561,18 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const victoryRule = scenario?.victoryConditions.find(
       (v) => v.id === current.state!.selectedVictoryCondition,
     )?.rule;
-    const next = engineTick(current.state, {
+    // Pass the whole context: without `scenario` the UN, eras, space
+    // milestones and victory tracking never run, and without `difficulty`
+    // the preset's modifiers are ignored. `tick` already ends with the
+    // win/loss check, so it must not be run a second time here (that would
+    // advance every loss streak twice a week).
+    const reconciled = engineTick(current.state, {
       techCatalog: scenario?.techTree ?? [],
       eventPool: scenario?.eventPool ?? [],
       ...(victoryRule ? { victoryRule } : {}),
+      ...(scenario ? { scenario } : {}),
+      difficulty: scenario?.difficulties.find((d) => d.id === current.state!.difficultyId),
     });
-    const reconciled = engineCheckWinLoss(next, victoryRule);
 
     // — Eternal-mode victory milestone detection —
     // The engine populates `state.unlockedVictories` and never sets
@@ -668,6 +679,31 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
 
   setPanelOpen: (open) => set({ panelOpen: open }),
+
+  continueAsOdyssey: () => {
+    const { state } = get();
+    if (!state || state.winLoss !== 'won') return;
+    const player = state.countries[state.playerCountryId];
+    set({
+      // The first-victory celebration belongs to runs that start as Odyssey.
+      eternalFirstVictoryShown: true,
+      state: {
+        ...state,
+        winLoss: 'playing',
+        gameMode: 'eternal',
+        unlockedVictories: state.unlockedVictories ?? [state.selectedVictoryCondition],
+        actionLog: state.actionLog ?? [],
+        cumulativeStats: state.cumulativeStats ?? {
+          peakGdpRank: 999,
+          peakTreasury: player?.economy.treasury ?? 0,
+          totalTechsUnlocked: player?.science.completedTechs.length ?? 0,
+          totalReputationGained: 0,
+          totalSpyOpsCompleted: 0,
+          totalTicksPlayed: 0,
+        },
+      },
+    });
+  },
   setMapView: (view) => set({ mapView: view }),
 
   setSelectedPanel: (panel) => {
@@ -681,43 +717,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   resolveCurrentEvent: (choiceIndex) => {
     const { state, scenario } = get();
-    if (!state || state.events.length === 0) return;
-    const lastIdx = state.events.length - 1;
-    const last = state.events[lastIdx];
-    if (!last || last.resolvedChoiceIndex !== null) return;
-
-    const definition = findEventDefinition(scenario, last.definitionId);
-    const choices = definition?.choices ?? [];
-    const safeIdx =
-      choices.length > 0
-        ? Math.max(0, Math.min(choiceIndex, choices.length - 1))
-        : choiceIndex;
-    const choice = choices[safeIdx];
-
-    // Update events ring buffer immutably with the resolved choice index.
-    const events = state.events.slice();
-    events[lastIdx] = { ...last, resolvedChoiceIndex: safeIdx };
-
-    // Apply the chosen effects best-effort. The engine remains the source of
-    // truth — if/when it ships a dedicated `applyEventChoice` we should defer
-    // to it. For now we handle the common `modifyStat` effect against the
-    // player country so events have a visible impact in the UI.
-    let countries = state.countries;
-    if (choice) {
-      countries = applyEventEffectsToCountries(
-        countries,
-        state.playerCountryId,
-        choice.effects,
-      );
-    }
-
-    set({
-      state: {
-        ...state,
-        events,
-        countries,
-      },
-    });
+    if (!state) return;
+    // The engine owns the interpretation of event effects (stat paths,
+    // weeks-of-income, GDP-backed income changes) so the UI preview and the
+    // applied result can never disagree.
+    const next = engineResolveEventChoice(state, scenario?.eventPool ?? [], choiceIndex);
+    if (next !== state) set({ state: next });
   },
 
   dismissCurrentEvent: () => {
@@ -1001,6 +1006,8 @@ export function selectLossReason(s: GameStoreState): LossReason | null {
   const state = s.state;
   if (!state || state.winLoss !== 'lost') return null;
 
+  if (state.gameMode === 'space-race' && spaceRaceOutcome(state) === 'lost') return 'outpaced';
+
   // Dethrone-mode triggers take precedence — they're the whole point of the
   // mode and we want the post-mortem screen to surface them clearly.
   if (selectIsDethrone(s)) {
@@ -1099,20 +1106,6 @@ export function selectShouldShowEternalFirstVictory(
   return s.eternalFirstVictoryShown === false;
 }
 
-/** Re-export the autosave id so callers don't have to import persistence directly. */
-export { AUTOSAVE_ID };
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-function findEventDefinition(
-  scenario: Scenario | null,
-  id: string,
-): EventDefinition | null {
-  if (!scenario) return null;
-  return scenario.eventPool.find((e) => e.id === id) ?? null;
-}
 
 /**
  * Internal: same logic as `selectIronMan`, but takes raw `(scenario, state)`
@@ -1129,74 +1122,3 @@ function isIronManActive(
   return tuning?.ironMan === true;
 }
 
-/**
- * Best-effort applier for an event choice's effects against the country map.
- * Currently handles `modifyStat` for a small allowlist of common stats; other
- * effect kinds are left for the engine to interpret on its next tick. Always
- * returns a new countries record (never mutates input).
- */
-function applyEventEffectsToCountries(
-  countries: Record<CountryId, Country>,
-  playerCountryId: CountryId,
-  effects: readonly EventEffect[],
-): Record<CountryId, Country> {
-  let next = countries;
-  for (const effect of effects) {
-    if (effect.type !== 'modifyStat') continue;
-    const targetId = effect.target === 'player' ? playerCountryId : effect.target;
-    const country = next[targetId];
-    if (!country) continue;
-    const updated = applyModifyStat(country, effect.stat, effect.delta);
-    if (updated === country) continue;
-    next = { ...next, [targetId]: updated };
-  }
-  return next;
-}
-
-function applyModifyStat(country: Country, stat: string, delta: number): Country {
-  switch (stat) {
-    case 'treasury':
-      return {
-        ...country,
-        economy: { ...country.economy, treasury: country.economy.treasury + delta },
-      };
-    case 'popularity':
-      return {
-        ...country,
-        politics: {
-          ...country.politics,
-          popularity: clamp(country.politics.popularity + delta, 0, 100),
-        },
-      };
-    case 'taxRate':
-      return {
-        ...country,
-        economy: {
-          ...country.economy,
-          taxRate: clamp(country.economy.taxRate + delta, 0, 100),
-        },
-      };
-    case 'armySize':
-      return {
-        ...country,
-        military: {
-          ...country.military,
-          armySize: Math.max(0, country.military.armySize + delta),
-        },
-      };
-    case 'spyCount':
-      return {
-        ...country,
-        intelligence: {
-          ...country.intelligence,
-          spyCount: Math.max(0, country.intelligence.spyCount + delta),
-        },
-      };
-    default:
-      return country;
-  }
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}

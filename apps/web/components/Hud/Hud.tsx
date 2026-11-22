@@ -1,121 +1,298 @@
-// Top HUD bar. Flat editorial row (FT terminal / Bloomberg header aesthetic):
-// brand wordmark left, then date · treasury · popularity · reputation · speed
-// counters · menu. No glass background — a single 1px hairline bottom border
-// on the base `bg-bg` separates the strip from the play area. Composes the
-// date / treasury / popularity / speed / menu sub-components and installs the
-// global spacebar-to-toggle-pause shortcut.
-//
-// Vertical rhythm: 52px tall, dense but readable. Horizontal rhythm: ~28px
-// gap between groups, 8px within a group. Sub-badges render as inline
-// label + value pairs — they own no border, no background, no radius. The
-// only chrome lives on interactive controls (speed buttons, icon buttons,
-// menu trigger) and reduces to a hover tint.
-
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+// Top bar of the play screen. Left to right it answers, in order: when is
+// it, how much can I spend, do people still back me, how far has my
+// civilisation climbed, what am I aiming for — then the clock controls.
 
+import { Coins, Heart, Pause, Play } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
+
+import { cn } from '../../lib/cn';
+import { money, signed } from '../../lib/format';
+import { selectIronMan, selectPlayerCountry, useGameStore, type Speed } from '../../lib/store';
 import { useTicker } from '../../lib/ticker';
-import { selectIronMan, useGameStore } from '../../lib/store';
+import { useSfx } from '../Audio';
 
 import { AudioVolumeButton } from './AudioVolumeButton';
-import { DateBadge } from './DateBadge';
 import { EraBadge } from './EraBadge';
+import { GoalChip } from './GoalChip';
 import { IronManBadge } from './IronManBadge';
 import { KardashevBadge } from './KardashevBadge';
 import { MenuButton } from './MenuButton';
-import { PopularityBadge } from './PopularityBadge';
 import { ReputationBadges } from './ReputationBadges';
-import { SpeedControls } from './SpeedControls';
-import { TreasuryBadge } from './TreasuryBadge';
 import { VictoryCounter } from './VictoryCounter';
 
 export type HudProps = {
-  /** Optional toast callback for menu actions. */
   onNotify?: (message: string) => void;
 };
+
+const MONTH_KEYS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'] as const;
+
+/** Calendar year a real-world scenario opens in; fictional worlds count from 1. */
+const SCENARIO_BASE_YEAR: Readonly<Record<string, number>> = {
+  'mondo-contemporaneo': 2025,
+  'guerra-fredda': 1950,
+};
+
+const PLAY_SPEEDS: readonly Speed[] = [1, 2, 4];
 
 export function Hud({ onNotify }: HudProps) {
   const ticker = useTicker();
   const ironMan = useGameStore(selectIronMan);
+  const mode = useGameStore((s) => s.state?.gameMode ?? 'classic');
   const tApp = useTranslations('app');
-  const [internalToast, setInternalToast] = useState<string | null>(null);
-
-  // Spacebar = toggle pause. Ignored when the user is typing in an input or
-  // when an interactive (text-edit) element is focused, so we don't fight the
-  // OS / Next.js form widgets.
+  const t = useTranslations('hud');
+  const sfx = useSfx();
+  // Save / export confirmations when no parent notifier is wired.
+  const [toast, setToast] = useState<string | null>(null);
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 3200);
+    return () => window.clearTimeout(id);
+  }, [toast]);
+
+  // Spacebar: pause / resume, unless the player is typing.
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.code !== 'Space' && e.key !== ' ') return;
       if (isTypingTarget(e.target)) return;
       e.preventDefault();
       if (ticker.speed === 0) {
+        sfx('sfx.resume');
         ticker.resume();
       } else {
+        sfx('sfx.pause');
         ticker.setSpeed(0);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [ticker]);
-
-  const notify = onNotify ?? setInternalToast;
+  }, [ticker, sfx]);
 
   return (
-    <header className="glass-panel pointer-events-auto relative z-20 flex h-[52px] shrink-0 items-center gap-x-3 rounded-2xl px-3 text-sm md:gap-x-5 md:px-4">
-      {/* Brand wordmark — small caps, wide tracking, anchors the row left. */}
-      <span
-        aria-label={tApp('name')}
-        className="select-none text-xs font-semibold uppercase tracking-[0.18em] text-fg"
-      >
-        {tApp('name')}
-      </span>
-      <span aria-hidden="true" className="text-fg-faint">
-        ·
-      </span>
-      {/* Era pill — sits between the brand and the date so the player gets
-          an immediate sense of "what era are we in" before reading the
-          tick. Hides itself for scenarios without an `eras[]` schedule.
-          Below the md breakpoint the pill yields its space to the primary
-          readouts (date / treasury / popularity / speed); `md:contents`
-          dissolves the wrapper at md+ so the row's gap rhythm is unchanged. */}
-      <div className="hidden md:contents">
+    <header className="glass-panel pointer-events-auto relative z-20 flex h-14 shrink-0 items-center gap-1 rounded-2xl px-2 text-sm md:gap-2 md:px-3">
+      <div className="mr-1 flex flex-col leading-none md:mr-2">
+        <span aria-label={tApp('name')} className="select-none text-[13px] font-semibold uppercase tracking-[0.22em] text-fg">
+          {tApp('name')}
+        </span>
+        <span className="mt-1 hidden text-[10px] font-medium uppercase tracking-[0.14em] text-accent sm:block" data-testid="hud-mode">
+          {t(`mode.${mode}`)}
+        </span>
+      </div>
+
+      <Divider />
+      <DateReadout />
+      <div className="hidden lg:block">
         <EraBadge />
       </div>
-      <DateBadge />
       {ironMan ? <IronManBadge /> : null}
-      <TreasuryBadge />
-      <PopularityBadge />
-      {/* Phase 3 — bloc reputation chips. Hide themselves when the active
-          scenario does not opt into the bloc system (i.e. state.reputation
-          is undefined), so Phase 1/2 saves see the previous HUD layout.
-          Also hidden below md: secondary info that would otherwise crowd the
-          speed controls out of a narrow viewport. */}
-      <div className="hidden md:contents">
+      <Divider />
+      <TreasuryReadout />
+      <PopularityReadout />
+      <KardashevBadge />
+      <div className="hidden xl:contents">
         <ReputationBadges />
       </div>
-      {/* Phase 3 — Eternal-mode multi-victory counter. Hides itself unless
-          state.gameMode === 'eternal'. */}
       <VictoryCounter />
-      <KardashevBadge />
-      <SpeedControls />
-      <div className="ml-auto flex items-center gap-1">
+      <GoalChip />
+
+      <div className="ml-auto flex items-center gap-1 md:gap-2">
+        {ticker.isAutoPaused ? (
+          <span
+            role="status"
+            aria-live="polite"
+            title={t('autoPausedHint')}
+            className="hidden items-center gap-1.5 rounded-full border border-warning/50 bg-warning/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-warning sm:flex"
+          >
+            <span
+              aria-label={t('autoPausedDotLabel')}
+              className="inline-block h-1.5 w-1.5 rounded-full bg-warning motion-safe:animate-pulse"
+            />
+            {t('autoPaused')}
+          </span>
+        ) : null}
+        <SpeedControl />
         <AudioVolumeButton />
-        <MenuButton onNotify={notify} />
+        <MenuButton onNotify={onNotify ?? setToast} />
       </div>
-      {/* Internal fallback toast — only used if no parent notifier is wired. */}
-      {!onNotify && internalToast ? (
+      {toast ? (
         <div
           role="status"
           aria-live="polite"
-          className="pointer-events-none fixed bottom-4 right-4 z-50 rounded-md border border-border-strong bg-surface-1/90 px-3 py-2 text-xs text-fg shadow-lg"
+          className="glass-panel pointer-events-none absolute right-0 top-full z-50 mt-2 rounded-xl px-3 py-2 text-xs text-fg"
         >
-          {internalToast}
+          {toast}
         </div>
       ) : null}
     </header>
+  );
+}
+
+function Divider() {
+  return <span aria-hidden className="mx-0.5 hidden h-7 w-px bg-white/10 md:block" />;
+}
+
+function DateReadout() {
+  const tick = useGameStore((s) => s.state?.tick ?? 0);
+  const scenarioId = useGameStore((s) => s.scenario?.id);
+  const t = useTranslations('hud');
+  const yearIndex = Math.floor(tick / 52);
+  const week = (tick % 52) + 1;
+  const month = MONTH_KEYS[Math.min(11, Math.floor(((week - 1) / 52) * 12))] ?? 'jan';
+  const base = scenarioId ? SCENARIO_BASE_YEAR[scenarioId] : undefined;
+  const yearLabel = base !== undefined ? String(base + yearIndex) : t('dateFictional', { year: yearIndex + 1 });
+
+  return (
+    <div className="flex flex-col gap-1 rounded-lg px-2 py-1 leading-none" title={t('dateTooltip', { week })}>
+      <span className="sr-only">{t('dateLabel')}</span>
+      <span className="whitespace-nowrap text-[13px] font-medium text-fg" aria-hidden>
+        <span className="hidden sm:inline">{t(`monthsLong.${month}`)} · </span>
+        <span className="numeric-tabular">{yearLabel}</span>
+      </span>
+      {/* The long form screen readers (and the e2e tick parser) rely on. */}
+      <span className="sr-only">{t('dateValue', { week, year: yearIndex + 1 })}</span>
+      <span aria-hidden className="block h-[3px] w-full min-w-12 overflow-hidden rounded-full bg-white/10">
+        <span className="block h-full rounded-full bg-white/50" style={{ width: `${(week / 52) * 100}%` }} />
+      </span>
+    </div>
+  );
+}
+
+function TreasuryReadout() {
+  const player = useGameStore(selectPlayerCountry);
+  const setSelectedPanel = useGameStore((s) => s.setSelectedPanel);
+  const t = useTranslations('hud');
+  const locale = useLocale();
+  if (!player) return null;
+  const { treasury, weeklyIncome } = player.economy;
+  const negative = treasury < 0;
+  return (
+    <button
+      type="button"
+      data-testid="hud-treasury"
+      onClick={() => setSelectedPanel('economy')}
+      title={t('treasuryTooltip')}
+      className="flex items-center gap-2 rounded-lg px-2 py-1 text-left transition-colors hover:bg-white/[0.07] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+    >
+      <Coins aria-hidden className={cn('h-4 w-4', negative ? 'text-[#ff8a7d]' : 'text-accent')} />
+      <span className="flex flex-col gap-0.5 leading-none">
+        <span className="sr-only">{t('treasury')}</span>
+        <span className={cn('numeric-tabular whitespace-nowrap font-mono text-sm', negative ? 'text-[#ff8a7d]' : 'text-fg')}>
+          {money(treasury, locale)}
+        </span>
+        <span
+          className={cn(
+            'numeric-tabular hidden whitespace-nowrap font-mono text-[10px] sm:block',
+            weeklyIncome >= 0 ? 'text-success' : 'text-[#ff8a7d]',
+          )}
+        >
+          {t('weekly', { value: signed(weeklyIncome, locale) })}
+          <span className="sr-only"> {t('perWeek')}</span>
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function PopularityReadout() {
+  const popularity = useGameStore((s) => selectPlayerCountry(s)?.politics.popularity);
+  const setSelectedPanel = useGameStore((s) => s.setSelectedPanel);
+  const t = useTranslations('hud');
+  if (popularity === undefined) return null;
+  const pct = Math.round(popularity);
+  const tone = pct < 25 ? '#ff5d4d' : pct < 40 ? '#ffab40' : '#5fe0a0';
+  const r = 9;
+  const c = 2 * Math.PI * r;
+  return (
+    <button
+      type="button"
+      data-testid="hud-popularity"
+      onClick={() => setSelectedPanel('politics')}
+      title={t('popularityTooltip')}
+      className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-white/[0.07] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+    >
+      <span className="relative grid h-6 w-6 place-items-center">
+        <svg viewBox="0 0 24 24" className="absolute inset-0 -rotate-90" aria-hidden>
+          <circle cx="12" cy="12" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="2.5" />
+          <circle
+            cx="12"
+            cy="12"
+            r={r}
+            fill="none"
+            stroke={tone}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeDasharray={c}
+            strokeDashoffset={c * (1 - pct / 100)}
+            className="transition-[stroke-dashoffset] duration-700"
+          />
+        </svg>
+        <Heart aria-hidden className="h-2.5 w-2.5" style={{ color: tone }} />
+      </span>
+      <span className="flex flex-col leading-none">
+        <span className="sr-only">{t('popularity')}</span>
+        <span className="numeric-tabular font-mono text-sm text-fg">{pct}%</span>
+      </span>
+    </button>
+  );
+}
+
+function SpeedControl() {
+  const ticker = useTicker();
+  const t = useTranslations('hud.speed');
+  const sfx = useSfx();
+  const paused = ticker.speed === 0;
+
+  const select = (s: Speed) => {
+    if (s === ticker.speed) return;
+    sfx(s === 0 ? 'sfx.pause' : paused ? 'sfx.resume' : 'sfx.tab');
+    ticker.setSpeed(s);
+  };
+
+  return (
+    <div
+      role="group"
+      aria-label={t('label')}
+      className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-black/30 p-0.5"
+    >
+      {/* Narrates speed changes; aria-pressed alone is not re-read reliably. */}
+      <span aria-live="polite" className="sr-only">
+        {paused ? t('paused') : t(`x${ticker.speed}` as 'x1' | 'x2' | 'x4')}
+      </span>
+      <button
+        type="button"
+        onClick={() => select(0)}
+        aria-pressed={paused}
+        aria-label={t('paused')}
+        title={t('pauseHint')}
+        className={cn(
+          'grid h-8 w-8 place-items-center rounded-[10px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+          paused ? 'bg-warning/20 text-warning' : 'text-fg-muted hover:bg-white/10 hover:text-fg',
+        )}
+      >
+        {paused ? <Pause aria-hidden className="h-3.5 w-3.5" /> : <Play aria-hidden className="h-3.5 w-3.5" />}
+      </button>
+      {PLAY_SPEEDS.map((s) => {
+        const active = ticker.speed === s;
+        return (
+          <button
+            key={s}
+            type="button"
+            onClick={() => select(s)}
+            aria-pressed={active}
+            aria-label={t(`x${s}` as 'x1' | 'x2' | 'x4')}
+            title={t('speedHint', { n: s })}
+            className={cn(
+              'numeric-tabular h-8 rounded-[10px] px-2 font-mono text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+              active ? 'bg-accent text-black' : 'text-fg-muted hover:bg-white/10 hover:text-fg',
+            )}
+          >
+            {s}×
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

@@ -51,6 +51,7 @@ export default function MapStage() {
       <div
         role="radiogroup"
         aria-label={t('views.label')}
+        data-testid="view-switch"
         className="glass-panel absolute left-1/2 top-[4.5rem] z-10 flex -translate-x-1/2 gap-0.5 rounded-full p-1"
       >
         {VIEWS.map(({ id, icon: Icon }) => {

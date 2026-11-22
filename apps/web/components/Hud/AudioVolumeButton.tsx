@@ -73,7 +73,7 @@ export function AudioVolumeButton() {
         aria-expanded={open}
         aria-label={t('volumeButton')}
         className={cn(
-          'flex h-8 w-8 items-center justify-center rounded-sm transition-colors',
+          'flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
           open ? 'text-accent' : 'text-fg-muted hover:text-accent',
         )}
       >
@@ -104,7 +104,7 @@ function VolumePopover() {
       role="dialog"
       aria-modal={false}
       aria-labelledby={titleId}
-      className="glass-surface absolute right-0 z-30 mt-2 w-64 rounded-lg border border-border-strong bg-surface-1/95 p-3 shadow-2xl backdrop-blur"
+      className="glass-surface absolute right-0 z-30 mt-2 w-64 rounded-lg glass-panel p-3 "
     >
       <h3
         id={titleId}
@@ -194,7 +194,7 @@ function VolumeRow({
         disabled={muted}
         aria-label={label}
         className={cn(
-          'h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-2 accent-accent transition',
+          'h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/[0.09] accent-accent transition',
           muted && 'cursor-not-allowed opacity-50',
         )}
       />

@@ -5,34 +5,60 @@
 // the old SVG atlas on the play screen.
 
 import { geoEquirectangular, geoPath } from 'd3-geo';
-import { AlertTriangle, Eye, Landmark, Rocket, Swords } from 'lucide-react';
+import {
+  AlertTriangle,
+  Ban,
+  Eye,
+  Handshake,
+  HeartHandshake,
+  Landmark,
+  LocateFixed,
+  Minus,
+  Plus,
+  Rocket,
+  ShoppingBag,
+  Swords,
+  Unlink,
+  type LucideIcon,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Country, CountryId, GameState } from '@aurion/engine';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import type { Country, CountryId, GameState, IntelLevel } from '@aurion/engine';
 
 import { buildGeoCountries, countryAt, greatCircle, midpoint, type GeoCountry } from '../../lib/globe/geo';
 import { loadWorld, type WorldCollection } from '../../lib/geo/world';
 import type { ScenarioId } from '../../lib/scenarios';
 import { selectOpenEvent, useGameStore } from '../../lib/store';
-import MapLegend from '../Map/MapLegend';
-import {
-  computeIntelMask,
-  type BlocColorKey,
-  type OverlayMode,
-} from '../Map/MapOverlay';
-import MapTooltip from '../Map/MapTooltip';
+import { useWorldNews, type WorldNewsKind } from '../../lib/world-news';
 import { useScenarioMessages } from '../Panels/shared/useScenarioMessages';
+import { IconButton } from '../ui';
 
 import { CapitalMarker, NewsPill, type MarkerTone } from './markers';
+import { BLOC_HEX, OverlaySwitch, computeIntelMask, type BlocColorKey, type OverlayMode } from './overlay';
 import PlanetView, { type PlanetMarker, type PlanetViewHandle } from './PlanetView';
 
 const GOLD = '#E8B45A';
-const BLOC_HEX: Record<BlocColorKey, string> = {
-  western: '#4d8dff',
-  eastern: '#ff5d4d',
-  'non-aligned': '#5fe0a0',
-  unaligned: '#9aa3b2',
+
+/** How long a diplomatic headline stays pinned to the globe, in weeks. */
+const NEWS_WEEKS = 20;
+const NEWS_STYLE: Record<WorldNewsKind, { icon: LucideIcon; tone: MarkerTone }> = {
+  warStart: { icon: Swords, tone: 'danger' },
+  peace: { icon: HeartHandshake, tone: 'success' },
+  alliance: { icon: Handshake, tone: 'success' },
+  allianceBroken: { icon: Unlink, tone: 'warning' },
+  sanctions: { icon: Ban, tone: 'warning' },
+  trade: { icon: ShoppingBag, tone: 'neutral' },
 };
+
+const WIDE_QUERY = '(min-width: 1024px)';
+function subscribeWide(onChange: () => void): () => void {
+  const query = window.matchMedia(WIDE_QUERY);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}
+function isWide(): boolean {
+  return window.matchMedia(WIDE_QUERY).matches;
+}
 
 function relKey(a: CountryId, b: CountryId): string {
   return a < b ? `${a}::${b}` : `${b}::${a}`;
@@ -112,15 +138,6 @@ function paintFor(
   return { fill, stroke, width, glow };
 }
 
-function formatBig(n: number): string {
-  const abs = Math.abs(n);
-  if (abs >= 1e12) return `${(n / 1e12).toFixed(1)}T`;
-  if (abs >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
-  if (abs >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
-  if (abs >= 1e3) return `${(n / 1e3).toFixed(0)}k`;
-  return String(Math.round(n));
-}
-
 export default function GlobeMap() {
   const t = useTranslations('map');
   const tGlobe = useTranslations('globe');
@@ -132,6 +149,8 @@ export default function GlobeMap() {
   const selectCountry = useGameStore((s) => s.selectCountry);
   const setSelectedPanel = useGameStore((s) => s.setSelectedPanel);
   const openEvent = useGameStore(selectOpenEvent);
+  const panelOpen = useGameStore((s) => s.panelOpen);
+  const worldNews = useWorldNews((s) => s.items);
   const { t: tScenario } = useScenarioMessages((scenario?.id as ScenarioId | undefined) ?? null);
 
   const viewRef = useRef<PlanetViewHandle | null>(null);
@@ -171,7 +190,7 @@ export default function GlobeMap() {
 
   const playerId = state?.playerCountryId ?? null;
   const intelMask = useMemo(
-    () => (state ? computeIntelMask(state) : new Map<CountryId, 'none'>()),
+    () => (state ? computeIntelMask(state) : new Map<CountryId, IntelLevel>()),
     [state],
   );
 
@@ -285,6 +304,38 @@ export default function GlobeMap() {
     // The sun only travels while the world does.
     viewRef.current?.setSunSpeed(speed === 0 ? 0 : 0.35 + speed * 0.2);
   }, [speed, ready]);
+
+  // Screen bands taken by the dock/drawer and the briefing on wide layouts.
+  const wide = useSyncExternalStore(subscribeWide, isWide, () => false);
+  // Measured rather than assumed: the drawer can be closed and the briefing
+  // collapsed, and both change how much of the planet is covered.
+  const [insets, setInsets] = useState<{ left: number; right: number } | undefined>(undefined);
+  useEffect(() => {
+    if (!wide) return;
+    const measure = () => {
+      const dock = document.querySelector('[data-stage-inset="left"]')?.getBoundingClientRect();
+      const rail = document.querySelector('[data-stage-inset="right"]')?.getBoundingClientRect();
+      const next = {
+        left: Math.round((dock?.right ?? 0) + 8),
+        right: Math.round(rail ? window.innerWidth - rail.left + 8 : 8),
+      };
+      setInsets((prev) => (prev && prev.left === next.left && prev.right === next.right ? prev : next));
+    };
+    measure();
+    const id = window.setInterval(measure, 400);
+    return () => window.clearInterval(id);
+  }, [wide]);
+
+  useEffect(() => {
+    // Keep the planet centred in the free space between drawer and briefing.
+    viewRef.current?.setOffsetX(wide && panelOpen ? 0.045 : 0);
+  }, [panelOpen, ready, wide]);
+
+  const goHome = useCallback(() => {
+    if (playerAnchor) {
+      viewRef.current?.flyTo(playerAnchor.lon, Math.max(-55, Math.min(60, playerAnchor.lat)), 2.35);
+    }
+  }, [playerAnchor]);
 
   const prevSelected = useRef<CountryId | null>(null);
   useEffect(() => {
@@ -460,6 +511,30 @@ export default function GlobeMap() {
       });
     }
 
+    // Diplomatic headlines from every corner of the world. An ongoing war
+    // already has its own pin, so the declaration is not repeated here.
+    for (const item of worldNews) {
+      if (item.kind === 'warStart' || state.tick - item.tick > NEWS_WEEKS) continue;
+      const ga = geoById.get(item.a);
+      const gb = geoById.get(item.b);
+      if (!ga || !gb) continue;
+      const mine = item.a === state.playerCountryId || item.b === state.playerCountryId;
+      pill(
+        `news:world:${item.id}`,
+        midpoint(ga.anchor, gb.anchor),
+        (mine ? 3200 : 1500) + item.tick / 1000,
+        tGlobe(`news.${item.kind}`, { a: nameOf(item.a), b: nameOf(item.b) }),
+        {
+          ...NEWS_STYLE[item.kind],
+          age: ageLabel(item.tick),
+          onClick: () => {
+            selectCountry(item.a === state.playerCountryId ? item.b : item.a);
+            setSelectedPanel('diplomacy');
+          },
+        },
+      );
+    }
+
     // The space race: recent megaproject completions around the world.
     const recent = (state.cosmos?.log ?? []).filter((e) => state.tick - e.tick <= 26).slice(-6);
     for (const entry of recent) {
@@ -485,6 +560,7 @@ export default function GlobeMap() {
     geoById,
     selectedCountryId,
     openEvent,
+    worldNews,
     nameOf,
     ageLabel,
     selectCountry,
@@ -541,20 +617,21 @@ export default function GlobeMap() {
         ariaLabel={t('label')}
         markers={markers}
         initialDistance={2.9}
+        insets={wide ? insets : undefined}
         onPick={handlePick}
         onHover={handleHover}
         onZoom={setZoomDistance}
         onReady={() => setReady(true)}
       />
 
-      <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2">
+      <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2">
         <div className="pointer-events-auto">
-          <MapLegend
+          <OverlaySwitch
             mode={overlay}
             onChange={setOverlay}
-            groupLabel={t('overlay.label')}
+            label={t('overlay.label')}
             labels={overlayLabels}
-            disabled={hasBlocs ? undefined : { blocs: { tooltip: t('overlay.blocsUnavailable') } }}
+            blocsDisabledReason={hasBlocs ? undefined : t('overlay.blocsUnavailable')}
             blocLabels={{
               western: t('legend.bloc.western'),
               eastern: t('legend.bloc.eastern'),
@@ -566,55 +643,32 @@ export default function GlobeMap() {
         </div>
       </div>
 
-      {hover && tooltipCountry ? (
-        <MapTooltip
-          x={hover.x}
-          y={hover.y}
-          country={tooltipCountry}
-          name={nameOf(tooltipCountry.id)}
-          capital={tScenario(tooltipCountry.capitalKey)}
-          regionLabel={t.has(`regions.${tooltipCountry.regionId}`) ? t(`regions.${tooltipCountry.regionId}`) : ''}
-          intelLevel={
-            tooltipCountry.id === state.playerCountryId
-              ? 'full'
-              : (intelMask.get(tooltipCountry.id) ?? 'none')
-          }
-          isPlayer={tooltipCountry.id === state.playerCountryId}
-          attitudeTowardPlayer={tooltipRel ? tooltipRel.attitude : null}
-          relationToPlayer={
-            tooltipRel
-              ? {
-                  atWar: tooltipRel.atWar,
-                  alliance: tooltipRel.treaties.includes('alliance'),
-                  sanctions: tooltipRel.treaties.includes('sanctions'),
-                }
-              : null
-          }
-          labels={{
-            capital: t('tooltip.capital'),
-            gdp: t('tooltip.gdp'),
-            army: t('tooltip.army'),
-            attitude: t('tooltip.attitude'),
-            intel: t('tooltip.intel'),
-            intelHidden: t('tooltip.intelHidden'),
-            player: t('tooltip.player'),
-            selected: t('tooltip.selected'),
-            region: t('tooltip.region'),
-            atWar: t('tooltip.atWar'),
-            alliance: t('tooltip.alliance'),
-            sanctions: t('tooltip.sanctions'),
-            intelByLevel: {
-              none: t('intel.none'),
-              rumors: t('intel.rumors'),
-              partial: t('intel.partial'),
-              full: t('intel.full'),
-            },
-          }}
-          isSelected={tooltipCountry.id === selectedCountryId}
-        />
+      <div className="glass-panel pointer-events-auto absolute bottom-3 right-3 z-10 flex flex-col rounded-xl p-0.5">
+        <IconButton icon={Plus} label={tGlobe('zoomIn')} onClick={() => viewRef.current?.zoomBy(0.78)} disabled={zoomDistance <= 1.3} />
+        <IconButton icon={Minus} label={tGlobe('zoomOut')} onClick={() => viewRef.current?.zoomBy(1.28)} disabled={zoomDistance >= 4.15} />
+        <IconButton icon={LocateFixed} label={tGlobe('home')} onClick={goHome} />
+      </div>
+
+      {hover && tooltipCountry && tooltipCountry.id !== selectedCountryId ? (
+        <div
+          role="tooltip"
+          className="glass-panel pointer-events-none absolute z-20 rounded-xl px-3 py-2 text-xs"
+          style={{ left: Math.min(hover.x + 16, 9999), top: hover.y + 16 }}
+        >
+          <p className="font-semibold text-fg">{nameOf(tooltipCountry.id)}</p>
+          <p className="mt-0.5 text-[11px] text-fg-faint">
+            {tooltipCountry.id === state.playerCountryId
+              ? t('tooltip.player')
+              : tooltipRel?.atWar
+                ? t('tooltip.atWar')
+                : tooltipRel?.treaties.includes('alliance')
+                  ? t('tooltip.alliance')
+                  : `${t('tooltip.attitude')} ${tooltipRel ? Math.round(tooltipRel.attitude) : 0}`}
+            {' · '}
+            {t('tooltip.intel')}: {t(`intel.${tooltipCountry.id === state.playerCountryId ? 'full' : (intelMask.get(tooltipCountry.id) ?? 'none')}`)}
+          </p>
+        </div>
       ) : null}
     </div>
   );
 }
-
-export { formatBig };

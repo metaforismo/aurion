@@ -155,13 +155,21 @@ export class PlanetRenderer {
 
   private readonly autoRotate: boolean;
   private readonly reducedMotion: boolean;
-  private readonly offsetX: number;
+  private offsetX: number;
+  private offsetTarget: number;
   private width = 1;
   private height = 1;
   private disposed = false;
   private ready = false;
   private lastTime = 0;
   private lastInteraction = 0;
+  /** Adaptive resolution: fraction of the device pixel ratio in use. */
+  private renderScale = 1;
+  private frameEma = 16;
+  /** CPU-rendered WebGL: draw fewer, smaller frames. */
+  private readonly software: boolean;
+  private frameCounter = 0;
+  private framesSinceScale = 0;
   private sunLon = 40;
   private sunLat = 12;
   /** Degrees of solar longitude per second (a full day ≈ 6 minutes). */
@@ -173,6 +181,8 @@ export class PlanetRenderer {
 
   /** The GPU device was lost while the renderer was live. */
   onDeviceLost: ((message: string) => void) | null = null;
+  /** Fired when sustained slow frames force (or lift) the low-detail mode. */
+  onPerformance: ((level: 'high' | 'low') => void) | null = null;
   /** Called once per rendered frame, after the camera has been updated. */
   onFrame: (() => void) | null = null;
   /** Click on the surface (not a drag). */
@@ -192,6 +202,9 @@ export class PlanetRenderer {
     this.autoRotate = opts.autoRotate ?? false;
     this.reducedMotion = opts.reducedMotion ?? false;
     this.offsetX = opts.offsetX ?? 0;
+    this.offsetTarget = this.offsetX;
+    this.software = isSoftwareRenderer();
+    if (this.software) this.renderScale = 0.4;
 
     this.renderer = new THREE.WebGPURenderer({
       canvas: opts.canvas,
@@ -233,6 +246,7 @@ export class PlanetRenderer {
     this.backend = backend.isWebGPUBackend ? 'webgpu' : 'webgl2';
     this.ready = true;
     this.resize();
+    if (this.software) this.onPerformance?.('low');
     this.lastTime = performance.now();
     void this.renderer.setAnimationLoop((t: number) => this.frame(t));
   }
@@ -259,15 +273,30 @@ export class PlanetRenderer {
     }
     this.width = w;
     this.height = h;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2) * this.renderScale);
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     // Shift the planet sideways (e.g. to clear a side panel) without
     // distorting it, by offsetting the projection window.
+    this.applyOffset();
+  }
+
+  private applyOffset(): void {
     if (this.offsetX !== 0) {
-      this.camera.setViewOffset(w, h, -this.offsetX * w, 0, w, h);
+      this.camera.setViewOffset(this.width, this.height, -this.offsetX * this.width, 0, this.width, this.height);
+    } else {
+      this.camera.clearViewOffset();
     }
     this.camera.updateProjectionMatrix();
+  }
+
+  /** Slide the planet sideways (fraction of the viewport) to clear UI. */
+  setOffsetX(value: number): void {
+    this.offsetTarget = value;
+    if (this.reducedMotion) {
+      this.offsetX = value;
+      this.applyOffset();
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -479,8 +508,14 @@ export class PlanetRenderer {
 
   private frame(now: number): void {
     if (this.disposed || !this.ready) return;
-    const dt = Math.min(0.05, Math.max(0, (now - this.lastTime) / 1000));
+    // On a CPU renderer every frame is expensive: draw one in three so the
+    // page stays responsive to input.
+    this.frameCounter += 1;
+    if (this.software && this.frameCounter % 3 !== 0) return;
+    const elapsed = Math.max(0, now - this.lastTime);
+    const dt = Math.min(0.05, elapsed / 1000);
     this.lastTime = now;
+    this.adaptResolution(elapsed);
 
     if (this.tween) {
       const t = Math.min(1, (now - this.tween.start) / this.tween.duration);
@@ -509,9 +544,39 @@ export class PlanetRenderer {
     }
     this.sunDir.value.copy(lonLatToVector(this.sunLon, this.sunLat));
 
+    if (Math.abs(this.offsetTarget - this.offsetX) > 0.0005) {
+      this.offsetX += (this.offsetTarget - this.offsetX) * Math.min(1, dt * 6);
+      this.applyOffset();
+    }
+
     this.updateCamera();
     this.renderer.render(this.scene, this.camera);
     this.onFrame?.();
+  }
+
+  /**
+   * Keep the frame rate playable on weak GPUs and software renderers: when
+   * frames stay slow the drawing buffer shrinks (the CSS size is unchanged),
+   * and it grows back when there is headroom again.
+   */
+  private adaptResolution(elapsedMs: number): void {
+    // Ignore the long gaps of a backgrounded tab.
+    if (elapsedMs > 1000) return;
+    this.frameEma += (elapsedMs - this.frameEma) * 0.1;
+    this.framesSinceScale += 1;
+    if (this.framesSinceScale < 24) return;
+    let next = this.renderScale;
+    if (this.software) return;
+    if (this.frameEma > 34 && this.renderScale > 0.3) next = Math.max(0.3, this.renderScale * 0.72);
+    else if (this.frameEma < 13 && this.renderScale < 1) next = Math.min(1, this.renderScale * 1.2);
+    if (next === this.renderScale) return;
+    const wasLow = this.renderScale <= 0.55;
+    this.renderScale = next;
+    this.framesSinceScale = 0;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2) * next);
+    this.renderer.setSize(this.width, this.height, false);
+    const isLow = next <= 0.55;
+    if (isLow !== wasLow) this.onPerformance?.(isLow ? 'low' : 'high');
   }
 
   /** Place the sub-solar point explicitly (used to light a focused region). */
@@ -652,4 +717,28 @@ export async function hasHardwareWebGPU(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+let softwareCache: boolean | null = null;
+
+/**
+ * True when WebGL is drawn on the CPU (SwiftShader, llvmpipe, WARP…): no GPU,
+ * a remote desktop, or an automated browser. The planet then starts in its
+ * cheapest configuration instead of discovering it one slow frame at a time.
+ */
+export function isSoftwareRenderer(): boolean {
+  if (softwareCache !== null) return softwareCache;
+  softwareCache = false;
+  try {
+    const gl = document.createElement('canvas').getContext('webgl');
+    const info = gl?.getExtension('WEBGL_debug_renderer_info');
+    if (gl && info) {
+      const name = String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL));
+      softwareCache = /swiftshader|llvmpipe|softpipe|warp|software/i.test(name);
+    }
+    gl?.getExtension('WEBGL_lose_context')?.loseContext();
+  } catch {
+    softwareCache = false;
+  }
+  return softwareCache;
 }

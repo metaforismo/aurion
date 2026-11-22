@@ -227,7 +227,7 @@ export function TutorialStep({
         maxWidth: 'calc(100vw - 24px)',
       }}
       className={cn(
-        'pointer-events-auto z-50 flex flex-col gap-3 rounded-2xl border border-border bg-surface-1 p-4 text-sm text-fg shadow-2xl outline-none transition-opacity duration-200',
+        'pointer-events-auto z-50 flex flex-col gap-3 rounded-2xl border border-white/15 bg-[oklch(0.16_0.016_255)] p-4 text-sm text-fg shadow-2xl outline-none transition-opacity duration-200',
         placed ? 'opacity-100' : 'opacity-0',
       )}
     >
@@ -237,7 +237,7 @@ export function TutorialStep({
       {placed && placed.arrowOffset >= 0 ? (
         <span
           aria-hidden
-          className="absolute h-3 w-3 rotate-45 border border-border bg-surface-1"
+          className="absolute h-3 w-3 rotate-45 border border-white/15 bg-[oklch(0.16_0.016_255)]"
           style={arrowStyle(arrowSide, placed.arrowOffset)}
         />
       ) : null}
@@ -253,7 +253,7 @@ export function TutorialStep({
         <button
           type="button"
           onClick={onSkip}
-          className="rounded-md px-2 py-1 text-xs text-fg-faint transition hover:text-fg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-border-strong"
+          className="rounded-lg px-2 py-1.5 text-xs text-fg-faint transition hover:bg-white/[0.07] hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
         >
           {skipLabel}
         </button>
@@ -262,7 +262,7 @@ export function TutorialStep({
             <button
               type="button"
               onClick={onPrev}
-              className="rounded-md border border-border px-3 py-1 text-xs text-fg-muted transition hover:border-border-strong hover:text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-border-strong"
+              className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium text-fg-muted transition hover:border-white/30 hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
             >
               {prevLabel}
             </button>
@@ -271,7 +271,7 @@ export function TutorialStep({
             ref={nextButtonRef}
             type="button"
             onClick={onNext}
-            className="rounded-md border border-accent bg-accent/15 px-3 py-1 text-xs font-semibold text-accent transition hover:bg-accent/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-black transition hover:bg-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {nextLabel}
           </button>

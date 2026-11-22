@@ -63,20 +63,13 @@ export type TutorialStep =
  * Avanti / Indietro buttons.
  */
 export const TUTORIAL_STEPS: readonly TutorialStep[] = [
-  {
-    id: 'intro',
-    kind: 'intro',
-    titleKey: 'tutorial.title',
-    bodyKey: 'tutorial.intro.body',
-  },
+  { id: 'intro', kind: 'intro', titleKey: 'tutorial.title', bodyKey: 'tutorial.intro.body' },
   {
     id: 'hud',
     kind: 'anchored',
     titleKey: 'tutorial.steps.hud.title',
     bodyKey: 'tutorial.steps.hud.body',
-    // Top sticky header rendered by Hud.tsx. Falls through to the first
-    // <header> on the page if the class changes.
-    anchorSelector: 'header.glass-surface, header[class*="sticky"], header',
+    anchorSelector: 'header',
     position: 'bottom',
   },
   {
@@ -84,35 +77,52 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     kind: 'anchored',
     titleKey: 'tutorial.steps.map.title',
     bodyKey: 'tutorial.steps.map.body',
-    // WorldMap wrapper: a region with the world-map aria-label. We match by
-    // role + the SVG it contains so the selector keeps working across locales.
-    anchorSelector: 'div[role="region"]:has(svg)',
-    position: 'left',
+    // The planet fills the screen, so point at the player's own capital.
+    anchorSelector: '[data-player-capital="true"]',
+    position: 'bottom',
   },
   {
     id: 'panels',
     kind: 'anchored',
     titleKey: 'tutorial.steps.panels.title',
     bodyKey: 'tutorial.steps.panels.body',
-    // PanelTabs renders an <aside aria-label="…"> at the top of the left rail.
-    anchorSelector: 'aside[aria-label]',
+    anchorSelector: 'nav[role="tablist"]',
     position: 'right',
+  },
+  {
+    id: 'cosmos',
+    kind: 'anchored',
+    titleKey: 'tutorial.steps.cosmos.title',
+    bodyKey: 'tutorial.steps.cosmos.body',
+    anchorSelector: '#tab-cosmos',
+    position: 'right',
+  },
+  {
+    id: 'views',
+    kind: 'anchored',
+    titleKey: 'tutorial.steps.views.title',
+    bodyKey: 'tutorial.steps.views.body',
+    anchorSelector: '[data-testid="view-switch"]',
+    position: 'bottom',
+  },
+  {
+    id: 'briefing',
+    kind: 'anchored',
+    titleKey: 'tutorial.steps.briefing.title',
+    bodyKey: 'tutorial.steps.briefing.body',
+    anchorSelector: '[data-testid="briefing"]',
+    position: 'left',
   },
   {
     id: 'speed',
     kind: 'anchored',
     titleKey: 'tutorial.steps.speed.title',
     bodyKey: 'tutorial.steps.speed.body',
-    // SpeedControls wraps its buttons in a role="group" inside the HUD.
+    // The speed control is a role="group" inside the HUD.
     anchorSelector: 'header div[role="group"]',
     position: 'bottom',
   },
-  {
-    id: 'outro',
-    kind: 'outro',
-    titleKey: 'tutorial.steps.outro.title',
-    bodyKey: 'tutorial.steps.outro.body',
-  },
+  { id: 'outro', kind: 'outro', titleKey: 'tutorial.steps.outro.title', bodyKey: 'tutorial.steps.outro.body' },
 ];
 
 export const TUTORIAL_STEP_COUNT = TUTORIAL_STEPS.length;

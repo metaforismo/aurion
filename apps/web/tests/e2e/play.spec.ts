@@ -109,24 +109,18 @@ test.describe('play page — golden path', () => {
     await waitForPlayReady(page, 'it');
     await dismissAllEventModals(page);
 
-    // Velmara is the first non-player playable nation in the scenario.
-    const velmara = page.locator('[data-country="velmara"]');
-    await expect(velmara).toBeVisible();
+    // Every scenario nation has a capital marker on the globe. Markers can be
+    // culled when labels collide or sit on the far side, so drive the button
+    // directly rather than through a pointer click.
+    const velmara = page.getByTestId('map-country-velmara');
+    await expect(velmara).toBeAttached();
+    await velmara.evaluate((el) => (el as HTMLButtonElement).click());
 
-    // The SVG installs pointer capture on pointerdown, which can swallow real
-    // clicks on the inner <g> in headless Chromium. Dispatch a synthetic React
-    // click directly on the group — the component's onClick handler stops
-    // propagation so this is sufficient to drive the selection.
-    await velmara.evaluate((el) => {
-      el.dispatchEvent(
-        new MouseEvent('click', { bubbles: true, cancelable: true }),
-      );
-    });
-
-    // The MapNation component renders a dashed white selected ring inside the
-    // group when isSelected is true.
-    const selectedRing = velmara.locator('circle[stroke-dasharray="4 3"]');
-    await expect(selectedRing).toBeVisible({ timeout: 5_000 });
+    await expect(velmara).toHaveAttribute('aria-pressed', 'true');
+    // Selecting a nation opens its card with routes into the systems.
+    const card = page.getByTestId('country-card');
+    await expect(card).toBeVisible({ timeout: 5_000 });
+    await expect(card.getByRole('button', { name: 'Diplomazia' })).toBeVisible();
   });
 
   test('Space toggles pause / resume', async ({ page }) => {

@@ -202,7 +202,8 @@ export function Modal({
       className="fixed inset-0 z-40 flex items-center justify-center p-4"
       style={{
         backgroundColor:
-          'color-mix(in oklch, var(--color-bg) 70%, transparent)',
+          'color-mix(in oklch, var(--color-bg) 62%, transparent)',
+        backdropFilter: 'blur(3px)',
         animation: backdropAnimation,
       }}
       onMouseDown={onBackdropClick}
@@ -218,20 +219,19 @@ export function Modal({
         data-state={state}
         onKeyDown={handleKeyDown}
         style={{
-          boxShadow: 'var(--shadow-lg)',
           animation: cardAnimation,
           transformOrigin: 'center',
         }}
         className={cn(
-          'relative flex w-full flex-col rounded-md border border-border bg-bg text-fg outline-none',
+          'glass-panel relative flex max-h-[calc(100dvh-2rem)] w-full flex-col rounded-2xl text-fg outline-none',
           sizeClass,
           className,
         )}
       >
-        <header className="flex items-start gap-4 border-b border-border px-6 py-4">
+        <header className="flex items-start gap-4 border-b border-white/10 px-5 py-4">
           <h2
             id={titleId}
-            className="flex-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted"
+            className="flex-1 text-lg font-semibold leading-tight text-fg"
           >
             {title}
           </h2>
@@ -239,7 +239,7 @@ export function Modal({
             <button
               type="button"
               onClick={handleClose}
-              className="rounded-sm border border-transparent p-1 text-fg-muted transition hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+              className="-mr-1 rounded-lg p-1.5 text-fg-muted transition hover:bg-white/10 hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               aria-label={tCommon('close')}
             >
               <svg
@@ -254,11 +254,11 @@ export function Modal({
             </button>
           ) : null}
         </header>
-        <div className="flex-1 overflow-y-auto px-6 py-5 text-sm text-fg">
+        <div className="thin-scroll flex-1 overflow-y-auto px-5 py-4 text-sm text-fg">
           {children}
         </div>
         {footer ? (
-          <footer className="flex flex-wrap justify-end gap-2 border-t border-border px-6 py-4">
+          <footer className="flex flex-wrap justify-end gap-2 border-t border-white/10 px-5 py-3.5">
             {footer}
           </footer>
         ) : null}

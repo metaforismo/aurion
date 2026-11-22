@@ -162,7 +162,7 @@ export function UNResolutionModal({
             type="button"
             onClick={onDismiss}
             disabled={busy}
-            className="rounded-sm border border-border bg-transparent px-3 py-2 text-xs font-semibold text-fg-muted transition hover:border-border-strong hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
+            className="rounded-lg border border-white/10 bg-transparent px-3 py-2 text-xs font-semibold text-fg-muted transition hover:border-white/25 hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
           >
             {t('dismiss')}
           </button>
@@ -170,7 +170,7 @@ export function UNResolutionModal({
             type="button"
             onClick={handleViewInPanel}
             disabled={busy}
-            className="rounded-sm border border-border bg-transparent px-3 py-2 text-xs font-semibold text-fg transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
+            className="rounded-lg border border-white/10 bg-transparent px-3 py-2 text-xs font-semibold text-fg transition hover:border-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
           >
             {t('viewInPanel')}
           </button>
@@ -188,7 +188,7 @@ export function UNResolutionModal({
       </div>
 
       {/* Meta */}
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 border-y border-border py-2 text-xs">
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 border-y border-white/10 py-2 text-xs">
         <div className="flex items-baseline gap-1">
           <dt className="font-semibold uppercase tracking-[0.14em] text-fg-muted">
             {tPanel('proposer')}
@@ -256,7 +256,7 @@ export function UNResolutionModal({
           />
         </section>
       ) : (
-        <p className="mt-5 border-t border-border px-1 py-3 text-xs italic text-fg-faint">
+        <p className="mt-5 border-t border-white/10 px-1 py-3 text-xs italic text-fg-faint">
           {tPanel('notCouncilMember')}
         </p>
       )}
@@ -306,11 +306,11 @@ function VoteButton({
 }) {
   const TONE_STYLES: Record<typeof tone, string> = {
     primary:
-      'border-accent bg-accent text-bg hover:border-accent-strong hover:bg-accent-strong',
+      'border-accent bg-accent text-black hover:border-accent-strong hover:bg-accent-strong',
     neutral:
-      'border-border bg-transparent text-fg hover:border-border-strong',
+      'border-white/10 bg-transparent text-fg hover:border-white/25',
     danger:
-      'border-border bg-transparent text-danger hover:border-danger',
+      'border-white/10 bg-transparent text-danger hover:border-danger',
   };
 
   return (
@@ -319,7 +319,7 @@ function VoteButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex flex-col items-stretch gap-0.5 rounded-sm border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-60',
+        'flex flex-col items-stretch gap-0.5 rounded-lg border px-3 py-2 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60',
         TONE_STYLES[tone],
         full ? 'w-full' : null,
       )}
