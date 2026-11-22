@@ -3083,5 +3083,79 @@
       "label": "Target:"
     },
     "notCouncilMember": "Only council members may vote."
+  },
+  "cosmosEvent": {
+    "cheap_power": {
+      "name": "Power almost for free",
+      "desc": "The fusion reactor makes more than the grid can use. Households are waiting for their bills; businesses, for foreign markets.",
+      "a": "Cut everyone's bills",
+      "b": "Sell the surplus abroad"
+    },
+    "pad_accident": {
+      "name": "Accident at the spaceport",
+      "desc": "A launcher blew up on the pad. No casualties, but the footage is everywhere and the opposition wants everything halted.",
+      "a": "Halt launches and open an inquiry",
+      "b": "Carry on: this is how you learn"
+    },
+    "orbital_tourism": {
+      "name": "Tourists in orbit",
+      "desc": "A consortium offers a fortune to fly paying guests to the station. The scientists aboard are not thrilled.",
+      "a": "Sell the tickets",
+      "b": "The station stays a laboratory"
+    },
+    "lunar_claim": {
+      "name": "Who owns the Moon?",
+      "desc": "A rival power disputes your base: the lunar south pole, it says, belongs to everyone. The world is watching your answer.",
+      "a": "Share data and access",
+      "b": "Plant the flag"
+    },
+    "helium_rush": {
+      "name": "The helium-3 rush",
+      "desc": "The first lunar shipment crashed the price of energy. Who collects: the state, or those who invested?",
+      "a": "Nationalise the proceeds",
+      "b": "Leave it to the market"
+    },
+    "mars_silence": {
+      "name": "Silence from Mars",
+      "desc": "The crew has not answered for nine days. Engineers say it is an antenna; the families, live on air, call it abandonment.",
+      "a": "Launch a rescue mission",
+      "b": "Wait: the signal will come back"
+    },
+    "mars_autonomy": {
+      "name": "Mars asks for autonomy",
+      "desc": "A million colonists vote for a parliament of their own. They pay tax to a planet they will never see again.",
+      "a": "Grant self-government",
+      "b": "Mars remains a province"
+    },
+    "type_one_day": {
+      "name": "Type I Day",
+      "desc": "The planetary grid is live: for the first time a civilisation commands the energy of a whole planet. How should it be remembered?",
+      "a": "A national holiday, for good",
+      "b": "No parties: reinvest it all"
+    },
+    "belt_strike": {
+      "name": "Strike in the belt",
+      "desc": "The asteroid miners have downed tools: eight-month shifts and nobody listening. Deliveries have stopped.",
+      "a": "Accept their terms",
+      "b": "Replace them with machines"
+    },
+    "europa_life": {
+      "name": "There is life on Europa",
+      "desc": "Beneath the ice, something moves. Microbes, perhaps. It is the discovery of the millennium, and for now only you know.",
+      "a": "Publish everything, now",
+      "b": "Classify it and study in secret"
+    },
+    "swarm_shadow": {
+      "name": "The shadow of the swarm",
+      "desc": "The first Dyson mirrors take a sliver of light from Earth. Harvests are feeling it, and farmers have noticed.",
+      "a": "Correct the orbits, whatever it costs",
+      "b": "It is an acceptable price"
+    },
+    "ark_lottery": {
+      "name": "Who boards the ark?",
+      "desc": "A hundred thousand berths on a one-way trip to Proxima. Ten million applications. Someone has to decide how to choose.",
+      "a": "A lottery open to all",
+      "b": "Only the most qualified"
+    }
   }
 }

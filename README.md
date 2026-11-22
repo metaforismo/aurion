@@ -185,6 +185,7 @@ All 28 sound effects and 5 music beds were rendered offline with [earshot](https
 
 - Code: [MIT](./LICENSE) — © 2026 Francesco Giannicola and Aurion contributors.
 - Planet textures: [Solar System Scope](https://www.solarsystemscope.com/textures/) (CC BY 4.0), derived from NASA imagery; the ocean mask comes from [three-globe](https://github.com/vasturiano/three-globe) (MIT). See [`apps/web/public/textures/LICENSES.md`](./apps/web/public/textures/LICENSES.md).
+- Fonts: Space Grotesk and JetBrains Mono, bundled under the SIL Open Font License (`apps/web/app/fonts/`).
 - Country borders: [Natural Earth](https://www.naturalearthdata.com/) via `world-atlas` (public domain).
 - Audio: rendered with earshot; free for any use.
 

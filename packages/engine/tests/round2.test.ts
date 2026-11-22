@@ -122,3 +122,24 @@ describe('spy operation gating', () => {
     expect(applyAction(unlocked, { type: 'deploySpy', op }, s.playerCountryId, [tech]).errors).toEqual([]);
   });
 });
+
+describe('space-age events', () => {
+  it('fire once when their megaproject is complete, with valid effects', async () => {
+    const { COSMOS_EVENTS, resolveEventChoice, COSMOS_PROJECTS } = await import('../src/index.js');
+    const ids = new Set(COSMOS_PROJECTS.map((p) => p.id));
+    for (const def of COSMOS_EVENTS) {
+      const m = /megaprojects contains (\w+)/.exec(def.trigger.type === 'condition' ? def.trigger.expression : '');
+      if (m) expect(ids.has(m[1]!)).toBe(true);
+      expect(def.choices).toHaveLength(2);
+    }
+    let s = newGame();
+    s = { ...s, cosmos: { ...s.cosmos!, completed: ['earth_fusion'] } };
+    s = tick(s, { eventPool: COSMOS_EVENTS });
+    expect(s.events.map((e) => e.definitionId)).toEqual(['event_cosmos_cheap_power']);
+    const before = me(s).politics.popularity;
+    s = resolveEventChoice(s, COSMOS_EVENTS, 0);
+    expect(me(s).politics.popularity).toBeGreaterThan(before);
+    for (let i = 0; i < 40; i += 1) s = tick(s, { eventPool: COSMOS_EVENTS });
+    expect(s.events.filter((e) => e.definitionId === 'event_cosmos_cheap_power')).toHaveLength(1);
+  });
+});

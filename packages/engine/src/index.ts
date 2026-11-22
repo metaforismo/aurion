@@ -81,3 +81,4 @@ export { PLACATE_COST } from './actions/placateFaction.js';
 export { isSpyTypeUnlocked, computeSpyProbabilities } from './actions/deploySpy.js';
 export { evaluateCondition as evaluateEventCondition } from './events/conditions.js';
 export { supportMultiplier } from './tick.js';
+export { COSMOS_EVENTS } from './cosmos/events.js';

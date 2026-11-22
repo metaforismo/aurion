@@ -6,7 +6,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { isAppLocale } from '../../../i18n/routing';
 import {
@@ -63,9 +63,15 @@ export function useScenarioMessages(scenarioId: ScenarioId | null): {
     };
   }, [scenarioId, safeLocale]);
 
+  // Scenario copy first; keys it does not own (space-age events, shared
+  // victory names) fall back to the app bundle. The key itself is returned
+  // when nothing matches, so callers can detect a miss.
+  const tApp = useTranslations();
   const t: ScenarioStringGetter = (key) => {
     if (!key) return '';
-    return messages[key] ?? key;
+    const own = messages[key];
+    if (own !== undefined) return own;
+    return tApp.has(key) ? tApp(key) : key;
   };
 
   return { messages, t, loading };

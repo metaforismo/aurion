@@ -3083,5 +3083,79 @@
       "label": "Bersaglio:"
     },
     "notCouncilMember": "Solo i membri del consiglio possono votare."
+  },
+  "cosmosEvent": {
+    "cheap_power": {
+      "name": "Energia quasi gratis",
+      "desc": "Il reattore a fusione produce più di quanto la rete sappia consumare. Le famiglie aspettano la bolletta; le imprese, i mercati esteri.",
+      "a": "Taglia le bollette a tutti",
+      "b": "Vendi il surplus all'estero"
+    },
+    "pad_accident": {
+      "name": "Incidente allo spazioporto",
+      "desc": "Un vettore è esploso sulla rampa. Nessuna vittima, ma le immagini fanno il giro del mondo e l'opposizione chiede di fermare tutto.",
+      "a": "Ferma i lanci e apri un'inchiesta",
+      "b": "Si va avanti: è così che si impara"
+    },
+    "orbital_tourism": {
+      "name": "Turisti in orbita",
+      "desc": "Un consorzio offre una fortuna per portare clienti paganti sulla stazione. Gli scienziati a bordo non la prendono bene.",
+      "a": "Vendi i biglietti",
+      "b": "La stazione resta un laboratorio"
+    },
+    "lunar_claim": {
+      "name": "Di chi è la Luna?",
+      "desc": "Una potenza rivale contesta la tua base: il polo sud lunare, dice, è patrimonio di tutti. Il mondo guarda cosa rispondi.",
+      "a": "Condividi dati e accesso",
+      "b": "Pianta la bandiera"
+    },
+    "helium_rush": {
+      "name": "La corsa all'elio-3",
+      "desc": "Il primo carico lunare ha fatto crollare il prezzo dell'energia. Chi incassa: lo Stato o chi ha investito?",
+      "a": "Nazionalizza i proventi",
+      "b": "Lascia fare al mercato"
+    },
+    "mars_silence": {
+      "name": "Silenzio da Marte",
+      "desc": "L'equipaggio non risponde da nove giorni. I tecnici parlano di un'antenna; le famiglie, in diretta, di abbandono.",
+      "a": "Lancia una missione di soccorso",
+      "b": "Aspetta: il segnale tornerà"
+    },
+    "mars_autonomy": {
+      "name": "Marte chiede autonomia",
+      "desc": "Un milione di coloni vota per un proprio parlamento. Pagano le tasse a un pianeta che non vedranno mai più.",
+      "a": "Concedi l'autogoverno",
+      "b": "Marte resta una provincia"
+    },
+    "type_one_day": {
+      "name": "Il giorno del Tipo I",
+      "desc": "La rete planetaria è accesa: per la prima volta una civiltà dispone dell'energia di un intero pianeta. Come lo si ricorda?",
+      "a": "Festa nazionale, per sempre",
+      "b": "Niente feste: si reinveste tutto"
+    },
+    "belt_strike": {
+      "name": "Sciopero nella fascia",
+      "desc": "I minatori degli asteroidi incrociano le braccia: turni di otto mesi, e nessuno che li senta. Le consegne sono ferme.",
+      "a": "Accetta le loro condizioni",
+      "b": "Sostituiscili con le macchine"
+    },
+    "europa_life": {
+      "name": "C'è vita su Europa",
+      "desc": "Sotto il ghiaccio, qualcosa si muove. Microbi, forse. È la scoperta del millennio, e per ora la conosci solo tu.",
+      "a": "Pubblica tutto, subito",
+      "b": "Classifica e studia in segreto"
+    },
+    "swarm_shadow": {
+      "name": "L'ombra dello sciame",
+      "desc": "I primi specchi di Dyson tolgono alla Terra un filo di luce. I raccolti ne risentono, e gli agricoltori se ne sono accorti.",
+      "a": "Correggi le orbite, costi quel che costi",
+      "b": "È un prezzo accettabile"
+    },
+    "ark_lottery": {
+      "name": "Chi sale sull'arca?",
+      "desc": "Centomila posti per un viaggio di sola andata verso Proxima. Dieci milioni di domande. Bisogna decidere come si sceglie.",
+      "a": "Una lotteria aperta a tutti",
+      "b": "Solo i più qualificati"
+    }
   }
 }
