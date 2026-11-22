@@ -199,3 +199,31 @@ describe('space race mode', () => {
     expect(SPACE_RACE_PATH).not.toContain('mars_colony');
   });
 });
+
+describe('allied co-funding', () => {
+  it('takes 4% off per alliance, capped at 20%, on top of policies', async () => {
+    const { projectCostBreakdown, getCosmosProject: get, projectCost: listPrice } = await import('../src/index.js');
+    const s = newGame();
+    const def = get('earth_smart_grid')!;
+    const others = Object.keys(s.countries).filter((id) => id !== s.playerCountryId);
+    const ally = (o: string) => ({
+      countryA: s.playerCountryId < o ? s.playerCountryId : o,
+      countryB: s.playerCountryId < o ? o : s.playerCountryId,
+      attitude: 80, treaties: ['alliance' as const], atWar: false,
+    });
+    const key = (o: string) => (s.playerCountryId < o ? `${s.playerCountryId}::${o}` : `${o}::${s.playerCountryId}`);
+    const withAllies = (n: number) => ({
+      ...s,
+      relations: Object.fromEntries(others.slice(0, n).map((o) => [key(o), ally(o)])) as typeof s.relations,
+    });
+    const list = listPrice(s.cosmos!, def);
+    expect(projectCostBreakdown(withAllies(0), def).final).toBe(list);
+    const two = projectCostBreakdown(withAllies(Math.min(2, others.length)), def);
+    expect(two.allyDiscount).toBeCloseTo(0.04 * two.allies, 6);
+    expect(two.final).toBe(Math.round(list * (1 - two.allyDiscount)));
+    const many = { ...withAllies(others.length), policies: { active: ['industrial_plan' as const], cooldownUntil: {}, speedCarry: 0 } };
+    const b = projectCostBreakdown(many, def);
+    expect(b.allyDiscount).toBeLessThanOrEqual(0.2);
+    expect(b.final).toBe(Math.round(list * 0.88 * (1 - b.allyDiscount)));
+  });
+});

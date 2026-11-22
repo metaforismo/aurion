@@ -24,6 +24,7 @@ import {
   kardashevToWatts,
   kardashevType,
   effectiveProjectCost,
+  projectCostBreakdown,
   type CosmosProjectDef,
   type CosmosProjectStatus,
 } from '@aurion/engine';
@@ -126,6 +127,7 @@ export function CosmosPanel({ onErrors }: { onErrors?: (errors: string[]) => voi
   ]
     .sort((a, b) => b.done - a.done)
     .slice(0, 4);
+  const discount = projectCostBreakdown(state, COSMOS_PROJECTS[0]!);
   const playerFirsts = Object.values(cosmos.firsts).filter((c) => c === player.id).length;
 
   return (
@@ -182,6 +184,21 @@ export function CosmosPanel({ onErrors }: { onErrors?: (errors: string[]) => voi
           </div>
         </dl>
       </section>
+
+      {/* ---- Discounts ---------------------------------------------------- */}
+      <p className="-mt-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[11px] leading-snug text-fg-faint" data-testid="cosmos-discounts">
+        {discount.allies > 0 ? (
+          <span className="block text-success">
+            {t('discount.allies', { pct: Math.round(discount.allyDiscount * 100), n: discount.allies })}
+          </span>
+        ) : null}
+        {discount.policyDiscount > 0 ? (
+          <span className="block text-success">
+            {t('discount.policy', { pct: Math.round(discount.policyDiscount * 100) })}
+          </span>
+        ) : null}
+        {discount.allyDiscount < 0.2 ? <span className="block">{t('discount.hint')}</span> : null}
+      </p>
 
       {/* ---- Under construction ---------------------------------------- */}
       <section aria-label={t('building.title')}>

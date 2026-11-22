@@ -50,6 +50,9 @@ export {
   cosmosColonists,
   projectCost,
   effectiveProjectCost,
+  projectCostBreakdown,
+  ALLY_PROJECT_DISCOUNT,
+  ALLY_PROJECT_DISCOUNT_CAP,
   settledBodies,
   spaceTechShare,
   highestStage,
@@ -61,7 +64,7 @@ export {
   spaceRaceLeader,
   spaceRaceOutcome,
 } from './cosmos/index.js';
-export type { CosmosProjectStatus } from './cosmos/index.js';
+export type { CosmosProjectStatus, ProjectCostBreakdown } from './cosmos/index.js';
 export {
   POLICIES,
   POLICY_SLOTS,

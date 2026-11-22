@@ -15,6 +15,7 @@ import Hud from '../../../../components/Hud';
 import ModalRoot from '../../../../components/Modals';
 import { ActionToastStack, VictoryToast } from '../../../../components/Notifications';
 import PanelTabs from '../../../../components/Panels';
+import { MilestoneOverlay } from '../../../../components/Play/MilestoneOverlay';
 import { PlayAudio } from '../../../../components/Play/PlayAudio';
 import TutorialOverlay from '../../../../components/Tutorial';
 import { useGameStore } from '../../../../lib/store';
@@ -79,6 +80,7 @@ export default function PlayPage({
             </div>
           </div>
         </div>
+        <MilestoneOverlay />
         <ModalRoot />
         {/* Self-managed toasts: achievements, Odyssey milestones, action
             confirmations. Each reads its own slice of the store. */}

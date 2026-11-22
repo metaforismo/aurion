@@ -116,11 +116,46 @@ export function projectCost(cosmos: CosmosState, def: CosmosProjectDef): number 
   return Math.round(def.cost * cosmos.unit);
 }
 
-/** What the player actually pays right now (policies applied). */
-export function effectiveProjectCost(state: GameState, def: CosmosProjectDef): number {
+/** Each ally shares the bill: this much off per alliance… */
+export const ALLY_PROJECT_DISCOUNT = 0.04;
+/** …up to this much in total. */
+export const ALLY_PROJECT_DISCOUNT_CAP = 0.2;
+
+export type ProjectCostBreakdown = {
+  /** Catalogue price for this save. */
+  list: number;
+  /** Share taken off by national policies (0.12 = 12%). */
+  policyDiscount: number;
+  /** Share taken off because allies co-fund the project. */
+  allyDiscount: number;
+  /** Number of alliances counted. */
+  allies: number;
+  /** What the player pays. */
+  final: number;
+};
+
+/** How the price of a megaproject is built up right now. */
+export function projectCostBreakdown(state: GameState, def: CosmosProjectDef): ProjectCostBreakdown {
   const cosmos = state.cosmos ?? initCosmos(state);
-  const mul = Math.max(0.5, 1 + policyModifiers(state).projectCostMul);
-  return Math.round(projectCost(cosmos, def) * mul);
+  const list = projectCost(cosmos, def);
+  const me = state.playerCountryId;
+  const allies = Object.values(state.relations).filter(
+    (r) => (r.countryA === me || r.countryB === me) && r.treaties.includes('alliance'),
+  ).length;
+  const allyDiscount = Math.min(ALLY_PROJECT_DISCOUNT_CAP, allies * ALLY_PROJECT_DISCOUNT);
+  const policyDiscount = Math.min(0.5, Math.max(0, -policyModifiers(state).projectCostMul));
+  return {
+    list,
+    policyDiscount,
+    allyDiscount,
+    allies,
+    final: Math.round(list * (1 - policyDiscount) * (1 - allyDiscount)),
+  };
+}
+
+/** What the player actually pays right now (policies and allies applied). */
+export function effectiveProjectCost(state: GameState, def: CosmosProjectDef): number {
+  return projectCostBreakdown(state, def).final;
 }
 
 /** People living off-world. */
