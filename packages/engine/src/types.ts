@@ -222,6 +222,11 @@ export type WarState = {
   scale: number;
 };
 
+export type TerritoryHolding = {
+  owner: CountryId;
+  sinceTick: number;
+};
+
 export type PeaceTier = 'white' | 'reparations' | 'capitulation';
 
 export type PeaceRecord = {
@@ -235,6 +240,8 @@ export type PeaceRecord = {
   reparations: number;
   gdpTransfer: number;
   proposedBy: CountryId;
+  /** Protectorate (territory id) that changed hands on a capitulation. */
+  ceded?: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -474,6 +481,12 @@ export type Scenario = {
   dethroneIsolationOnByDefault?: boolean;
   /** Era schedule for era-paced mode (Wave 10+). */
   eras?: Era[];
+  /**
+   * Home ground on the world map: territory id (ISO 3166-1 numeric) → the
+   * nation it belongs to. Everything else is unaligned. Filled in by the app
+   * from its map data; without it Earth territory is switched off.
+   */
+  homeTerritories?: Record<string, CountryId>;
 };
 
 /** A bloc as declared in scenario data (without runtime fields like leader). */
@@ -521,6 +534,7 @@ export type Action =
   | { type: 'enactPolicy'; policyId: PolicyId }
   | { type: 'repealPolicy'; policyId: PolicyId }
   | { type: 'setColonyFocus'; body: ColonyBody; focus: ColonyFocus }
+  | { type: 'claimTerritory'; territoryId: string }
   | { type: 'claimSector'; body: ColonyBody; sectorId: string }
   | { type: 'buildStructure'; body: ColonyBody; sectorId: string; structure: StructureKind };
 
@@ -559,7 +573,11 @@ export type GameState = {
   /** Stable string fed to the seeded PRNG. */
   rngSeed: string;
   /** Engine-managed loss-condition streaks. Optional so older saves load cleanly. */
-/** Wars in progress, keyed like relations. Absent on saves from before wars kept score. */
+/** Protectorates on Earth: territory id (ISO numeric) → who holds it. */
+  territories?: Record<string, TerritoryHolding>;
+  /** The protectorate the player is integrating, if any. */
+  territoryWork?: { id: string; remainingTicks: number } | null;
+  /** Wars in progress, keyed like relations. Absent on saves from before wars kept score. */
   wars?: Record<string, WarState>;
   /** The most recent peace treaties, oldest first. */
   peaceLog?: PeaceRecord[];

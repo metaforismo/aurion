@@ -744,6 +744,12 @@
     "colony": {
       "cooldown": "This colony's mandate changed too recently.",
       "none": "You have no colony on this world yet."
+    },
+    "territory": {
+      "taken": "That land already belongs to someone.",
+      "notAdjacent": "It does not border your land.",
+      "busy": "A work is already under way.",
+      "insufficientTreasury": "You cannot afford it."
     }
   },
   "play": {
@@ -1600,6 +1606,26 @@
     "dock": {
       "close": "Close panel",
       "open": "Open {name}"
+    },
+    "territory": {
+      "close": "Close",
+      "status": {
+        "free": "Unaligned country",
+        "yours": "Your protectorate",
+        "rival": "Protectorate of {name}",
+        "inProgress": "Being integrated: {weeks, plural, =1 {1 week} other {# weeks}}"
+      },
+      "cost": "Cost",
+      "time": "Time",
+      "gain": "GDP, for good",
+      "weeks": "{n} wk",
+      "claim": "Make it a protectorate",
+      "hint": "You pay up front. The nations next door will not like it: −5 attitude with each. From here you can then expand to its neighbours.",
+      "busy": "You are already integrating another country: one at a time.",
+      "cannotAfford": "You cannot afford it.",
+      "notAdjacent": "It does not border your land, not even across the sea: you expand from one country to the next.",
+      "yoursHint": "It is part of your sphere. If you capitulate in a war, your latest protectorate goes to the winner.",
+      "rivalHint": "A rival got here first. It can only change hands through a capitulation."
     }
   },
   "policies": {
@@ -1822,7 +1848,9 @@
         "white": "Peace with no winner",
         "reparations": "{winner} collects {amount} in reparations",
         "capitulation": "{loser} capitulates to {winner}"
-      }
+      },
+      "landYou": "{place} is now your protectorate",
+      "landRival": "{name} made {place} a protectorate"
     },
     "age": {
       "now": "now",
@@ -2067,7 +2095,7 @@
       },
       "diplomacy": {
         "name": "Diplomacy",
-        "what": "Your relations with every nation: trade deals, alliances, sanctions, declarations of war and peace treaties.",
+        "what": "Relations with every nation: trade deals, alliances, sanctions, war and peace. And land: unaligned countries that border yours can become protectorates, by tapping them on the globe.",
         "tip": "An alliance takes preparation: improve relations first, and propose it only when the other nation thinks well of you. Each ally also takes 4% off the price of megaprojects."
       },
       "politics": {

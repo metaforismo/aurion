@@ -6,6 +6,8 @@
 
 import { COSMOS_EVENTS, type Scenario } from '@aurion/engine';
 
+import { isoMapForScenario } from './globe/geo';
+
 /**
  * Closed enumeration of scenario ids that may appear in the registry. Adding
  * a new scenario means: (1) add the id here, (2) add an entry in
@@ -168,6 +170,12 @@ export async function loadScenario(id: ScenarioId): Promise<Scenario> {
 
   // Space-age events are scenario-independent: every world gets them.
   scenario = { ...scenario, eventPool: [...scenario.eventPool, ...COSMOS_EVENTS] };
+
+  // Home ground on the world map, from the same table the globe draws with:
+  // it tells the engine which real countries belong to which nation, and so
+  // which ones are unaligned and can become protectorates.
+  const home = isoMapForScenario(id);
+  if (Object.keys(home).length > 0) scenario = { ...scenario, homeTerritories: { ...home } };
 
   scenarioCache.set(id, scenario);
   return scenario;

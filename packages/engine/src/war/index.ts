@@ -4,6 +4,7 @@
 
 import { clamp } from '../actions/helpers.js';
 import { createRng } from '../rng.js';
+import { cedeProtectorate } from '../territory/earth.js';
 import type { Country, CountryId, GameState, PeaceRecord, PeaceTier, Relation, WarState } from '../types.js';
 
 /** Score (0..100) from which the leading side can demand reparations. */
@@ -225,6 +226,15 @@ export function concludePeace(
     adjust(y, 0, 0, swing.loser);
   }
 
+  // On a capitulation the loser's latest protectorate changes hands.
+  let territories = state.territories;
+  let ceded: string | null = null;
+  if (terms.tier === 'capitulation' && terms.winner && terms.loser) {
+    const spoils = cedeProtectorate({ ...state, territories }, terms.loser, terms.winner);
+    territories = spoils.state.territories;
+    ceded = spoils.ceded;
+  }
+
   const wars = { ...(state.wars ?? {}) };
   const war = wars[warKey(x, y)];
   delete wars[warKey(x, y)];
@@ -238,12 +248,14 @@ export function concludePeace(
     reparations: terms.reparations,
     gdpTransfer: terms.gdpTransfer,
     proposedBy: x,
+    ceded,
   };
   return {
     state: {
       ...state,
       countries,
       wars,
+      ...(territories ? { territories } : {}),
       peaceLog: [...(state.peaceLog ?? []), record].slice(-PEACE_LOG_LIMIT),
     },
     relation: {

@@ -7,8 +7,12 @@
 import { geoEquirectangular, geoPath } from 'd3-geo';
 import {
   AlertTriangle,
+  Atom,
   Ban,
+  Building2,
+  Cpu,
   Eye,
+  Globe2,
   Handshake,
   HeartHandshake,
   Landmark,
@@ -20,10 +24,12 @@ import {
   ShieldAlert,
   Swords,
   Unlink,
+  Zap,
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { claimableTerritories, COSMOS_PROJECTS } from '@aurion/engine';
 import type { Country, CountryId, GameState, IntelLevel } from '@aurion/engine';
 
 import { buildGeoCountries, countryAt, greatCircle, midpoint, type GeoCountry } from '../../lib/globe/geo';
@@ -35,6 +41,7 @@ import { useScenarioMessages } from '../Panels/shared/useScenarioMessages';
 import { IconButton } from '../ui';
 
 import { CapitalMarker, NewsPill, type MarkerTone } from './markers';
+import TerritoryCard from './TerritoryCard';
 import { BLOC_HEX, OverlaySwitch, computeIntelMask, type BlocColorKey, type OverlayMode } from './overlay';
 import { useWideStage, type StageInsets } from './useStageInsets';
 import PlanetView, { type PlanetMarker, type PlanetViewHandle } from './PlanetView';
@@ -42,6 +49,16 @@ import PlanetView, { type PlanetMarker, type PlanetViewHandle } from './PlanetVi
 const GOLD = '#E8B45A';
 
 /** How long a diplomatic headline stays pinned to the globe, in weeks. */
+/** The icon each Earth megaproject leaves on the map once built. */
+const EARTH_STRUCTURE_ICON: Readonly<Record<string, LucideIcon>> = {
+  earth_smart_grid: Zap,
+  earth_quantum_net: Cpu,
+  earth_arcologies: Building2,
+  earth_fusion: Atom,
+  earth_spaceport: Rocket,
+  earth_planetary_grid: Globe2,
+};
+
 const NEWS_WEEKS = 20;
 /** How long the outcome of a covert operation stays pinned on the globe. */
 const SPY_NEWS_WEEKS = 8;
@@ -214,6 +231,18 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
       .map((r) => ({ a: r.countryA, b: r.countryB }));
   }, [state, overlay]);
 
+  // Land beyond the scenario's nations: protectorates, the one being
+  // integrated, and what the player could take next.
+  const [selectedTerritory, setSelectedTerritory] = useState<string | null>(null);
+  const land = useMemo(() => {
+    if (!state || !scenario?.homeTerritories) return null;
+    return {
+      held: Object.entries(state.territories ?? {}).map(([id, h]) => [id, h.owner] as const),
+      working: state.territoryWork?.id ?? null,
+      claimable: claimableTerritories(state, scenario),
+    };
+  }, [state, scenario]);
+
   // Covert traffic the player knows about: their own agents in the field,
   // and foreign ones caught on their soil in the last few weeks.
   const spyArcs = useMemo(() => {
@@ -241,9 +270,11 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
         wars,
         alliances,
         spyArcs,
+        land,
+        selectedTerritory,
         geo.length,
       ]),
-    [paints, wars, alliances, spyArcs, geo.length],
+    [paints, wars, alliances, spyArcs, land, selectedTerritory, geo.length],
   );
 
   useEffect(() => {
@@ -261,6 +292,37 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
       ctx.strokeStyle = 'rgba(255,255,255,0.2)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
+
+      // Unaligned land: protectorates in their holder's colour, the one being
+      // integrated and the ones within reach as dashed outlines.
+      if (land) {
+        const byIso = new Map(geo.map((g) => [g.iso, g]));
+        const outline = (iso: string, style: string, width: number, dash: number[], fill?: string) => {
+          const g = byIso.get(iso);
+          if (!g || g.countryId) return;
+          ctx.beginPath();
+          path(g.feature);
+          if (fill) {
+            ctx.fillStyle = fill;
+            ctx.fill();
+          }
+          ctx.setLineDash(dash);
+          ctx.strokeStyle = style;
+          ctx.lineWidth = width;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        };
+        for (const iso of land.claimable) {
+          if (iso !== land.working) outline(iso, 'rgba(160,220,255,0.55)', 2, [6, 9]);
+        }
+        for (const [iso, owner] of land.held) {
+          const mine = owner === playerId;
+          const color = mine ? '#f5b450' : (state?.countries[owner]?.color ?? '#9aa7b5');
+          outline(iso, hexToRgba(color, 0.95), mine ? 3 : 2.4, [], hexToRgba(color, mine ? 0.3 : 0.28));
+        }
+        if (land.working) outline(land.working, 'rgba(245,180,80,0.95)', 3.4, [14, 9], 'rgba(245,180,80,0.1)');
+        if (selectedTerritory) outline(selectedTerritory, 'rgba(255,255,255,0.95)', 3, []);
+      }
 
       // Featured countries: tint + crisp border. Player last so its glow wins.
       const featured = geo
@@ -351,8 +413,11 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
     (lon: number, lat: number) => {
       const hit = countryAt(geo, lon, lat);
       selectCountry(hit?.countryId ?? null);
+      // An unaligned country opens its own card (where the scenario has map data).
+      const unaligned = hit && !hit.countryId && scenario?.homeTerritories && hit.iso && hit.iso !== '010';
+      setSelectedTerritory((current) => (unaligned ? (current === hit.iso ? null : hit.iso) : null));
     },
-    [geo, selectCountry],
+    [geo, selectCountry, scenario],
   );
 
   const lastHoverId = useRef<CountryId | null>(null);
@@ -573,6 +638,39 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
       );
     }
 
+    // What the player has built on Earth stays on the map: one icon per
+    // completed megaproject, in a ring around the capital.
+    if (playerGeo) {
+      const built = COSMOS_PROJECTS.filter(
+        (p) => p.body === 'earth' && (state.cosmos?.completed ?? []).includes(p.id),
+      );
+      built.forEach((project, i) => {
+        const Icon = EARTH_STRUCTURE_ICON[project.id] ?? Building2;
+        // On the western arc, clear of the capital's label to the east.
+        const angle = Math.PI / 3 + (i / Math.max(built.length - 1, 5)) * ((Math.PI * 4) / 3);
+        const name = tCosmos(`projects.${project.id}.name`);
+        out.push({
+          id: `structure:${project.id}`,
+          lon: playerGeo.anchor.lon + Math.cos(angle) * 3,
+          lat: playerGeo.anchor.lat + Math.sin(angle) * 2.2,
+          kind: 'dot',
+          priority: 900,
+          width: 0,
+          node: (
+            <button
+              type="button"
+              title={name}
+              onClick={() => setSelectedPanel('cosmos')}
+              className="-ml-3 grid h-6 w-6 place-items-center rounded-md border border-[#f5b450]/60 bg-black/70 text-[#f5b450] shadow-[0_0_10px_rgba(245,180,80,0.45)] transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              <Icon aria-hidden className="h-3.5 w-3.5" />
+              <span className="sr-only">{name}</span>
+            </button>
+          ),
+        });
+      });
+    }
+
     // The space race: recent megaproject completions around the world.
     const recent = (state.cosmos?.log ?? []).filter((e) => state.tick - e.tick <= 26).slice(-6);
     for (const entry of recent) {
@@ -690,6 +788,21 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
         <IconButton icon={Minus} label={tGlobe('zoomOut')} onClick={() => viewRef.current?.zoomBy(1.28)} disabled={zoomDistance >= 4.15} />
         <IconButton icon={LocateFixed} label={tGlobe('home')} onClick={goHome} />
       </div>
+
+      {state && scenario && selectedTerritory ? (
+        <div
+          className="pointer-events-none absolute bottom-[6.75rem] z-10 -translate-x-1/2 lg:bottom-[4.75rem]"
+          style={{ left: 'var(--stage-center, 50%)' }}
+        >
+          <TerritoryCard
+            state={state}
+            scenario={scenario}
+            territoryId={selectedTerritory}
+            nameOf={nameOf}
+            onClose={() => setSelectedTerritory(null)}
+          />
+        </div>
+      ) : null}
 
       {hover && tooltipCountry && tooltipCountry.id !== selectedCountryId ? (
         <div

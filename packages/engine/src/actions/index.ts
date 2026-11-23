@@ -20,6 +20,7 @@ import { applyDeployArmy, isDeployAllowed } from './deployArmy.js';
 import { applyDeploySpy, computeSpyProbabilities } from './deploySpy.js';
 import { applySetColonyFocus } from '../cosmos/colonies.js';
 import { applyBuildStructure, applyClaimSector } from '../cosmos/territory.js';
+import { applyClaimTerritory } from '../territory/earth.js';
 import { applyDiplomacy, isDiplomacyAllowed } from './diplomacy.js';
 import { applyInvest } from './invest.js';
 import { applyPlacateFaction, PLACATE_COST } from './placateFaction.js';
@@ -126,6 +127,9 @@ export function applyAction(
       break;
     case 'setColonyFocus':
       result = applySetColonyFocus(state, action, actor);
+      break;
+    case 'claimTerritory':
+      result = applyClaimTerritory(state, action, actor, scenario);
       break;
     case 'claimSector':
       result = applyClaimSector(state, action, actor);
