@@ -877,11 +877,11 @@
       },
       "views": {
         "title": "Other worlds",
-        "body": "Switch from Earth to the Moon, Mars and the solar-system map to see where your projects stand."
+        "body": "Switch from Earth to the Moon, Mars and the solar-system map: see where your projects stand and, once you have colonies, decide what they send home."
       },
       "briefing": {
         "title": "The briefing",
-        "body": "Suggested next steps on top, dispatches below: decisions, UN votes and your rivals' progress in the space race."
+        "body": "Suggested next steps on top, dispatches below: decisions, wars and treaties, covert operations, UN votes and your rivals' progress in the space race."
       }
     }
   },
@@ -1986,8 +1986,8 @@
       "lead": "Each has its own panel and its own key. For each: what it's for, and one practical tip.",
       "economy": {
         "name": "Economy",
-        "what": "Taxes, economic sectors and trade: the system that pays for all the others. The treasury moves every week with your income.",
-        "tip": "High taxes fill the coffers but eat popularity. Raise them to fund something specific, then bring them back down."
+        "what": "Taxes, trade and investment: the system that pays for all the others. The treasury moves every week with your income, and the breakdown says where every euro comes from.",
+        "tip": "Invest little and often. A sum that is large next to your GDP, or many investments close together, return less euro for euro: the full return comes back after a few months."
       },
       "research": {
         "name": "Research",
@@ -1996,23 +1996,23 @@
       },
       "military": {
         "name": "Military",
-        "what": "Army, navy and air force, and where to deploy them. They win wars and, before that, deter those who'd like to declare them.",
-        "tip": "Don't strip the homeland: if the enemy outnumbers the forces defending your capital for long, the game is lost."
+        "what": "Army, navy and air force, and where to deploy them. Every war keeps a score: it rises by winning battles, by occupying the enemy's region and, slowly, simply by being stronger.",
+        "tip": "Peace is signed on the score's terms: under 20 it is a draw, from 20 the side ahead collects reparations, from 60 the other capitulates. Every week of war costs approval: do not drag it out."
       },
       "intel": {
         "name": "Intelligence",
-        "what": "Spies and counter-intelligence: stealing technology, sabotage, propaganda, destabilising a government.",
-        "tip": "Every operation shows the odds of success and of being detected. Watch the second: getting caught damages relations and raises tension."
+        "what": "Spies and counter-intelligence: stealing technology, sabotage, propaganda, destabilising a government, striking a key figure. The target you pick changes the effect, and rivals send agents after you too.",
+        "tip": "An agent comes home when the mission ends, unless caught: then you lose them and relations drop by 12. Counter-intelligence is what stops, or exposes, the operations against you."
       },
       "diplomacy": {
         "name": "Diplomacy",
         "what": "Your relations with every nation: trade deals, alliances, sanctions, declarations of war and peace treaties.",
-        "tip": "An alliance needs groundwork: improve relations first, and propose it only once the other nation looks on you kindly."
+        "tip": "An alliance takes preparation: improve relations first, and propose it only when the other nation thinks well of you. Each ally also takes 4% off the price of megaprojects."
       },
       "politics": {
         "name": "Internal politics",
-        "what": "Popularity and five factions — the army, business, the religious, populists, reformists — each with its own weight and mood.",
-        "tip": "Watch the factions before popularity: trouble starts there. One unhappy faction can be placated; all of them at once can't."
+        "what": "Popularity and five factions, each with its weight and a lever of its own: the army combat power, business income, the clergy approval, populists growth, reformists research.",
+        "tip": "A faction at 70% or more is behind you and gives a bonus; at 30% or less it works against you. Choose which to keep close by what you are trying to do."
       },
       "un": {
         "name": "UN",
@@ -2058,6 +2058,10 @@
         "cancel": {
           "title": "You can cancel.",
           "body": "Stopping a build returns half of what you paid."
+        },
+        "colonies": {
+          "title": "Bases become colonies.",
+          "body": "On the Moon and Mars the population grows by itself toward the room your projects provide. You give each colony a mandate — science, industry or trade — that decides what it sends home every week."
         }
       },
       "tip": "Bonuses are permanent and they stack: every project that lifts GDP makes the next one easier to afford."

@@ -12,7 +12,7 @@ import {
 } from '@aurion/engine';
 import { Factory, FlaskConical, Scale, ShoppingBag, type LucideIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 
 import { cn } from '../../lib/cn';
 import { compactNumber, money } from '../../lib/format';
@@ -41,14 +41,13 @@ export default function ColonyCard({ body }: { body: ColonyBody }) {
     new Intl.NumberFormat(locale, { maximumFractionDigits: digits, signDisplay: 'exceptZero' }).format(n);
 
   /** What a mandate would send home at today's population. */
-  const yieldOf = (focus: ColonyFocus): string => {
+  const yieldOf = (focus: ColonyFocus): string[] => {
     const o = colonyOutput(colony.population, focus, unit);
     const parts: string[] = [];
     if (o.research > 0) parts.push(t('yield.research', { v: number(o.research) }));
     if (o.income > 0) parts.push(t('yield.income', { v: money(o.income, locale) }));
     if (o.projectSpeed > 0) parts.push(t('yield.speed', { v: number(o.projectSpeed * 100) }));
-    // Keep each figure whole when the line wraps.
-    return parts.map((part) => part.replace(/ /g, '\u00a0')).join(' · ');
+    return parts;
   };
 
   const choose = async (focus: ColonyFocus) => {
@@ -100,7 +99,7 @@ export default function ColonyCard({ body }: { body: ColonyBody }) {
               data-testid={`colony-${body}-focus-${focus}`}
               onClick={() => void choose(focus)}
               className={cn(
-                'flex items-start gap-2 rounded-xl border px-2.5 py-2 text-left transition-colors',
+                'flex min-w-0 items-start gap-2 rounded-xl border px-2.5 py-2 text-left transition-colors',
                 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                 active
                   ? 'border-[#5cc8ff]/50 bg-[#5cc8ff]/10'
@@ -112,7 +111,15 @@ export default function ColonyCard({ body }: { body: ColonyBody }) {
               <Icon aria-hidden className={cn('mt-0.5 h-4 w-4 shrink-0', active ? 'text-[#8ad8ff]' : 'text-fg-muted')} />
               <span className="min-w-0">
                 <span className="block text-[12px] font-medium text-fg">{t(`focus.${focus}`)}</span>
-                <span className="numeric-tabular block text-[11px] leading-snug text-fg-muted">{yieldOf(focus)}</span>
+                <span className="numeric-tabular block text-[11px] leading-snug text-fg-muted">
+                  {/* Each figure stays whole when the line wraps. */}
+                  {yieldOf(focus).map((part, i) => (
+                    <Fragment key={part}>
+                      {i > 0 ? ' · ' : null}
+                      <span className="whitespace-nowrap">{part}</span>
+                    </Fragment>
+                  ))}
+                </span>
               </span>
             </button>
           );

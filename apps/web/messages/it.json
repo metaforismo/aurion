@@ -877,11 +877,11 @@
       },
       "views": {
         "title": "Altri mondi",
-        "body": "Da qui passi dalla Terra alla Luna, a Marte e alla mappa del sistema solare, per vedere dove sorgono i tuoi cantieri."
+        "body": "Da qui passi dalla Terra alla Luna, a Marte e alla mappa del sistema solare: vedi dove sorgono i tuoi cantieri e, quando avrai colonie, decidi cosa devono mandare a casa."
       },
       "briefing": {
         "title": "Il briefing",
-        "body": "In alto i prossimi passi consigliati, sotto i dispacci: decisioni, voti ONU e i progressi dei rivali nella corsa allo spazio."
+        "body": "In alto i prossimi passi consigliati, sotto i dispacci: decisioni, guerre e paci, operazioni segrete, voti ONU e i progressi dei rivali nella corsa allo spazio."
       }
     }
   },
@@ -1986,8 +1986,8 @@
       "lead": "Ognuno ha il suo pannello e il suo tasto. Di ciascuno: a cosa serve, e un consiglio pratico.",
       "economy": {
         "name": "Economia",
-        "what": "Tasse, settori produttivi e commercio: è il sistema che paga tutti gli altri. La tesoreria si muove ogni settimana con le entrate.",
-        "tip": "Le tasse alte riempiono la cassa ma consumano popolarità. Alzale per finanziare qualcosa di preciso, poi riabbassale."
+        "what": "Tasse, commercio e investimenti: è il sistema che paga tutti gli altri. La tesoreria si muove ogni settimana con le entrate, e il riepilogo dice da dove arriva ogni euro.",
+        "tip": "Investi poco e spesso. Una somma grande rispetto al PIL, o molti investimenti ravvicinati, rendono meno euro per euro: il rendimento torna pieno dopo qualche mese."
       },
       "research": {
         "name": "Ricerca",
@@ -1996,23 +1996,23 @@
       },
       "military": {
         "name": "Militare",
-        "what": "Esercito, marina e aviazione, e dove schierarli. Servono a vincere le guerre e, prima ancora, a scoraggiare chi vorrebbe dichiararle.",
-        "tip": "Non sguarnire la patria: se il nemico supera a lungo le forze che difendono la tua capitale, la partita è persa."
+        "what": "Esercito, marina e aviazione, e dove schierarli. Ogni guerra ha un punteggio: sale vincendo scontri, occupando la regione nemica e, piano piano, semplicemente essendo più forte.",
+        "tip": "La pace si firma alle condizioni del punteggio: sotto 20 è un pareggio, da 20 chi è avanti incassa riparazioni, da 60 l'altro capitola. Ogni settimana di guerra costa consenso: non trascinarla."
       },
       "intel": {
         "name": "Intelligence",
-        "what": "Spie e controspionaggio: rubare tecnologie, sabotare, fare propaganda, destabilizzare un governo.",
-        "tip": "Ogni operazione mostra la probabilità di riuscire e quella di essere scoperti. Guarda la seconda: farsi scoprire rovina i rapporti e alza la tensione."
+        "what": "Spie e controspionaggio: rubare tecnologie, sabotare, fare propaganda, destabilizzare un governo, colpire una figura chiave. Il bersaglio che scegli cambia l'effetto, e anche i rivali mandano agenti contro di te.",
+        "tip": "Un agente rientra a fine missione, a meno che non venga scoperto: in quel caso lo perdi e i rapporti peggiorano di 12 punti. Il controspionaggio è ciò che ferma, o smaschera, le operazioni contro di te."
       },
       "diplomacy": {
         "name": "Diplomazia",
         "what": "I rapporti con ogni nazione: accordi commerciali, alleanze, sanzioni, dichiarazioni di guerra e trattati di pace.",
-        "tip": "Un'alleanza si prepara: migliora prima i rapporti, e proponila solo quando l'altra nazione ti vede di buon occhio."
+        "tip": "Un'alleanza si prepara: migliora prima i rapporti, e proponila solo quando l'altra nazione ti vede di buon occhio. Ogni alleato toglie anche il 4% dal prezzo dei megaprogetti."
       },
       "politics": {
         "name": "Politica interna",
-        "what": "La popolarità e cinque fazioni — militari, imprenditori, religiosi, populisti, riformisti — ognuna con il suo peso e il suo umore.",
-        "tip": "Guarda le fazioni prima della popolarità: i problemi cominciano lì. Una fazione scontenta si placa; tutte insieme, no."
+        "what": "La popolarità e cinque fazioni, ognuna con il suo peso e una leva propria: i militari la forza in battaglia, le imprese le entrate, il clero il consenso, i populisti la crescita, i riformisti la ricerca.",
+        "tip": "Una fazione al 70% o più è dalla tua parte e ti dà un bonus; al 30% o meno lavora contro di te. Scegli quali tenerti strette in base a ciò che stai cercando di fare."
       },
       "un": {
         "name": "ONU",
@@ -2058,6 +2058,10 @@
         "cancel": {
           "title": "Si può annullare.",
           "body": "Fermare un cantiere restituisce metà di quanto hai pagato."
+        },
+        "colonies": {
+          "title": "Le basi diventano colonie.",
+          "body": "Su Luna e Marte la popolazione cresce da sola verso i posti che i tuoi progetti offrono. A ogni colonia dai un mandato — scienza, industria o commercio — che decide cosa manda a casa ogni settimana."
         }
       },
       "tip": "I bonus sono permanenti e si sommano: ogni progetto che alza il PIL rende più facile pagare il successivo."
