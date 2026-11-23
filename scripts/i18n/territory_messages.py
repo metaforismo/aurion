@@ -47,6 +47,28 @@ ENTRIES = [
      "{structure} going up in {sector}: {weeks, plural, =1 {1 week} other {# weeks}}"),
 ]
 
+B = "cosmos.base"
+
+ENTRIES += [
+    (f"{C}.visit", "Scendi sulla base", "Go down to the base"),
+    (f"{B}.label.moon", "La base lunare, vista dalla superficie", "The lunar base, seen from the surface"),
+    (f"{B}.label.mars", "La base marziana, vista dalla superficie", "The Martian base, seen from the surface"),
+    (f"{B}.leave", "Torna in orbita", "Back to orbit"),
+    (f"{B}.hint",
+     "Trascina per guardarti intorno, rotella o pizzico per avvicinarti fino alle persone. La base cresce con gli abitanti, i progetti e le strutture che costruisci.",
+     "Drag to look around, scroll or pinch to get as close as the people. The base grows with its population, your projects and the structures you build."),
+    (f"{B}.loading", "Sto preparando la superficie…", "Preparing the surface…"),
+    (f"{B}.zoomIn", "Avvicina", "Zoom in"),
+    (f"{B}.zoomOut", "Allontana", "Zoom out"),
+    (f"{B}.reset", "Vista d'insieme", "Overview"),
+    (f"{B}.kind.housing", "{n, plural, =1 {modulo abitativo} other {moduli abitativi}}", "{n, plural, =1 {housing module} other {housing modules}}"),
+    (f"{B}.kind.dome", "{n, plural, =1 {cupola} other {cupole}}", "{n, plural, =1 {dome} other {domes}}"),
+    (f"{B}.kind.habitat", "habitat", "{n, plural, =1 {habitat} other {habitats}}"),
+    (f"{B}.kind.lab", "{n, plural, =1 {laboratorio} other {laboratori}}", "{n, plural, =1 {laboratory} other {laboratories}}"),
+    (f"{B}.kind.mine", "{n, plural, =1 {miniera} other {miniere}}", "{n, plural, =1 {mine} other {mines}}"),
+    (f"{B}.kind.foundry", "{n, plural, =1 {fonderia} other {fonderie}}", "{n, plural, =1 {foundry} other {foundries}}"),
+]
+
 if __name__ == "__main__":
     from _merge import merge
 

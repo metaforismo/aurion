@@ -13,6 +13,7 @@ import { PROJECT_SITES, type SurfaceBody } from '../../lib/globe/sites';
 import type { ScenarioId } from '../../lib/scenarios';
 import { useGameStore } from '../../lib/store';
 
+import BaseView from './BaseView';
 import ColonyCard from './ColonyCard';
 import { NewsPill, type MarkerTone } from './markers';
 import { STRUCTURE_ICON } from './TerritorySection';
@@ -35,6 +36,8 @@ export default function OffworldView({ body }: { body: SurfaceBody }) {
   const [ready, setReady] = useState(false);
 
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
+  // Down on the surface, looking at the base itself.
+  const [onSurface, setOnSurface] = useState(false);
   const { t: tScenario } = useScenarioMessages((scenario?.id as ScenarioId | undefined) ?? null);
   const nameOf = useCallback(
     (id: string) => {
@@ -199,6 +202,10 @@ export default function OffworldView({ body }: { body: SurfaceBody }) {
   if (!state) return null;
   const bodyName = tCosmos(`bodies.${body}`);
 
+  if (onSurface && hasColony) {
+    return <BaseView body={body} onLeave={() => setOnSurface(false)} />;
+  }
+
   return (
     <div className="absolute inset-0" data-testid={`offworld-${body}`}>
       <PlanetView
@@ -218,7 +225,12 @@ export default function OffworldView({ body }: { body: SurfaceBody }) {
         }}
         onReady={() => setReady(true)}
       />
-      <ColonyCard body={body} selectedSector={selectedSector} nameOf={nameOf} />
+      <ColonyCard
+        body={body}
+        selectedSector={selectedSector}
+        nameOf={nameOf}
+        onVisit={() => setOnSurface(true)}
+      />
       {!hasPresence && nextStep ? (
         <div
           className="glass-panel absolute bottom-28 z-10 w-[min(26rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl p-4 text-center lg:bottom-20"

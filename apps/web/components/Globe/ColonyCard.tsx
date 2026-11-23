@@ -10,7 +10,7 @@ import {
   type ColonyBody,
   type ColonyFocus,
 } from '@aurion/engine';
-import { Factory, FlaskConical, Scale, ShoppingBag, type LucideIcon } from 'lucide-react';
+import { ArrowDown, Factory, FlaskConical, Scale, ShoppingBag, type LucideIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, useState } from 'react';
 
@@ -32,11 +32,14 @@ export default function ColonyCard({
   body,
   selectedSector,
   nameOf,
+  onVisit,
 }: {
   body: ColonyBody;
   /** The sector picked on the surface; picking one opens the territory tab. */
   selectedSector: string | null;
   nameOf: (countryId: string) => string;
+  /** Go down to the surface and look at the base. */
+  onVisit: () => void;
 }) {
   const t = useTranslations('cosmos.colony');
   const locale = useLocale();
@@ -86,7 +89,18 @@ export default function ColonyCard({
       style={{ left: 'var(--stage-center, 50%)', animation: 'rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both' }}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-sm font-semibold text-fg">{t(`title.${body}`)}</h3>
+        <div className="flex min-w-0 items-center gap-2">
+          <h3 className="truncate text-sm font-semibold text-fg">{t(`title.${body}`)}</h3>
+          <button
+            type="button"
+            onClick={onVisit}
+            data-testid={`colony-${body}-visit`}
+            className="flex shrink-0 items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-semibold text-black transition-colors hover:bg-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <ArrowDown aria-hidden className="h-3 w-3" />
+            {t('visit')}
+          </button>
+        </div>
         <p className="numeric-tabular font-mono text-[11px] text-fg-muted" data-testid={`colony-${body}-population`}>
           {t('people', {
             n: compactNumber(colony.population, locale),
