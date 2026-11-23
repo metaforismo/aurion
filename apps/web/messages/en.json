@@ -3245,5 +3245,15 @@
     "chartLabel": "{name}: from {from} to {to}. Use the arrow keys to read values.",
     "table": "Show the data as a table",
     "when": "When"
+  },
+  "panelsShort": {
+    "economy": "Economy",
+    "research": "Research",
+    "military": "Military",
+    "spies": "Intel",
+    "diplomacy": "Diplomacy",
+    "politics": "Politics",
+    "un": "UN",
+    "cosmos": "Cosmos"
   }
 }

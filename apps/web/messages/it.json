@@ -3245,5 +3245,15 @@
     "chartLabel": "{name}: da {from} a {to}. Usa le frecce per leggere i valori.",
     "table": "Mostra i dati in tabella",
     "when": "Quando"
+  },
+  "panelsShort": {
+    "economy": "Economia",
+    "research": "Ricerca",
+    "military": "Militare",
+    "spies": "Intel",
+    "diplomacy": "Diplomazia",
+    "politics": "Politica",
+    "un": "ONU",
+    "cosmos": "Cosmo"
   }
 }

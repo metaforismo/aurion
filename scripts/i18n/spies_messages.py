@@ -51,6 +51,16 @@ ENTRIES = [
      "You exposed an operation by {name} against you: {op}. Relations −{penalty}."),
 ]
 
+# Dock labels: the rail is 60px wide, so two names get a shorter form there.
+# The full name stays the tab's accessible name and tooltip.
+for pid, it, en in [
+    ("economy", "Economia", "Economy"), ("research", "Ricerca", "Research"),
+    ("military", "Militare", "Military"), ("spies", "Intel", "Intel"),
+    ("diplomacy", "Diplomazia", "Diplomacy"), ("politics", "Politica", "Politics"),
+    ("un", "ONU", "UN"), ("cosmos", "Cosmo", "Cosmos"),
+]:
+    ENTRIES.append((f"panelsShort.{pid}", it, en))
+
 REMOVE = [
     f"{P}.outcome.propaganda",
     f"{P}.outcome.assassinate",
