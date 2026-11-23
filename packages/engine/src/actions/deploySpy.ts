@@ -41,6 +41,9 @@ const SPY_TYPE_BASE_DETECTION: Record<SpyOperation['type'], number> = {
   assassinate: 0.55,
 };
 
+/** Weeks the world waits between two covert operations against the player. */
+export const HOSTILE_INTEL_COOLDOWN_TICKS = 30;
+
 /** Attitude lost between two countries when one catches the other's agents. */
 export const SPY_DETECTED_ATTITUDE_PENALTY = 12;
 

@@ -2163,15 +2163,15 @@
       "target": {
         "economy": {
           "name": "Economia",
-          "rate": "Ogni euro ne aggiunge 4 al PIL"
+          "rate": "Fino a 4 euro di PIL per euro"
         },
         "infra": {
           "name": "Infrastrutture",
-          "rate": "2 euro di PIL per euro, e fino a +5 popolarità"
+          "rate": "Fino a 2 euro di PIL per euro, più popolarità"
         },
         "research": {
           "name": "Ricerca",
-          "rate": "+1 punto ricerca a settimana ogni € 5 Mln"
+          "rate": "Laboratori più produttivi, per sempre"
         },
         "military": {
           "name": "Esercito",
@@ -2186,7 +2186,7 @@
       "custom": "Altro",
       "customLabel": "Importo in milioni di euro",
       "customPlaceholder": "es. 250",
-      "shareHint": "Quota della tesoreria di oggi.",
+      "shareHint": "Quota della tesoreria di oggi. Somme grandi rispetto al PIL rendono meno, euro per euro.",
       "blocked": {
         "empty": "La cassa è vuota: non c’è nulla da investire.",
         "enter": "Scrivi l’importo, in milioni di euro.",
@@ -2204,7 +2204,8 @@
         "military": "+{units} unità: l’esercito sale a {total}",
         "spies": "{n, plural, =0 {Nessuna nuova spia (ne servono € 50 Mln l’una)} =1 {Una nuova spia: in tutto {total}} other {# nuove spie: in tutto {total}}}",
         "counterIntel": "Controspionaggio dal {from} al {to}",
-        "treasuryAfter": "Ti restano {value} in cassa"
+        "treasuryAfter": "Ti restano {value} in cassa",
+        "saturated": "Rende il {pct} del normale: è una somma grande rispetto al PIL, o hai già investito molto di recente. Somme più piccole e distanziate rendono di più."
       },
       "confirm": "Investi {amount} in {target}",
       "confirmIdle": "Investi",

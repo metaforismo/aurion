@@ -2,6 +2,7 @@
 // Pure: same (state, countryId, rng-state) → same decision.
 
 import { getAvailableActions } from '../actions/index.js';
+import { HOSTILE_INTEL_COOLDOWN_TICKS } from '../actions/deploySpy.js';
 import type { Rng } from '../rng.js';
 import { WAR_CAPITULATION_SCORE, WAR_REPARATIONS_SCORE, warBetween, warScoreFor } from '../war/index.js';
 import type {
@@ -251,7 +252,11 @@ export function decideAiAction(
 
   // ε-greedy: with small probability pick at random to keep exploration.
   if (rng.next() < EPSILON) {
-    return rng.pick(candidates);
+    const pick = rng.pick(candidates);
+    // Exploration still honours the hard vetoes (a score of -1).
+    const veto =
+      scoreAction(state, country.id, pick, ARCHETYPE_BASE[personality.archetype], personality, 0.5, difficulty, techCatalog) <= -1;
+    return veto ? null : pick;
   }
 
   const base = ARCHETYPE_BASE[personality.archetype];
@@ -529,6 +534,15 @@ function scoreAction(
       const rel = state.relations[key as keyof typeof state.relations];
       if (rel?.treaties.includes('alliance')) return -1;
       if (rel) score += Math.min(1, Math.max(0, -rel.attitude / 100)) * 0.25;
+      // The player is spied on one operation at a time, whoever sends it.
+      if (
+        targetId === state.playerCountryId &&
+        state.spyOperations.some(
+          (o) => o.targetCountryId === targetId && state.tick - o.startedAtTick < HOSTILE_INTEL_COOLDOWN_TICKS,
+        )
+      ) {
+        return -1;
+      }
       break;
     }
     case 'placateFaction': {

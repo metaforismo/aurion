@@ -116,6 +116,10 @@ export function InvestCard({
         );
         break;
     }
+    // Say so when recent spending is eating into the return.
+    if ('efficiency' in result && result.efficiency < 0.9) {
+      lines.push(t('preview.saturated', { pct: percent(result.efficiency, locale) }));
+    }
     lines.push(t('preview.treasuryAfter', { value: money(treasury - amount, locale, 2) }));
   }
 

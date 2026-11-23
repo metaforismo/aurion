@@ -30,6 +30,7 @@ import type {
 } from './types.js';
 import { clamp } from './actions/helpers.js';
 import {
+  HOSTILE_INTEL_COOLDOWN_TICKS,
   isSpyTypeUnlocked,
   SPY_DETECTED_ATTITUDE_PENALTY,
   assassinationRole,
@@ -46,6 +47,7 @@ import { tickPolicies } from './policies/index.js';
 import { tickHistory } from './history.js';
 import { tickWarDiplomacy, tickWars } from './war/index.js';
 import { factionModifiers } from './politics/factions.js';
+import { coolInvestHeat } from './actions/invest.js';
 import { applyStatToCountry } from './events/index.js';
 import { evaluateCondition } from './events/conditions.js';
 
@@ -286,10 +288,11 @@ function stepEconomy(state: GameState, playerIncomeMultiplier: number): GameStat
     // popular and not at all under one that is collapsing (~1.6% a year at
     // 50% popularity).
     const confidence = clamp(country.politics.popularity / 50, 0, 1.5);
+    const cooled = coolInvestHeat(country);
     updated[id] = {
-      ...country,
+      ...cooled,
       economy: {
-        ...country.economy,
+        ...cooled.economy,
         gdp: Math.round(
           country.economy.gdp *
             (1 + ORGANIC_GDP_GROWTH_PER_TICK * confidence * Math.max(0, 1 + factions.growthMul)),
@@ -482,8 +485,7 @@ function stepIntel(state: GameState, rng: Rng): GameState {
 
 /** Weeks of peace at the start of a game before rivals spy on the player. */
 export const HOSTILE_INTEL_GRACE_TICKS = 26;
-/** Weeks the world waits between two covert operations against the player. */
-export const HOSTILE_INTEL_COOLDOWN_TICKS = 30;
+export { HOSTILE_INTEL_COOLDOWN_TICKS };
 /** Weekly chance, once the cooldown is over, that one is launched. */
 export const HOSTILE_INTEL_CHANCE_PER_TICK = 0.045;
 

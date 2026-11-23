@@ -89,6 +89,11 @@ export type EconomyState = {
   /** 0..100 percent. Affects popularity and weeklyIncome. */
   taxRate: number;
   sectors: EconomySectors;
+  /**
+   * Recent investment as a share of GDP, per track; it cools off weekly and
+   * makes further investment on that track less effective while it lasts.
+   */
+  investHeat?: { growth?: number; research?: number };
 };
 
 export type MilitaryDeployment = {

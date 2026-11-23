@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../src/createGame.js';
-import { applyInvest } from '../src/actions/invest.js';
+import { applyInvest, investEfficiency } from '../src/actions/invest.js';
+import { tick } from '../src/tick.js';
 import { makeScenario } from './fixtures.js';
 
 const scenario = makeScenario();
@@ -88,5 +89,59 @@ describe('applyInvest', () => {
     const after = result.state.countries.aurion!;
     expect(after.economy.gdp).toBeGreaterThan(before.economy.gdp);
     expect(after.politics.popularity).toBeGreaterThanOrEqual(before.politics.popularity);
+  });
+});
+
+describe('diminishing returns', () => {
+  const invest = (s: typeof baseState, target: 'economy' | 'research', amount: number) =>
+    applyInvest(s, { type: 'invest', target, amount }, 'aurion').state;
+  const gdp = baseState.countries.aurion!.economy.gdp;
+  const rich = {
+    ...baseState,
+    countries: {
+      ...baseState.countries,
+      aurion: {
+        ...baseState.countries.aurion!,
+        economy: { ...baseState.countries.aurion!.economy, treasury: gdp },
+      },
+    },
+  };
+
+  it('a second investment right after the first buys less', () => {
+    const chunk = Math.round(gdp * 0.02);
+    const once = invest(rich, 'economy', chunk);
+    const twice = invest(once, 'economy', chunk);
+    const firstGain = once.countries.aurion!.economy.gdp - gdp;
+    const secondGain = twice.countries.aurion!.economy.gdp - once.countries.aurion!.economy.gdp;
+    expect(firstGain).toBeGreaterThan(0);
+    expect(secondGain).toBeLessThan(firstGain);
+  });
+
+  it('splitting a sum into payments changes nothing', () => {
+    const sum = Math.round(gdp * 0.04);
+    const whole = invest(rich, 'economy', sum).countries.aurion!.economy.gdp;
+    const halves = invest(invest(rich, 'economy', sum / 2), 'economy', sum / 2).countries.aurion!.economy.gdp;
+    // Each payment is priced against a slightly larger GDP: allow 1%.
+    expect(Math.abs(halves - whole) / (whole - gdp)).toBeLessThan(0.01);
+  });
+
+  it('a small first investment keeps almost the full return', () => {
+    const small = Math.round(gdp * 0.001);
+    expect(investEfficiency(rich.countries.aurion!, 'economy', small)).toBeGreaterThan(0.95);
+  });
+
+  it('research cannot be multiplied with a few weeks of income', () => {
+    const before = rich.countries.aurion!.science.researchOutput;
+    const after = invest(rich, 'research', Math.round(gdp * 0.01)).countries.aurion!.science.researchOutput;
+    expect(after).toBeGreaterThan(before);
+    expect(after).toBeLessThan(before * 2);
+  });
+
+  it('heat cools off, and the return comes back', () => {
+    const hot = invest(rich, 'economy', Math.round(gdp * 0.05));
+    const now = investEfficiency(hot.countries.aurion!, 'economy', gdp * 0.01);
+    let later = hot;
+    for (let i = 0; i < 104; i += 1) later = tick(later, {});
+    expect(investEfficiency(later.countries.aurion!, 'economy', gdp * 0.01)).toBeGreaterThan(now);
   });
 });
