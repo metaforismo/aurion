@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../src/createGame.js';
 import { SPY_DETECTED_ATTITUDE_PENALTY, sabotageGdpLoss } from '../src/actions/deploySpy.js';
-import { tick } from '../src/tick.js';
+import { HOSTILE_INTEL_COOLDOWN_TICKS, HOSTILE_INTEL_GRACE_TICKS, tick } from '../src/tick.js';
 import type { GameState, SpyOperation, SpyPayload } from '../src/types.js';
 import { makeScenario, sampleTechs } from './fixtures.js';
 
@@ -94,5 +94,32 @@ describe('spy operation outcomes', () => {
     expect(chief.countries.aurion!.intelligence.knownIntel.borealis).toBe('full');
 
     expect(head.countries.borealis!.politics.popularity).toBeLessThan(clean.politics.popularity);
+  });
+});
+
+describe('hostile intelligence', () => {
+  const run = (weeks: number): GameState => {
+    let s = base;
+    for (let i = 0; i < weeks; i += 1) s = tick(s, { techCatalog: sampleTechs });
+    return s;
+  };
+
+  it('leaves the player alone during the opening months', () => {
+    const early = run(HOSTILE_INTEL_GRACE_TICKS - 1);
+    expect(early.spyOperations.filter((o) => o.targetCountryId === 'aurion')).toHaveLength(0);
+  });
+
+  it('sends agents after the player over the years, one at a time', () => {
+    let s = base;
+    const starts = new Set<number>();
+    for (let i = 0; i < 52 * 12; i += 1) {
+      s = tick(s, { techCatalog: sampleTechs });
+      for (const o of s.spyOperations) if (o.targetCountryId === 'aurion') starts.add(o.startedAtTick);
+    }
+    const sorted = [...starts].sort((a, b) => a - b);
+    expect(sorted.length).toBeGreaterThan(2);
+    for (let i = 1; i < sorted.length; i += 1) {
+      expect(sorted[i]! - sorted[i - 1]!).toBeGreaterThanOrEqual(HOSTILE_INTEL_COOLDOWN_TICKS);
+    }
   });
 });

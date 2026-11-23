@@ -10,6 +10,7 @@ import {
   Ban,
   Check,
   ChevronRight,
+  Eye,
   Handshake,
   HeartHandshake,
   Landmark,
@@ -17,6 +18,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Rocket,
+  ShieldAlert,
   ShoppingBag,
   Star,
   Swords,
@@ -207,6 +209,33 @@ export function Briefing() {
         title: tGlobe(`news.${item.kind}`, { a: nameOf(item.a), b: nameOf(item.b) }),
         panel: 'diplomacy',
       });
+    }
+    // Covert operations, once there is something to tell.
+    for (const op of state.spyOperations) {
+      if (op.status === 'active') continue;
+      const mine = op.ownerCountryId === state.playerCountryId;
+      const onMe = op.targetCountryId === state.playerCountryId;
+      const tick = op.startedAtTick + op.durationTicks;
+      const item = { key: `spy:${op.id}`, tick, panel: 'spies' as const };
+      if (mine) {
+        const outcome = op.status === 'completed' ? 'completed' : op.status === 'failed' ? 'failed' : 'detected';
+        out.push({
+          ...item,
+          icon: outcome === 'detected' ? ShieldAlert : Eye,
+          tone: outcome === 'completed' ? 'accent' : outcome === 'failed' ? 'neutral' : 'warning',
+          title: tGlobe(`news.spyDone.${outcome}`),
+          detail: nameOf(op.targetCountryId),
+        });
+      } else if (onMe && op.status === 'detected') {
+        out.push({
+          ...item,
+          icon: ShieldAlert,
+          tone: 'warning',
+          title: tGlobe('news.spyCaught', { name: nameOf(op.ownerCountryId) }),
+        });
+      } else if (onMe && op.result?.success) {
+        out.push({ ...item, icon: ShieldAlert, tone: 'warning', title: tGlobe(`news.spyHit.${op.type}`) });
+      }
     }
     for (const res of state.unResolutions ?? []) {
       out.push({

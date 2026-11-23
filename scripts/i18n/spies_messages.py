@@ -51,6 +51,27 @@ ENTRIES = [
      "You exposed an operation by {name} against you: {op}. Relations −{penalty}."),
 ]
 
+ENTRIES += [
+    (f"{P}.reports.caught",
+     "Sventata un'operazione di {name} contro di te: {op}. Nessun danno, rapporti −{penalty}.",
+     "You foiled an operation by {name} against you: {op}. No damage, relations −{penalty}."),
+    (f"{P}.reports.caughtButDone",
+     "{op} di {name} contro di te: scoperta troppo tardi, il danno è fatto. Rapporti −{penalty}.",
+     "{op} by {name} against you: exposed too late, the damage is done. Relations −{penalty}."),
+    (f"{P}.reports.hitUnknown",
+     "Hai subìto un'operazione: {op}. Mandante ignoto. Un controspionaggio più forte l'avrebbe fermata o smascherata.",
+     "You were hit by an operation: {op}. Sender unknown. Stronger counter-intelligence would have stopped or exposed it."),
+    ("globe.news.spyDone.completed", "Operazione riuscita", "Operation succeeded"),
+    ("globe.news.spyDone.failed", "Operazione fallita", "Operation failed"),
+    ("globe.news.spyDone.detected", "Agente scoperto", "Agent exposed"),
+    ("globe.news.spyCaught", "Spia di {name} scoperta", "Spy from {name} caught"),
+    ("globe.news.spyHit.steal_tech", "Tecnologia trafugata", "Technology stolen from you"),
+    ("globe.news.spyHit.sabotage", "Sabotaggio subìto", "You were sabotaged"),
+    ("globe.news.spyHit.propaganda", "Propaganda straniera", "Foreign propaganda"),
+    ("globe.news.spyHit.destabilize", "Fazioni aizzate dall'estero", "Factions stirred from abroad"),
+    ("globe.news.spyHit.assassinate", "Attentato", "Assassination"),
+]
+
 # Dock labels: the rail is 60px wide, so two names get a shorter form there.
 # The full name stays the tab's accessible name and tooltip.
 for pid, it, en in [

@@ -1450,7 +1450,20 @@
       "peace": "Pace: {a} – {b}",
       "sanctions": "Sanzioni: {a} – {b}",
       "trade": "Accordo commerciale: {a} – {b}",
-      "warStart": "Guerra dichiarata: {a} – {b}"
+      "warStart": "Guerra dichiarata: {a} – {b}",
+      "spyDone": {
+        "completed": "Operazione riuscita",
+        "failed": "Operazione fallita",
+        "detected": "Agente scoperto"
+      },
+      "spyCaught": "Spia di {name} scoperta",
+      "spyHit": {
+        "steal_tech": "Tecnologia trafugata",
+        "sabotage": "Sabotaggio subìto",
+        "propaganda": "Propaganda straniera",
+        "destabilize": "Fazioni aizzate dall'estero",
+        "assassinate": "Attentato"
+      }
     },
     "zoomIn": "Avvicina",
     "zoomOut": "Allontana",
@@ -2938,8 +2951,10 @@
       "failed": "{op} fallita contro {name}: nessun effetto, nessuno se n'è accorto. L'agente è rientrato.",
       "detected": "{op} contro {name} fallita e scoperta: agente perso, rapporti −{penalty}.",
       "detectedButDone": "{op} contro {name} riuscita, ma scoperta: l'effetto resta, l'agente è perso, rapporti −{penalty}.",
-      "caught": "Scoperta un'operazione di {name} contro di te: {op}. Rapporti −{penalty}.",
-      "when": "{weeks, plural, =0 {Questa settimana} =1 {1 settimana fa} other {# settimane fa}}"
+      "caught": "Sventata un'operazione di {name} contro di te: {op}. Nessun danno, rapporti −{penalty}.",
+      "when": "{weeks, plural, =0 {Questa settimana} =1 {1 settimana fa} other {# settimane fa}}",
+      "caughtButDone": "{op} di {name} contro di te: scoperta troppo tardi, il danno è fatto. Rapporti −{penalty}.",
+      "hitUnknown": "Hai subìto un'operazione: {op}. Mandante ignoto. Un controspionaggio più forte l'avrebbe fermata o smascherata."
     },
     "list": {
       "title": "Cosa sai di ogni nazione",

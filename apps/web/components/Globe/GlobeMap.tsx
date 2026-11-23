@@ -17,6 +17,7 @@ import {
   Plus,
   Rocket,
   ShoppingBag,
+  ShieldAlert,
   Swords,
   Unlink,
   type LucideIcon,
@@ -42,6 +43,8 @@ const GOLD = '#E8B45A';
 
 /** How long a diplomatic headline stays pinned to the globe, in weeks. */
 const NEWS_WEEKS = 20;
+/** How long the outcome of a covert operation stays pinned on the globe. */
+const SPY_NEWS_WEEKS = 8;
 const NEWS_STYLE: Record<WorldNewsKind, { icon: LucideIcon; tone: MarkerTone }> = {
   warStart: { icon: Swords, tone: 'danger' },
   peace: { icon: HeartHandshake, tone: 'success' },
@@ -211,15 +214,36 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
       .map((r) => ({ a: r.countryA, b: r.countryB }));
   }, [state, overlay]);
 
+  // Covert traffic the player knows about: their own agents in the field,
+  // and foreign ones caught on their soil in the last few weeks.
+  const spyArcs = useMemo(() => {
+    if (!state) return [] as { a: CountryId; b: CountryId; hostile: boolean }[];
+    const me = state.playerCountryId;
+    const out: { a: CountryId; b: CountryId; hostile: boolean }[] = [];
+    for (const op of state.spyOperations) {
+      if (op.ownerCountryId === me && op.status === 'active') {
+        out.push({ a: me, b: op.targetCountryId, hostile: false });
+      } else if (
+        op.targetCountryId === me &&
+        op.status === 'detected' &&
+        state.tick - (op.startedAtTick + op.durationTicks) <= SPY_NEWS_WEEKS
+      ) {
+        out.push({ a: op.ownerCountryId, b: me, hostile: true });
+      }
+    }
+    return out;
+  }, [state]);
+
   const overlaySignature = useMemo(
     () =>
       JSON.stringify([
         Array.from(paints.entries()),
         wars,
         alliances,
+        spyArcs,
         geo.length,
       ]),
-    [paints, wars, alliances, geo.length],
+    [paints, wars, alliances, spyArcs, geo.length],
   );
 
   useEffect(() => {
@@ -258,7 +282,7 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
         ctx.shadowBlur = 0;
       }
 
-      const arc = (a: CountryId, b: CountryId, color: string, glow: string, dash: number[]) => {
+      const arc = (a: CountryId, b: CountryId, color: string, glow: string, dash: number[], width = 3.2) => {
         const ga = geoById.get(a);
         const gb = geoById.get(b);
         if (!ga || !gb) return;
@@ -268,12 +292,16 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
         ctx.shadowColor = glow;
         ctx.shadowBlur = 12;
         ctx.strokeStyle = color;
-        ctx.lineWidth = 3.2;
+        ctx.lineWidth = width;
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.shadowBlur = 0;
       };
       for (const al of alliances) arc(al.a, al.b, 'rgba(130,240,185,0.75)', 'rgba(95,224,160,0.8)', []);
+      for (const sp of spyArcs) {
+        if (sp.hostile) arc(sp.a, sp.b, 'rgba(255,160,130,1)', 'rgba(255,90,70,1)', [6, 9], 3);
+        else arc(sp.a, sp.b, 'rgba(150,225,255,1)', 'rgba(92,200,255,1)', [6, 9], 3);
+      }
       for (const war of wars) arc(war.a, war.b, 'rgba(255,110,95,0.95)', 'rgba(255,70,55,1)', [14, 10]);
     });
     // The signature captures every input of the draw closure.
@@ -457,17 +485,55 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
       );
     }
 
-    // Player's covert operations in progress.
+    // Covert operations: the player's own while they run and for a few
+    // weeks after they end; foreign ones once they have hit or been caught.
     for (const op of state.spyOperations) {
-      if (op.ownerCountryId !== state.playerCountryId || op.status !== 'active') continue;
-      const g = geoById.get(op.targetCountryId);
-      if (!g) continue;
-      pill(`news:spy:${op.id}`, g.anchor, 3000, tGlobe(`news.spy.${op.type}`), {
-        icon: Eye,
-        tone: 'info',
-        age: ageLabel(op.startedAtTick),
-        onClick: () => setSelectedPanel('spies'),
-      });
+      const mine = op.ownerCountryId === state.playerCountryId;
+      const onMe = op.targetCountryId === state.playerCountryId;
+      if (!mine && !onMe) continue;
+      const openSpies = () => setSelectedPanel('spies');
+      if (op.status === 'active') {
+        if (!mine) continue;
+        const g = geoById.get(op.targetCountryId);
+        if (!g) continue;
+        pill(`news:spy:${op.id}`, g.anchor, 3000, tGlobe(`news.spy.${op.type}`), {
+          icon: Eye,
+          tone: 'info',
+          age: ageLabel(op.startedAtTick),
+          onClick: openSpies,
+        });
+        continue;
+      }
+      const endedAt = op.startedAtTick + op.durationTicks;
+      if (state.tick - endedAt > SPY_NEWS_WEEKS) continue;
+      if (mine) {
+        const g = geoById.get(op.targetCountryId);
+        if (!g) continue;
+        const outcome = op.status === 'completed' ? 'completed' : op.status === 'failed' ? 'failed' : 'detected';
+        pill(`news:spy:${op.id}`, g.anchor, 3100, tGlobe(`news.spyDone.${outcome}`), {
+          icon: outcome === 'detected' ? ShieldAlert : Eye,
+          tone: outcome === 'completed' ? 'success' : outcome === 'failed' ? 'neutral' : 'danger',
+          age: ageLabel(endedAt),
+          onClick: openSpies,
+        });
+      } else if (op.status === 'detected') {
+        const g = geoById.get(op.ownerCountryId);
+        if (!g) continue;
+        pill(`news:spy:${op.id}`, g.anchor, 3600, tGlobe('news.spyCaught', { name: nameOf(op.ownerCountryId) }), {
+          icon: ShieldAlert,
+          tone: 'danger',
+          age: ageLabel(endedAt),
+          onClick: openSpies,
+        });
+      } else if (op.result?.success && playerGeo) {
+        // It worked and nobody was caught: the damage shows, the hand does not.
+        pill(`news:spy:${op.id}`, playerGeo.anchor, 3600, tGlobe(`news.spyHit.${op.type}`), {
+          icon: ShieldAlert,
+          tone: 'warning',
+          age: ageLabel(endedAt),
+          onClick: openSpies,
+        });
+      }
     }
 
     // UN votes in progress that target a country.
