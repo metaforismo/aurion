@@ -2468,6 +2468,16 @@
       "country": {
         "notFound": "Il tuo paese non è più in gioco."
       }
+    },
+    "leverage": {
+      "loyal": "Con te, da {at}%",
+      "hostile": "Contro di te, fino a {at}%",
+      "inForce": "in vigore",
+      "incomeMul": "{v} entrate",
+      "researchMul": "{v} ricerca",
+      "combatMul": "{v} forza in battaglia",
+      "growthMul": "{v} crescita del PIL",
+      "popularity": "{v} consenso a settimana"
     }
   },
   "panelDiplomacy": {

@@ -6,6 +6,7 @@
 
 import {
   POLICIES,
+  factionModifiers,
   type Country,
   type FactionId,
   type GameState,
@@ -92,7 +93,8 @@ export type PopularityOutlook = {
 };
 
 export function popularityOutlook(country: Country, state: GameState, mood = factionMood(country)): PopularityOutlook {
-  const policy = policyPull(state).popularity;
+  // Standing policies, plus what the clergy's stance adds or takes away.
+  const policy = policyPull(state).popularity + factionModifiers(country).popularity;
   const inDebt = country.economy.treasury < 0;
   const now = country.politics.popularity;
   let settled = now;

@@ -107,3 +107,13 @@ export {
   warScoreFor,
 } from './war/index.js';
 export type { PeaceTerms } from './war/index.js';
+
+export {
+  FACTION_HOSTILE_AT,
+  FACTION_LEVERAGE,
+  FACTION_LOYAL_AT,
+  factionEffect,
+  factionModifiers,
+  factionStance,
+} from './politics/factions.js';
+export type { FactionLever, FactionModifiers, FactionStance } from './politics/factions.js';
