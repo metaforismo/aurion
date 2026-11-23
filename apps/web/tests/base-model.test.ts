@@ -60,6 +60,21 @@ describe('base model', () => {
     expect(big.buildings.slice(0, 3)).toEqual(small.buildings.slice(0, 3));
   });
 
+  it('work under way shows as building sites', () => {
+    const idle = buildBaseModel(colony(['moon_base'], 150), 'moon')!;
+    expect(idle.sites).toBe(0);
+    const busy = buildBaseModel(
+      colony(['moon_base'], 150, {
+        works: [{ kind: 'build', body: 'moon', sectorId: 'moon_e3', structure: 'lab', remainingTicks: 5 }],
+        active: [{ projectId: 'moon_helium3', startedAtTick: 0, remainingTicks: 20, paid: 0 }],
+      }),
+      'moon',
+    )!;
+    expect(busy.sites).toBe(2);
+    expect(busy.buildings.filter((b) => b.kind === 'site')).toHaveLength(2);
+    expect(baseSignature(busy)).not.toBe(baseSignature(idle));
+  });
+
   it('no two buildings share a plot, and the crowd is capped', () => {
     const model = buildBaseModel(colony(['moon_base', 'moon_city'], 80_000_000), 'moon')!;
     const seen = new Set(model.buildings.map((b) => `${Math.round(b.x)}:${Math.round(b.z)}`));

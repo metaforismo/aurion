@@ -1500,7 +1500,7 @@
         "mars": "The Martian base, seen from the surface"
       },
       "leave": "Back to orbit",
-      "hint": "Drag to look around, scroll or pinch to get as close as the people. The base grows with its population, your projects and the structures you build.",
+      "hint": "Drag to look around, scroll or pinch to get as close as the people, tap a building to see what it is. The base grows with its population, your projects and the structures you build.",
       "loading": "Preparing the surface…",
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
@@ -1511,7 +1511,26 @@
         "habitat": "{n, plural, =1 {habitat} other {habitats}}",
         "lab": "{n, plural, =1 {laboratory} other {laboratories}}",
         "mine": "{n, plural, =1 {mine} other {mines}}",
-        "foundry": "{n, plural, =1 {foundry} other {foundries}}"
+        "foundry": "{n, plural, =1 {foundry} other {foundries}}",
+        "site": "{n, plural, =1 {building site} other {building sites}}"
+      },
+      "name": {
+        "hub": "Command hub",
+        "pad": "Landing pad",
+        "tower": "Comms tower",
+        "housing": "Housing module",
+        "dome": "City dome",
+        "solar": "Solar field",
+        "greenhouse": "Greenhouses",
+        "extractor": "Helium-3 extractor",
+        "driver": "Mass driver",
+        "plant": "Industrial plant",
+        "processor": "Atmosphere processor",
+        "site": "Building site",
+        "habitat": "Habitat",
+        "lab": "Laboratory",
+        "mine": "Mine",
+        "foundry": "Foundry"
       }
     }
   },

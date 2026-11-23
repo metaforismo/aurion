@@ -26,6 +26,7 @@ export type BuildingKind =
   | 'driver'
   | 'plant'
   | 'processor'
+  | 'site'
   | StructureKind;
 
 export type Building = {
@@ -47,6 +48,8 @@ export type BaseModel = {
   /** Figures walking the base, and vehicles driving its roads. */
   people: number;
   rovers: number;
+  /** Building sites: cranes turning, work under way. */
+  sites: number;
 };
 
 /** Ring roads: radius, and how many plots each one has along it. */
@@ -124,6 +127,15 @@ export function buildBaseModel(state: GameState, body: ColonyBody): BaseModel | 
   for (let i = 0; i < Math.max(1, sectors); i += 1) wanted.push('solar');
   for (let i = 0; i < housingUnits(colony.population); i += 1) wanted.push('housing');
 
+  // Work under way: a megaproject being built on this world, a structure
+  // going up, a sector being staked out. Each shows as a building site.
+  let sites = 0;
+  for (const active of state.cosmos.active) {
+    if (COSMOS_PROJECTS.find((p) => p.id === active.projectId)?.body === body) sites += 1;
+  }
+  sites += (state.cosmos.works ?? []).filter((w) => w.body === body).length;
+  for (let i = 0; i < sites; i += 1) wanted.push('site');
+
   const buildings: Building[] = [
     { kind: 'hub', x: 0, z: 0, rot: 0 },
     { kind: 'pad', x: 0, z: -29, rot: 0 },
@@ -144,6 +156,7 @@ export function buildBaseModel(state: GameState, body: ColonyBody): BaseModel | 
     rings: RINGS.slice(0, outer + 1).map((r) => r.radius),
     people: peopleShown(colony.population),
     rovers: Math.min(MAX_ROVERS, 2 + sectors * 2),
+    sites,
   };
 }
 

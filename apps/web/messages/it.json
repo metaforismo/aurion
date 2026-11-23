@@ -1500,7 +1500,7 @@
         "mars": "La base marziana, vista dalla superficie"
       },
       "leave": "Torna in orbita",
-      "hint": "Trascina per guardarti intorno, rotella o pizzico per avvicinarti fino alle persone. La base cresce con gli abitanti, i progetti e le strutture che costruisci.",
+      "hint": "Trascina per guardarti intorno, rotella o pizzico per avvicinarti fino alle persone, tocca un edificio per sapere cos'è. La base cresce con gli abitanti, i progetti e le strutture che costruisci.",
       "loading": "Sto preparando la superficie…",
       "zoomIn": "Avvicina",
       "zoomOut": "Allontana",
@@ -1511,7 +1511,26 @@
         "habitat": "habitat",
         "lab": "{n, plural, =1 {laboratorio} other {laboratori}}",
         "mine": "{n, plural, =1 {miniera} other {miniere}}",
-        "foundry": "{n, plural, =1 {fonderia} other {fonderie}}"
+        "foundry": "{n, plural, =1 {fonderia} other {fonderie}}",
+        "site": "{n, plural, =1 {cantiere} other {cantieri}}"
+      },
+      "name": {
+        "hub": "Centro di comando",
+        "pad": "Piattaforma di atterraggio",
+        "tower": "Torre delle comunicazioni",
+        "housing": "Modulo abitativo",
+        "dome": "Cupola cittadina",
+        "solar": "Campo solare",
+        "greenhouse": "Serre",
+        "extractor": "Estrattore di elio-3",
+        "driver": "Catapulta elettromagnetica",
+        "plant": "Impianto industriale",
+        "processor": "Processore atmosferico",
+        "site": "Cantiere",
+        "habitat": "Habitat",
+        "lab": "Laboratorio",
+        "mine": "Miniera",
+        "foundry": "Fonderia"
       }
     }
   },
