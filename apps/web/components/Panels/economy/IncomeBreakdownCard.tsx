@@ -54,11 +54,22 @@ export function IncomeBreakdownCard({
   if (b.wars > 0) {
     lines.push({ id: 'wars', label: t('wars', { n: b.wars }), hint: t('warsHint'), value: b.warCost });
   }
+  if (b.factions !== 0) {
+    lines.push({
+      id: 'factions',
+      label: t('factions'),
+      hint: t(b.factions > 0 ? 'factionsHintLoyal' : 'factionsHintHostile'),
+      value: b.factions,
+    });
+  }
   if (b.difficultyDelta !== 0) {
     lines.push({ id: 'difficulty', label: t('difficulty'), hint: t('difficultyHint'), value: b.difficultyDelta });
   }
   if (b.policies !== 0) {
     lines.push({ id: 'policies', label: t('policies'), hint: t('policiesHint'), value: b.policies });
+  }
+  if (b.colonies !== 0) {
+    lines.push({ id: 'colonies', label: t('colonies'), hint: t('coloniesHint'), value: b.colonies });
   }
 
   return (

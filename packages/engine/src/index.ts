@@ -117,3 +117,15 @@ export {
   factionStance,
 } from './politics/factions.js';
 export type { FactionLever, FactionModifiers, FactionStance } from './politics/factions.js';
+
+export {
+  COLONY_BODIES,
+  COLONY_FOCUSES,
+  COLONY_FOCUS_COOLDOWN_TICKS,
+  colonyCapacity,
+  colonyModifiers,
+  colonyOutput,
+  colonySize,
+  getColonyStatus,
+} from './cosmos/colonies.js';
+export type { ColonyOutput, ColonyStatus } from './cosmos/colonies.js';

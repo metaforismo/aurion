@@ -740,7 +740,11 @@
     "spy": {
       "typeLocked": "That operation needs a technology you do not have yet."
     },
-    "truce": "A truce is in force after the last peace."
+    "truce": "A truce is in force after the last peace.",
+    "colony": {
+      "cooldown": "This colony's mandate changed too recently.",
+      "none": "You have no colony on this world yet."
+    }
   },
   "play": {
     "placeholderMap": "MAP — to be implemented in Wave 2",
@@ -1419,6 +1423,29 @@
       "allies": "−{pct}% from allies ({n, plural, =1 {# alliance} other {# alliances}}): they co-fund your builds",
       "policy": "−{pct}% from the Industrial plan",
       "hint": "Each alliance takes 4% off megaproject prices, up to 20%."
+    },
+    "colony": {
+      "title": {
+        "moon": "Lunar colony",
+        "mars": "Martian colony"
+      },
+      "people": "{n} people, room for {cap}",
+      "growing": "It grows by itself toward the room available. New projects on this world add more.",
+      "full": "It is full: growing it takes new projects on this world.",
+      "mandate": "The colony's mandate",
+      "focus": {
+        "balanced": "Balanced",
+        "science": "Science",
+        "industry": "Industry",
+        "trade": "Trade"
+      },
+      "yield": {
+        "research": "{v} research/wk",
+        "income": "+{v}/wk",
+        "speed": "{v}% build speed"
+      },
+      "hint": "The mandate decides what the colony sends home; the more people, the more it yields. Once changed it holds for 26 weeks.",
+      "locked": "The mandate has just changed: you can pick another in {weeks, plural, =1 {1 week} other {# weeks}}."
     }
   },
   "globe": {
@@ -2110,7 +2137,12 @@
       "policiesHint": "Bonuses and upkeep of those in force",
       "net": "Into the treasury each week",
       "noTrade": "No trade deals yet: each one adds {pct} to your income.",
-      "openDiplomacy": "Open Diplomacy"
+      "openDiplomacy": "Open Diplomacy",
+      "colonies": "Colonies",
+      "coloniesHint": "What your colonies on other worlds send home",
+      "factions": "Business",
+      "factionsHintLoyal": "They are behind you: they pay in more",
+      "factionsHintHostile": "They are against you: they hide their money"
     },
     "tax": {
       "title": "Tax policy",

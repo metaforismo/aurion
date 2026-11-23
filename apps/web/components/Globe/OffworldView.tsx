@@ -12,6 +12,7 @@ import { COSMOS_PROJECTS, getProjectStatus } from '@aurion/engine';
 import { PROJECT_SITES, type SurfaceBody } from '../../lib/globe/sites';
 import { useGameStore } from '../../lib/store';
 
+import ColonyCard from './ColonyCard';
 import { NewsPill, type MarkerTone } from './markers';
 import PlanetView, { type PlanetMarker, type PlanetViewHandle } from './PlanetView';
 
@@ -109,6 +110,7 @@ export default function OffworldView({ body }: { body: SurfaceBody }) {
         sunSpeed={0.15}
         onReady={() => setReady(true)}
       />
+      <ColonyCard body={body} />
       {!hasPresence && nextStep ? (
         <div
           className="glass-panel absolute bottom-28 z-10 w-[min(26rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl p-4 text-center lg:bottom-20"

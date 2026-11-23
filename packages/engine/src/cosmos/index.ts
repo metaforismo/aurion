@@ -31,6 +31,7 @@ import type {
   TechDefinition,
 } from '../types.js';
 import { policyModifiers } from '../policies/index.js';
+import { colonyModifiers, tickColonies } from './colonies.js';
 import { COSMOS_PROJECTS, KARDASHEV_START, getCosmosProject } from './projects.js';
 
 export { COSMOS_PROJECTS, KARDASHEV_START, getCosmosProject };
@@ -326,6 +327,7 @@ export type CosmosTickContext = {
 export function tickCosmos(state: GameState, ctx: CosmosTickContext = {}): GameState {
   let next: GameState = state.cosmos ? state : { ...state, cosmos: initCosmos(state) };
   next = advancePlayerProjects(next);
+  next = tickColonies(next);
   next = advanceRivals(next, ctx.rivalSpeed ?? 1);
   return next;
 }
@@ -341,7 +343,8 @@ function advancePlayerProjects(state: GameState): GameState {
 
   // Policies can speed construction up: the fractional part is carried so a
   // 25% bonus means exactly one extra week of work every four.
-  const speed = 1 + policyModifiers(state).projectSpeed + (state.policies?.speedCarry ?? 0);
+  const speed =
+    1 + policyModifiers(state).projectSpeed + colonyModifiers(state).projectSpeed + (state.policies?.speedCarry ?? 0);
   const work = Math.floor(speed);
   const carry = speed - work;
 

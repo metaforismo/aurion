@@ -181,7 +181,10 @@ export function peaceTerms(state: GameState, x: CountryId, y: CountryId): PeaceT
     tier,
     winner,
     loser,
-    reparations: Math.round(weekly * WAR_REPARATION_WEEKS[tier]),
+    // A loser pays what it has: reparations never push a treasury into debt.
+    reparations: Math.round(
+      Math.min(weekly * WAR_REPARATION_WEEKS[tier], Math.max(0, l?.economy.treasury ?? 0)),
+    ),
     gdpTransfer: tier === 'capitulation' && l ? Math.round(l.economy.gdp * WAR_CAPITULATION_GDP_SHARE) : 0,
   };
 }
