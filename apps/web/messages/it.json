@@ -1450,7 +1450,8 @@
       "tab": {
         "mandate": "Mandato",
         "territory": "Territorio"
-      }
+      },
+      "visit": "Scendi sulla base"
     },
     "territory": {
       "summary": "{mine, plural, =1 {1 settore tuo} other {# settori tuoi}} · {rivals} dei rivali · {free} liberi",
@@ -1485,6 +1486,26 @@
       "work": {
         "claim": "Rivendicazione di {sector}: {weeks, plural, =1 {1 settimana} other {# settimane}}",
         "build": "{structure} in costruzione a {sector}: {weeks, plural, =1 {1 settimana} other {# settimane}}"
+      }
+    },
+    "base": {
+      "label": {
+        "moon": "La base lunare, vista dalla superficie",
+        "mars": "La base marziana, vista dalla superficie"
+      },
+      "leave": "Torna in orbita",
+      "hint": "Trascina per guardarti intorno, rotella o pizzico per avvicinarti fino alle persone. La base cresce con gli abitanti, i progetti e le strutture che costruisci.",
+      "loading": "Sto preparando la superficie…",
+      "zoomIn": "Avvicina",
+      "zoomOut": "Allontana",
+      "reset": "Vista d'insieme",
+      "kind": {
+        "housing": "{n, plural, =1 {modulo abitativo} other {moduli abitativi}}",
+        "dome": "{n, plural, =1 {cupola} other {cupole}}",
+        "habitat": "habitat",
+        "lab": "{n, plural, =1 {laboratorio} other {laboratori}}",
+        "mine": "{n, plural, =1 {miniera} other {miniere}}",
+        "foundry": "{n, plural, =1 {fonderia} other {fonderie}}"
       }
     }
   },
@@ -2105,7 +2126,7 @@
         },
         "land": {
           "title": "Il terreno si conquista.",
-          "body": "Luna e Marte sono divisi in venti settori. Si parte da quello della base e ci si espande in quelli vicini; su ogni settore puoi costruire due strutture — habitat, laboratorio, miniera, fonderia. Anche i rivali rivendicano terreno, e non ce n'è per tutti."
+          "body": "Luna e Marte sono divisi in venti settori. Si parte da quello della base e ci si espande in quelli vicini; su ogni settore puoi costruire due strutture — habitat, laboratorio, miniera, fonderia. Anche i rivali rivendicano terreno, e non ce n'è per tutti. Con «Scendi sulla base» la vedi dal vivo: edifici, strade, persone."
         }
       },
       "tip": "I bonus sono permanenti e si sommano: ogni progetto che alza il PIL rende più facile pagare il successivo."

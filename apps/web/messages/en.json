@@ -1450,7 +1450,8 @@
       "tab": {
         "mandate": "Mandate",
         "territory": "Territory"
-      }
+      },
+      "visit": "Go down to the base"
     },
     "territory": {
       "summary": "{mine, plural, =1 {1 sector yours} other {# sectors yours}} · {rivals} held by rivals · {free} free",
@@ -1485,6 +1486,26 @@
       "work": {
         "claim": "Claiming {sector}: {weeks, plural, =1 {1 week} other {# weeks}}",
         "build": "{structure} going up in {sector}: {weeks, plural, =1 {1 week} other {# weeks}}"
+      }
+    },
+    "base": {
+      "label": {
+        "moon": "The lunar base, seen from the surface",
+        "mars": "The Martian base, seen from the surface"
+      },
+      "leave": "Back to orbit",
+      "hint": "Drag to look around, scroll or pinch to get as close as the people. The base grows with its population, your projects and the structures you build.",
+      "loading": "Preparing the surface…",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "reset": "Overview",
+      "kind": {
+        "housing": "{n, plural, =1 {housing module} other {housing modules}}",
+        "dome": "{n, plural, =1 {dome} other {domes}}",
+        "habitat": "{n, plural, =1 {habitat} other {habitats}}",
+        "lab": "{n, plural, =1 {laboratory} other {laboratories}}",
+        "mine": "{n, plural, =1 {mine} other {mines}}",
+        "foundry": "{n, plural, =1 {foundry} other {foundries}}"
       }
     }
   },
@@ -2105,7 +2126,7 @@
         },
         "land": {
           "title": "Land has to be taken.",
-          "body": "The Moon and Mars are divided into twenty sectors. You start from the one your base stands on and expand into its neighbours; each sector takes two structures — habitat, laboratory, mine, foundry. Rivals claim land too, and there is not enough for everyone."
+          "body": "The Moon and Mars are divided into twenty sectors. You start from the one your base stands on and expand into its neighbours; each sector takes two structures — habitat, laboratory, mine, foundry. Rivals claim land too, and there is not enough for everyone. “Go down to the base” shows it live: buildings, roads, people."
         }
       },
       "tip": "Bonuses are permanent and they stack: every project that lifts GDP makes the next one easier to afford."
