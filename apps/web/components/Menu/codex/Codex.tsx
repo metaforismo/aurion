@@ -60,7 +60,7 @@ const SYSTEMS: readonly { id: string; icon: LucideIcon }[] = [
 
 const PILLARS = ['glance', 'levers', 'long'] as const;
 const LOSSES = ['popularity', 'bankruptcy', 'capital', 'factions'] as const;
-const COSMOS_RULES = ['cost', 'time', 'sites', 'tech', 'rivals', 'cancel'] as const;
+const COSMOS_RULES = ['cost', 'time', 'sites', 'tech', 'colonies', 'rivals', 'cancel'] as const;
 const SHORTCUTS: readonly { id: string; keys: readonly string[] }[] = [
   { id: 'pause', keys: ['space'] },
   { id: 'systems', keys: ['1', '…', '8'] },
