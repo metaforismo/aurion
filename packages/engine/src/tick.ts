@@ -45,6 +45,7 @@ import { tickCosmos } from './cosmos/index.js';
 import { tickPolicies } from './policies/index.js';
 import { tickHistory } from './history.js';
 import { tickWarDiplomacy, tickWars } from './war/index.js';
+import { factionModifiers } from './politics/factions.js';
 import { applyStatToCountry } from './events/index.js';
 import { evaluateCondition } from './events/conditions.js';
 
@@ -272,7 +273,11 @@ export const ORGANIC_GDP_GROWTH_PER_TICK = 0.0003;
 function stepEconomy(state: GameState, playerIncomeMultiplier: number): GameState {
   const updated: Record<CountryId, Country> = {};
   for (const [id, country] of Object.entries(state.countries)) {
-    const baseIncome = computeWeeklyIncome(country, state);
+    // A loyal business faction pays in more; a hostile one hides its money.
+    // A loyal populist base works harder; a hostile one strikes.
+    const factions = factionModifiers(country);
+    const gross = computeWeeklyIncome(country, state);
+    const baseIncome = gross > 0 ? Math.round(gross * (1 + factions.incomeMul)) : gross;
     const weeklyIncome =
       id === state.playerCountryId
         ? Math.round(baseIncome * playerIncomeMultiplier)
@@ -285,7 +290,10 @@ function stepEconomy(state: GameState, playerIncomeMultiplier: number): GameStat
       ...country,
       economy: {
         ...country.economy,
-        gdp: Math.round(country.economy.gdp * (1 + ORGANIC_GDP_GROWTH_PER_TICK * confidence)),
+        gdp: Math.round(
+          country.economy.gdp *
+            (1 + ORGANIC_GDP_GROWTH_PER_TICK * confidence * Math.max(0, 1 + factions.growthMul)),
+        ),
         weeklyIncome,
         treasury: country.economy.treasury + weeklyIncome,
       },
@@ -345,7 +353,9 @@ function stepResearch(
       id === state.playerCountryId
         ? country.science.researchOutput
         : country.science.researchOutput * aiResearchMultiplier;
-    const newPoints = progress.accumulatedPoints + effectiveOutput;
+    // Reformists who back the government open the universities to it.
+    const newPoints =
+      progress.accumulatedPoints + effectiveOutput * (1 + factionModifiers(country).researchMul);
 
     if (tech && newPoints >= tech.cost) {
       // Complete research: append id, apply effects, clear active.
@@ -792,8 +802,8 @@ function stepMilitary(state: GameState, rng: Rng): GameState {
         // Resolve a small skirmish.
         const aDoct = state.countries[a.countryId]?.military.doctrineLevel ?? 1;
         const bDoct = state.countries[b.countryId]?.military.doctrineLevel ?? 1;
-        const aPower = a.deployment.units * (1 + aDoct) * supportMultiplier(state.countries[a.countryId]);
-        const bPower = b.deployment.units * (1 + bDoct) * supportMultiplier(state.countries[b.countryId]);
+        const aPower = a.deployment.units * (1 + aDoct) * supportMultiplier(state.countries[a.countryId]) * moraleOf(state.countries[a.countryId]);
+        const bPower = b.deployment.units * (1 + bDoct) * supportMultiplier(state.countries[b.countryId]) * moraleOf(state.countries[b.countryId]);
         const total = aPower + bPower;
         if (total <= 0) continue;
         const aWinChance = aPower / total;
@@ -835,7 +845,7 @@ function stepMilitary(state: GameState, rng: Rng): GameState {
   return tickWars(
     { ...state, countries: updated },
     battles,
-    (c) => (1 + c.military.doctrineLevel) * supportMultiplier(c),
+    (c) => (1 + c.military.doctrineLevel) * supportMultiplier(c) * moraleOf(c),
   );
 }
 
@@ -849,6 +859,11 @@ export function supportMultiplier(country: Country | undefined): number {
   const navy = Math.min(1, country.military.navy / army);
   const air = Math.min(1, country.military.airforce / army);
   return 1 + navy * 0.25 + air * 0.35;
+}
+
+/** An army behind its government fights better; a disaffected one, worse. */
+function moraleOf(country: Country | undefined): number {
+  return country ? 1 + factionModifiers(country).combatMul : 1;
 }
 
 function lookupRelation(state: GameState, a: CountryId, b: CountryId): Relation | undefined {
@@ -877,6 +892,8 @@ function stepPolitics(state: GameState): GameState {
     }
     // Negative treasury hurts popularity.
     if (country.economy.treasury < 0) pop -= 0.5;
+    // The clergy's blessing, or its sermons against the government.
+    pop += factionModifiers(country).popularity;
     updated[id] = {
       ...country,
       politics: { ...country.politics, popularity: clamp(pop, 0, 100) },

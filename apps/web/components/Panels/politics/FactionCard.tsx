@@ -6,6 +6,7 @@
 import { Briefcase, ChevronDown, Church, HandCoins, Megaphone, Scale, Shield, type LucideIcon } from 'lucide-react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { FACTION_HOSTILE_AT, FACTION_LEVERAGE, FACTION_LOYAL_AT, factionStance } from '@aurion/engine';
 import type { FactionId, GovernmentType, PolicyId } from '@aurion/engine';
 
 import { cn } from '../../../lib/cn';
@@ -81,6 +82,13 @@ export function FactionCard({
   const abs = (n: number) => fmt.number(Math.abs(n), { maximumFractionDigits: 2 });
   const signed = (n: number) => fmt.number(n, { maximumFractionDigits: 2, signDisplay: 'exceptZero' });
   const pct = (n: number) => `${Math.round(n)}%`;
+  const stance = factionStance(satisfaction);
+  const lever = FACTION_LEVERAGE[id];
+  // Popularity is points a week; every other lever is a percentage.
+  const leverValue = (n: number) =>
+    lever.lever === 'popularity'
+      ? signed(n)
+      : fmt.number(n, { style: 'percent', maximumFractionDigits: 0, signDisplay: 'exceptZero' });
 
   const tax = TAX_FACTION_EFFECT[id];
   const gov = GOVERNMENT_BONUS[government][id] ?? 0;
@@ -120,6 +128,34 @@ export function FactionCard({
 
         <Meter value={satisfaction / 100} tone={tone} />
         <p className="text-[11px] leading-snug text-fg-muted">{t(`faction.${id}.wants`)}</p>
+
+        {/* What this faction's loyalty is worth, and which side is in force. */}
+        <dl className="grid grid-cols-2 gap-1.5 text-[11px] leading-snug" data-testid={`faction-${id}-leverage`}>
+          {(['loyal', 'hostile'] as const).map((side) => {
+            const on = stance === side;
+            return (
+              <div
+                key={side}
+                className={cn(
+                  'rounded-lg border px-2 py-1.5',
+                  on
+                    ? side === 'loyal'
+                      ? 'border-success/40 bg-success/10'
+                      : 'border-[#ff5d4d]/40 bg-[#ff5d4d]/10'
+                    : 'border-white/[0.06] text-fg-faint',
+                )}
+              >
+                <dt className={cn('font-medium', on ? 'text-fg' : undefined)}>
+                  {t(`leverage.${side}`, { at: side === 'loyal' ? FACTION_LOYAL_AT : FACTION_HOSTILE_AT })}
+                  {on ? <span className="sr-only"> ({t('leverage.inForce')})</span> : null}
+                </dt>
+                <dd className={cn('numeric-tabular', on ? (side === 'loyal' ? 'text-success' : 'text-[#ff8a7d]') : undefined)}>
+                  {t(`leverage.${lever.lever}`, { v: leverValue(lever[side]) })}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
 
         <div className="flex items-center justify-between gap-2">
           <p className="min-w-0 text-[11px] leading-snug text-fg-faint">

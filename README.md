@@ -49,7 +49,7 @@ It runs entirely in the browser. No backend, no account, no tracking.
 | Military | Forces, deployments and wars that keep score: win battles or simply outmatch the enemy, then sign peace as a draw, for reparations or on a capitulation. A nuclear arsenal where the scenario has one |
 | Intelligence | What you know about each rival, and five kinds of covert operation with odds shown up front. Agents come home unless caught, the target you pick changes the effect, and rivals run operations against you too |
 | Diplomacy | Treaties, alliances, sanctions, war and peace; blocs and reputation |
-| Internal politics | Popularity, five factions, and twelve national policies with weekly trade-offs |
+| Internal politics | Popularity, five factions, and twelve national policies with weekly trade-offs Each faction pulls one lever: win it over for a bonus, lose it and it works against you |
 | United Nations | Propose and vote on resolutions that bind everyone |
 | Cosmos | Megaprojects, the space race and your Kardashev rating |
 
