@@ -2163,15 +2163,15 @@
       "target": {
         "economy": {
           "name": "Economy",
-          "rate": "Every euro adds 4 to GDP"
+          "rate": "Up to 4 euros of GDP per euro"
         },
         "infra": {
           "name": "Infrastructure",
-          "rate": "2 of GDP per euro, and up to +5 popularity"
+          "rate": "Up to 2 euros of GDP per euro, plus popularity"
         },
         "research": {
           "name": "Research",
-          "rate": "+1 research point a week per € 5M"
+          "rate": "More productive labs, for good"
         },
         "military": {
           "name": "Army",
@@ -2186,7 +2186,7 @@
       "custom": "Custom",
       "customLabel": "Amount in millions of euros",
       "customPlaceholder": "e.g. 250",
-      "shareHint": "Share of today’s treasury.",
+      "shareHint": "Share of today's treasury. Sums that are large next to your GDP return less, euro for euro.",
       "blocked": {
         "empty": "The treasury is empty: there is nothing to invest.",
         "enter": "Type the amount, in millions of euros.",
@@ -2204,7 +2204,8 @@
         "military": "+{units} units: the army grows to {total}",
         "spies": "{n, plural, =0 {No new spy (they cost € 50M each)} =1 {One new spy: {total} in all} other {# new spies: {total} in all}}",
         "counterIntel": "Counter-intelligence from {from} to {to}",
-        "treasuryAfter": "You keep {value} in the treasury"
+        "treasuryAfter": "You keep {value} in the treasury",
+        "saturated": "It returns {pct} of the usual: the sum is large next to your GDP, or you have invested a lot lately. Smaller sums, spaced out, return more."
       },
       "confirm": "Invest {amount} in {target}",
       "confirmIdle": "Invest",

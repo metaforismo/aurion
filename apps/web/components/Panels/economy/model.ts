@@ -7,6 +7,7 @@
 import {
   colonyModifiers,
   factionModifiers,
+  investOutcome,
   policyModifiers,
   type Country,
   type FactionId,
@@ -34,10 +35,6 @@ export const TAX_FACTION_EFFECT: Record<FactionId, number> = {
 };
 
 /** Invest rates (actions/invest.ts). */
-export const GDP_PER_EURO: Record<'economy' | 'infra', number> = { economy: 4, infra: 2 };
-export const EUROS_PER_POPULARITY_POINT = 1_000_000_000;
-export const INFRA_POPULARITY_CAP = 5;
-export const EUROS_PER_RESEARCH_POINT = 5_000_000;
 export const EUROS_PER_ARMY_UNIT = 100_000;
 export const EUROS_PER_SPY = 50_000_000;
 export const EUROS_PER_FULL_COUNTER_INTEL = 1_000_000_000;
@@ -124,8 +121,16 @@ export function incomeBreakdown(
 }
 
 export type InvestPreview =
-  | { target: 'economy' | 'infra'; gdpGain: number; incomeGain: number; paybackWeeks: number | null; popularityGain: number }
-  | { target: 'research'; outputGain: number }
+  | {
+      target: 'economy' | 'infra';
+      gdpGain: number;
+      incomeGain: number;
+      paybackWeeks: number | null;
+      popularityGain: number;
+      /** 0..1 — what recent investment leaves of the nominal return. */
+      efficiency: number;
+    }
+  | { target: 'research'; outputGain: number; efficiency: number }
   | { target: 'military'; units: number }
   | { target: 'intel'; spies: number; counterIntelGain: number };
 
@@ -137,45 +142,32 @@ export function investPreview(
   target: InvestTarget,
   amount: number,
 ): InvestPreview {
+  // The engine prices the investment, diminishing returns included.
+  const outcome = investOutcome(country, target, amount);
   switch (target) {
     case 'economy':
     case 'infra': {
-      const gdpGain = amount * GDP_PER_EURO[target];
+      const gdpGain = outcome.gdpGain;
       const now = incomeBreakdown(country, state, playerIncomeMultiplier).net;
       const then = incomeBreakdown(country, state, playerIncomeMultiplier, {
         gdp: country.economy.gdp + gdpGain,
       }).net;
       const incomeGain = then - now;
-      const popularityGain =
-        target === 'infra'
-          ? Math.min(
-              INFRA_POPULARITY_CAP,
-              amount / EUROS_PER_POPULARITY_POINT,
-              100 - country.politics.popularity,
-            )
-          : 0;
       return {
         target,
         gdpGain,
         incomeGain,
         paybackWeeks: incomeGain > 0 ? Math.ceil(amount / incomeGain) : null,
-        popularityGain,
+        popularityGain: outcome.popularityGain,
+        efficiency: outcome.efficiency,
       };
     }
     case 'research':
-      return { target, outputGain: amount / EUROS_PER_RESEARCH_POINT };
+      return { target, outputGain: outcome.researchGain, efficiency: outcome.efficiency };
     case 'military':
-      return { target, units: Math.floor(amount / EUROS_PER_ARMY_UNIT) };
+      return { target, units: outcome.units };
     case 'intel':
-      return {
-        target,
-        spies: Math.floor(amount / EUROS_PER_SPY),
-        counterIntelGain: Math.min(
-          COUNTER_INTEL_CAP_PER_INVESTMENT,
-          amount / EUROS_PER_FULL_COUNTER_INTEL,
-          1 - country.intelligence.counterIntelLevel,
-        ),
-      };
+      return { target, spies: outcome.spies, counterIntelGain: outcome.counterIntelGain };
   }
 }
 

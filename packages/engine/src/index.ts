@@ -129,3 +129,11 @@ export {
   getColonyStatus,
 } from './cosmos/colonies.js';
 export type { ColonyOutput, ColonyStatus } from './cosmos/colonies.js';
+
+export {
+  INVEST_GDP_PER_EURO,
+  INVEST_HEAT_HALVING,
+  investEfficiency,
+  investOutcome,
+} from './actions/invest.js';
+export type { InvestOutcome } from './actions/invest.js';

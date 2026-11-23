@@ -101,13 +101,8 @@ add(E + "invest.intro",
     "You pay once, up front. The effect stays.")
 add(E + "invest.targetLabel", "Dove investire", "Where to invest")
 add(E + "invest.target.economy.name", "Economia", "Economy")
-add(E + "invest.target.economy.rate", "Ogni euro ne aggiunge 4 al PIL", "Every euro adds 4 to GDP")
 add(E + "invest.target.infra.name", "Infrastrutture", "Infrastructure")
-add(E + "invest.target.infra.rate", "2 euro di PIL per euro, e fino a +5 popolarità",
-    "2 of GDP per euro, and up to +5 popularity")
 add(E + "invest.target.research.name", "Ricerca", "Research")
-add(E + "invest.target.research.rate", "+1 punto ricerca a settimana ogni € 5 Mln",
-    "+1 research point a week per € 5M")
 add(E + "invest.target.military.name", "Esercito", "Army")
 add(E + "invest.target.military.rate", "Una nuova unità ogni € 100.000", "One new unit per € 100,000")
 add(E + "invest.target.intel.name", "Intelligence", "Intelligence")
@@ -117,7 +112,6 @@ add(E + "invest.amountLabel", "Quanto investire", "How much")
 add(E + "invest.custom", "Altro", "Custom")
 add(E + "invest.customLabel", "Importo in milioni di euro", "Amount in millions of euros")
 add(E + "invest.customPlaceholder", "es. 250", "e.g. 250")
-add(E + "invest.shareHint", "Quota della tesoreria di oggi.", "Share of today’s treasury.")
 add(E + "invest.blocked.empty", "La cassa è vuota: non c’è nulla da investire.",
     "The treasury is empty: there is nothing to invest.")
 add(E + "invest.blocked.enter", "Scrivi l’importo, in milioni di euro.", "Type the amount, in millions of euros.")
