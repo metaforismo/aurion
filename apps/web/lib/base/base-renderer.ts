@@ -23,6 +23,7 @@ export type BaseRendererOptions = {
 const PALETTE = {
   moon: { ground: 0x8d8f94, groundDark: 0x5f6166, sky: 0x000004, fog: null as number | null, ambient: 0.16, road: 0x6f7278 },
   mars: { ground: 0xb5653d, groundDark: 0x7e4226, sky: 0xd8a47c, fog: 0xd8a47c as number | null, ambient: 0.5, road: 0x8d5236 },
+  earth: { ground: 0x6f9a55, groundDark: 0x466f3c, sky: 0x9ccdf2, fog: 0xb9dcf5 as number | null, ambient: 0.6, road: 0x55595f },
 } as const;
 
 const SUN = new THREE.Vector3(-0.62, 0.5, 0.42).normalize();
@@ -326,6 +327,158 @@ function blueprint(kind: BuildingKind): { parts: Part[]; radius: number; height:
         height: 8,
         lights: [[-6, 7.9, -6], [6, 7.9, -6], [-6, 7.9, 6]],
       };
+    case 'capitol':
+      // Seat of government: a colonnaded hall under a dome, with two wings.
+      return {
+        parts: [
+          box(26, 1.2, 18, 0xd9d4c7),
+          box(20, 7, 12, 0xeeeadf, 0, 1.2, 0),
+          cyl(6, 6.4, 4, 0xeeeadf, 0, 8.2, 0, 18),
+          dome(6, 0x6fa8a0, 0, 12.2, 0, 18),
+          cyl(0.25, 0.25, 4, STEEL, 0, 18.2),
+          box(8, 5, 9, 0xe4dfd2, -15, 1.2, 0),
+          box(8, 5, 9, 0xe4dfd2, 15, 1.2, 0),
+          ...[-8, -4, 0, 4, 8].map((x) => cyl(0.5, 0.5, 6.6, WHITE, x, 1.2, 6.6, 8)),
+        ],
+        radius: 20,
+        height: 20,
+        lights: [[0, 22.4, 0], [-15, 4, 4.7], [15, 4, 4.7], [-6, 4, 6.2], [6, 4, 6.2]],
+      };
+    case 'skyscraper':
+      return {
+        parts: [
+          box(11, 2, 11, 0x8d949c),
+          box(8, 30, 8, 0x7fa6c9, 0, 2, 0),
+          box(6, 9, 6, 0x9cc0de, 0, 32, 0),
+          box(0.3, 6, 0.3, STEEL, 0, 41, 0),
+          box(8.3, 0.4, 8.3, DARK, 0, 12, 0),
+          box(8.3, 0.4, 8.3, DARK, 0, 22, 0),
+        ],
+        radius: 8,
+        height: 44,
+        lights: [[0, 47.3, 0], [4.2, 8, 0], [-4.2, 16, 0], [0, 26, 4.2], [4.2, 30, 0], [0, 6, -4.2]],
+      };
+    case 'block':
+      return {
+        parts: [
+          box(10, 5, 7, 0xd8c7a8),
+          at(paint(new THREE.CylinderGeometry(0.01, 6.6, 3, 4).rotateY(Math.PI / 4).scale(1.1, 1, 0.78), 0xa5523c), 0, 6.5, 0),
+          box(3, 3, 3, 0xcdbb9b, 6.4, 0, 1.5),
+        ],
+        radius: 7,
+        height: 8,
+        lights: [[2, 2.5, 3.6], [-2, 2.5, 3.6], [7.95, 1.6, 1.5]],
+      };
+    case 'factory':
+      return {
+        parts: [
+          box(16, 6, 10, 0x8f8a82),
+          ...[-5.3, 0, 5.3].map((x) => at(paint(new THREE.BoxGeometry(5.2, 2, 10).rotateZ(0.32), 0x6c6862), x, 7, 0)),
+          cyl(1, 1.3, 14, 0xb8b2a8, -6, 0, -7),
+          cyl(1, 1.3, 11, 0xb8b2a8, -3, 0, -7),
+          box(6, 4, 5, ORANGE, 11, 0, 2),
+        ],
+        radius: 13,
+        height: 14,
+        lights: [[-6, 14.3, -7], [-3, 11.3, -7], [0, 3, 5.2], [5, 3, 5.2]],
+      };
+    case 'barracks':
+      return {
+        parts: [
+          tube(2.6, 12, 0x5d6b4a),
+          tube(2.6, 12, 0x5d6b4a, 0, 0, 6.4),
+          box(4, 3, 4, 0x4a563b, -11, 0, 3.2),
+          box(0.25, 9, 0.25, STEEL, 11, 0, 3.2),
+          box(2.4, 1.5, 0.1, 0xb23b3b, 12.3, 7.2, 3.2),
+        ],
+        radius: 13,
+        height: 9,
+        lights: [[7.6, 2, 0], [7.6, 2, 6.4], [-11, 3.3, 3.2]],
+      };
+    case 'datacenter':
+      return {
+        parts: [
+          box(14, 5, 9, 0x2f3a4a),
+          box(14.2, 0.5, 9.2, 0x4d7fd6, 0, 2.2, 0),
+          ...[-4.5, -1.5, 1.5, 4.5].map((x) => box(2, 1.6, 2, STEEL, x, 5, -2)),
+          at(paint(new THREE.ConeGeometry(2, 1, 14, 1, true).rotateX(Math.PI * 0.7), WHITE), 4, 7.6, 3),
+          box(0.2, 2.6, 0.2, STEEL, 4, 5, 3),
+        ],
+        radius: 11,
+        height: 8,
+        lights: [[-6, 2.4, 4.7], [-2, 2.4, 4.7], [2, 2.4, 4.7], [6, 2.4, 4.7]],
+      };
+    case 'arcology':
+      // A city in one building: stepped terraces with gardens.
+      return {
+        parts: [
+          box(24, 8, 24, 0xd9dee2),
+          box(24.4, 0.6, 24.4, GREEN, 0, 8, 0),
+          box(17, 9, 17, 0xcfd6dc, 0, 8.6, 0),
+          box(17.4, 0.6, 17.4, GREEN, 0, 17.6, 0),
+          box(10, 10, 10, 0xc3ccd4, 0, 18.2, 0),
+          dome(5, GLASS, 0, 28.2, 0, 14),
+        ],
+        radius: 18,
+        height: 33,
+        lights: [[12.2, 4, 6], [12.2, 4, -6], [-12.2, 4, 0], [8.7, 13, 0], [0, 13, 8.7], [5.2, 23, 0], [0, 33.6, 0]],
+      };
+    case 'reactor':
+      // Fusion: the torus hall, its dome, and cooling towers.
+      return {
+        parts: [
+          cyl(13, 13, 5, 0xbfc6cc, 0, 0, 0, 22),
+          at(paint(new THREE.TorusGeometry(9, 2.6, 8, 22).rotateX(Math.PI / 2), 0x7fd1e8), 0, 6.4, 0),
+          dome(6, WHITE, 0, 5, 0, 16),
+          at(paint(new THREE.CylinderGeometry(3.2, 5, 14, 14), 0xdfe3e6), -17, 7, -6),
+          at(paint(new THREE.CylinderGeometry(3.2, 5, 14, 14), 0xdfe3e6), -17, 7, 6),
+          box(7, 4, 6, STEEL, 15, 0, 0),
+        ],
+        radius: 18,
+        height: 14,
+        lights: [[0, 11.4, 0], [-17, 14.3, -6], [-17, 14.3, 6], [18.6, 2, 0], [9, 6.6, 9], [-9, 6.6, 9]],
+      };
+    case 'pylon': {
+      const parts: Part[] = [];
+      for (const x of [-9, 9]) {
+        parts.push(at(paint(new THREE.CylinderGeometry(0.3, 1.6, 20, 4), STEEL), x, 10, 0));
+        parts.push(box(8, 0.4, 0.4, STEEL, x, 16, 0));
+        parts.push(box(6, 0.4, 0.4, STEEL, x, 12.5, 0));
+      }
+      parts.push(box(18, 0.12, 0.12, DARK, 0, 16.3, 3.8));
+      parts.push(box(18, 0.12, 0.12, DARK, 0, 16.3, -3.8));
+      parts.push(box(4, 2.6, 4, GREY));
+      return { parts, radius: 11, height: 20, lights: [[-9, 20.3, 0], [9, 20.3, 0]] };
+    }
+    case 'gantry':
+      // Launch tower with a rocket on the stand.
+      return {
+        parts: [
+          box(10, 1.4, 10, 0x6c7077),
+          at(paint(new THREE.CylinderGeometry(1.2, 1.8, 30, 4), 0xb5412f), -4, 16.4, 0),
+          box(6, 0.6, 1, 0xb5412f, -1, 22, 0),
+          box(6, 0.6, 1, 0xb5412f, -1, 12, 0),
+          cyl(1.9, 1.9, 24, WHITE, 2.6, 1.4, 0, 16),
+          at(paint(new THREE.ConeGeometry(1.9, 5, 16), ORANGE), 2.6, 27.9, 0),
+          cyl(0.8, 0.8, 9, WHITE, 2.6, 1.4, 2.7, 10),
+          cyl(0.8, 0.8, 9, WHITE, 2.6, 1.4, -2.7, 10),
+        ],
+        radius: 9,
+        height: 32,
+        lights: [[-4, 31.8, 0], [2.6, 30.6, 0], [5.2, 1.8, 5.2], [-5.2, 1.8, 5.2]],
+      };
+    case 'antenna':
+      return {
+        parts: [
+          cyl(2.2, 3, 5, GREY, 0, 0, 0, 10),
+          box(1, 6, 1, STEEL, 0, 5, 0),
+          at(paint(new THREE.SphereGeometry(8, 18, 6, 0, Math.PI * 2, 0, Math.PI / 3).rotateX(Math.PI).rotateX(-0.5), WHITE), 0, 18.6, 3.4),
+          box(0.25, 6, 0.25, STEEL, 0, 12, 3),
+        ],
+        radius: 9,
+        height: 20,
+        lights: [[0, 17.6, 4.6]],
+      };
     case 'processor':
       return {
         parts: [
@@ -406,7 +559,10 @@ export class BaseRenderer {
     this.scene.background = new THREE.Color(palette.sky);
     if (palette.fog !== null) this.scene.fog = new THREE.Fog(palette.fog, 420, 1900);
 
-    const sun = new THREE.DirectionalLight(this.body === 'mars' ? 0xffe2c4 : 0xffffff, this.body === 'mars' ? 2.3 : 3);
+    const sun = new THREE.DirectionalLight(
+      this.body === 'mars' ? 0xffe2c4 : this.body === 'earth' ? 0xfff4dd : 0xffffff,
+      this.body === 'moon' ? 3 : 2.3,
+    );
     sun.position.copy(SUN).multiplyScalar(500);
     this.scene.add(sun);
     // Fill light: on the Moon it is the glare bouncing off the regolith, on
@@ -414,7 +570,9 @@ export class BaseRenderer {
     this.scene.add(
       this.body === 'mars'
         ? new THREE.HemisphereLight(0xf0c8a8, 0x6b3f2a, 1.5)
-        : new THREE.HemisphereLight(0x9aa6c0, 0x7d7f85, 1.15),
+        : this.body === 'earth'
+          ? new THREE.HemisphereLight(0xcfe6ff, 0x5a7a48, 1.6)
+          : new THREE.HemisphereLight(0x9aa6c0, 0x7d7f85, 1.15),
     );
 
     this.buildTerrain();
@@ -522,7 +680,7 @@ export class BaseRenderer {
   private buildTerrain(): void {
     const palette = PALETTE[this.body];
     // Craters beyond the base: plenty on the Moon, a few on Mars.
-    const count = this.body === 'moon' ? 34 : 10;
+    const count = this.body === 'moon' ? 34 : this.body === 'mars' ? 10 : 0;
     for (let i = 0; i < count; i += 1) {
       const angle = hash(i, 3) * Math.PI * 2;
       const dist = FLAT_RADIUS + 60 + hash(i, 7) * (TERRAIN_SIZE / 2 - FLAT_RADIUS - 80);
@@ -555,6 +713,30 @@ export class BaseRenderer {
       map: makeGrainTexture(),
     });
     this.scene.add(new THREE.Mesh(geo, mat));
+
+    if (this.body === 'earth') {
+      // Woods on the hills around the city: one instanced mesh.
+      const tree = mergeGeometries(
+        [cyl(0.5, 0.7, 3, 0x6b4a2f, 0, 0, 0, 6), at(paint(new THREE.ConeGeometry(3.2, 8, 7), 0x2f6b3a), 0, 6.5, 0), at(paint(new THREE.ConeGeometry(2.3, 6, 7), 0x3a7d45), 0, 10, 0)],
+        false,
+      )!;
+      tree.computeVertexNormals();
+      const n = this.software ? 220 : 700;
+      const woods = new THREE.InstancedMesh(tree, new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 1 }), n);
+      for (let i = 0; i < n; i += 1) {
+        const angle = hash(i, 61) * Math.PI * 2;
+        const dist = FLAT_RADIUS + 12 + hash(i, 62) ** 0.7 * (TERRAIN_SIZE / 2 - FLAT_RADIUS - 30);
+        const x = Math.cos(angle) * dist;
+        const z = Math.sin(angle) * dist;
+        this.dummy.position.set(x, heightAt(x, z, this.craters) - 0.3, z);
+        this.dummy.rotation.set(0, hash(i, 63) * 6.28, 0);
+        this.dummy.scale.setScalar(0.8 + hash(i, 64) * 1.1);
+        this.dummy.updateMatrix();
+        woods.setMatrixAt(i, this.dummy.matrix);
+      }
+      woods.instanceMatrix.needsUpdate = true;
+      this.scene.add(woods);
+    }
   }
 
   private buildSky(): void {
@@ -699,7 +881,7 @@ export class BaseRenderer {
     // Blob shadows, thrown away from the sun and longer for taller things.
     const shadowMesh = new THREE.InstancedMesh(
       new THREE.CircleGeometry(1, 20).rotateX(-Math.PI / 2),
-      new THREE.MeshBasicNodeMaterial({ color: 0x000000, transparent: true, opacity: this.body === 'moon' ? 0.5 : 0.28, depthWrite: false }),
+      new THREE.MeshBasicNodeMaterial({ color: 0x000000, transparent: true, opacity: this.body === 'moon' ? 0.5 : this.body === 'mars' ? 0.28 : 0.24, depthWrite: false }),
       shadows.length,
     );
     const away = new THREE.Vector2(-SUN.x, -SUN.z).normalize();
@@ -798,30 +980,32 @@ export class BaseRenderer {
       this.rovers = null;
     }
 
-    // The supply shuttle: comes down on the pad, sits, lifts off again.
-    const hull = mergeGeometries(
-      [
-        cyl(1.6, 2.1, 6, WHITE, 0, 1.4),
-        at(paint(new THREE.ConeGeometry(1.6, 3, 14), ORANGE), 0, 8.9, 0),
-        box(0.3, 2, 0.3, STEEL, 2.1, 0, 2.1),
-        box(0.3, 2, 0.3, STEEL, -2.1, 0, 2.1),
-        box(0.3, 2, 0.3, STEEL, 2.1, 0, -2.1),
-        box(0.3, 2, 0.3, STEEL, -2.1, 0, -2.1),
-      ],
-      false,
-    )!;
-    hull.computeVertexNormals();
-    const shuttle = new THREE.Group();
-    shuttle.add(new THREE.Mesh(hull, new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.6 })));
-    const flame = new THREE.Mesh(
-      new THREE.ConeGeometry(1.2, 5, 10).rotateX(Math.PI).translate(0, -1.4, 0),
-      new THREE.MeshBasicNodeMaterial({ color: 0xffc46b, transparent: true, opacity: 0.85 }),
-    );
-    shuttle.add(flame);
-    shuttle.position.set(this.padAt.x + 9, 0.4, this.padAt.z);
-    this.base.add(shuttle);
-    this.shuttle = shuttle;
-    this.flame = flame;
+    if (model.buildings.some((b) => b.kind === 'pad')) {
+      // The supply shuttle: comes down on the pad, sits, lifts off again.
+      const hull = mergeGeometries(
+        [
+          cyl(1.6, 2.1, 6, WHITE, 0, 1.4),
+          at(paint(new THREE.ConeGeometry(1.6, 3, 14), ORANGE), 0, 8.9, 0),
+          box(0.3, 2, 0.3, STEEL, 2.1, 0, 2.1),
+          box(0.3, 2, 0.3, STEEL, -2.1, 0, 2.1),
+          box(0.3, 2, 0.3, STEEL, 2.1, 0, -2.1),
+          box(0.3, 2, 0.3, STEEL, -2.1, 0, -2.1),
+        ],
+        false,
+      )!;
+      hull.computeVertexNormals();
+      const shuttle = new THREE.Group();
+      shuttle.add(new THREE.Mesh(hull, new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.6 })));
+      const flame = new THREE.Mesh(
+        new THREE.ConeGeometry(1.2, 5, 10).rotateX(Math.PI).translate(0, -1.4, 0),
+        new THREE.MeshBasicNodeMaterial({ color: 0xffc46b, transparent: true, opacity: 0.85 }),
+      );
+      shuttle.add(flame);
+      shuttle.position.set(this.padAt.x + 9, 0.4, this.padAt.z);
+      this.base.add(shuttle);
+      this.shuttle = shuttle;
+      this.flame = flame;
+    }
     this.animate(0);
   }
 
@@ -831,7 +1015,7 @@ export class BaseRenderer {
     const step = this.reducedMotion ? 0 : dt;
     if (this.people) {
       // The Moon's weak gravity turns a walk into a slow bounce.
-      const hop = this.body === 'moon' ? 0.42 : 0.12;
+      const hop = this.body === 'moon' ? 0.42 : this.body === 'mars' ? 0.12 : 0.05;
       const now = performance.now() / 1000;
       this.walkers.forEach((w, i) => {
         const length = Math.hypot(w.bx - w.ax, w.bz - w.az) || 1;

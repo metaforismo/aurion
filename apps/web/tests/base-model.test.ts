@@ -3,7 +3,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { MAX_PEOPLE, baseSignature, buildBaseModel, housingUnits, peopleShown } from '../lib/base/model';
+import {
+  MAX_PEOPLE,
+  baseSignature,
+  buildBaseModel,
+  buildCapitalModel,
+  housingUnits,
+  peopleShown,
+} from '../lib/base/model';
 
 const scenario = JSON.parse(
   readFileSync(join(process.cwd(), 'content/scenarios/quick-start.json'), 'utf8'),
@@ -80,5 +87,31 @@ describe('base model', () => {
     const seen = new Set(model.buildings.map((b) => `${Math.round(b.x)}:${Math.round(b.z)}`));
     expect(seen.size).toBe(model.buildings.length);
     expect(peopleShown(80_000_000)).toBeLessThanOrEqual(MAX_PEOPLE);
+  });
+
+  it('the capital mirrors the nation and its Earth megaprojects', () => {
+    const start = tickCosmos(
+      createGame(scenario, { seed: 'base', victory: 'economic', playerCountryId: scenario.playableCountries[0]! }),
+    );
+    const plain = buildCapitalModel(start)!;
+    const kinds = plain.buildings.map((b) => b.kind);
+    expect(kinds[0]).toBe('capitol');
+    for (const k of ['skyscraper', 'factory', 'lab', 'barracks', 'block'] as const) expect(kinds).toContain(k);
+    expect(kinds).not.toContain('pad');
+    expect(kinds).not.toContain('reactor');
+
+    const me = start.countries[start.playerCountryId]!;
+    const grown = buildCapitalModel({
+      ...start,
+      countries: { ...start.countries, [me.id]: { ...me, economy: { ...me.economy, gdp: me.economy.gdp * 8 } } },
+      cosmos: { ...start.cosmos!, completed: ['earth_smart_grid', 'earth_fusion', 'earth_spaceport'] },
+    })!;
+    const grownKinds = grown.buildings.map((b) => b.kind);
+    for (const k of ['pylon', 'reactor', 'pad', 'gantry'] as const) expect(grownKinds).toContain(k);
+    expect(grownKinds.filter((k) => k === 'skyscraper').length).toBeGreaterThan(
+      kinds.filter((k) => k === 'skyscraper').length,
+    );
+    const seen = new Set(grown.buildings.map((b) => `${Math.round(b.x)}:${Math.round(b.z)}`));
+    expect(seen.size).toBe(grown.buildings.length);
   });
 });

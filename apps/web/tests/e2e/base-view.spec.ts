@@ -71,3 +71,23 @@ test('a colony can be visited on the surface and left again', async ({ page }) =
   await expect(base).toBeHidden();
   await expect(colony).toBeVisible();
 });
+
+test('the capital can be visited from the globe and left again', async ({ page }) => {
+  test.slow();
+  await startNewGame(page, { locale: 'it', scenarioId: 'quick-start', countryId: 'verm-aurelia' });
+  await waitForPlayReady(page, 'it');
+  await dismissAllEventModals(page);
+
+  await page.getByTestId('capital-visit').click();
+  const capital = page.getByTestId('base-earth');
+  await expect(capital).toBeVisible();
+  // The city is a portrait of the nation: towers, homes, factories.
+  const counts = page.getByTestId('base-counts');
+  await expect(counts).toContainText('grattacieli');
+  await expect(counts).toContainText('isolati');
+  await expect(counts).toContainText('fabbriche');
+
+  await page.getByTestId('base-leave').click();
+  await expect(capital).toBeHidden();
+  await waitForPlayReady(page, 'it');
+});

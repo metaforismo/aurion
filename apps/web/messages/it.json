@@ -1497,7 +1497,8 @@
     "base": {
       "label": {
         "moon": "La base lunare, vista dalla superficie",
-        "mars": "La base marziana, vista dalla superficie"
+        "mars": "La base marziana, vista dalla superficie",
+        "earth": "La tua capitale"
       },
       "leave": "Torna in orbita",
       "hint": "Trascina per guardarti intorno, rotella o pizzico per avvicinarti fino alle persone, tocca un edificio per sapere cos'è. La base cresce con gli abitanti, i progetti e le strutture che costruisci.",
@@ -1512,7 +1513,11 @@
         "lab": "{n, plural, =1 {laboratorio} other {laboratori}}",
         "mine": "{n, plural, =1 {miniera} other {miniere}}",
         "foundry": "{n, plural, =1 {fonderia} other {fonderie}}",
-        "site": "{n, plural, =1 {cantiere} other {cantieri}}"
+        "site": "{n, plural, =1 {cantiere} other {cantieri}}",
+        "skyscraper": "{n, plural, =1 {grattacielo} other {grattacieli}}",
+        "block": "{n, plural, =1 {isolato} other {isolati}}",
+        "factory": "{n, plural, =1 {fabbrica} other {fabbriche}}",
+        "barracks": "{n, plural, =1 {caserma} other {caserme}}"
       },
       "name": {
         "hub": "Centro di comando",
@@ -1530,8 +1535,22 @@
         "habitat": "Habitat",
         "lab": "Laboratorio",
         "mine": "Miniera",
-        "foundry": "Fonderia"
-      }
+        "foundry": "Fonderia",
+        "capitol": "Palazzo del governo",
+        "skyscraper": "Grattacielo",
+        "block": "Isolato residenziale",
+        "factory": "Fabbrica",
+        "barracks": "Caserma",
+        "datacenter": "Nodo della rete quantistica",
+        "arcology": "Arcologia",
+        "reactor": "Reattore a fusione",
+        "pylon": "Rete energetica",
+        "gantry": "Spazioporto",
+        "antenna": "Rete planetaria"
+      },
+      "leaveEarth": "Torna al globo",
+      "citizens": "{n} abitanti nel paese",
+      "hintEarth": "La capitale è il ritratto della nazione: i grattacieli seguono l'economia, le fabbriche l'industria, i laboratori la ricerca, le caserme l'esercito, e ogni megaprogetto terrestre lascia il segno. Trascina, avvicinati, tocca un edificio."
     }
   },
   "globe": {
@@ -1645,7 +1664,8 @@
       "notAdjacent": "Non confina con i tuoi territori, nemmeno via mare: ci si espande da un paese vicino all'altro.",
       "yoursHint": "Fa parte della tua sfera. Se capitoli in guerra, il protettorato più recente passa al vincitore.",
       "rivalHint": "Un rivale è arrivato prima. Può cambiare mano solo con una capitolazione."
-    }
+    },
+    "capital": "Visita la capitale"
   },
   "policies": {
     "title": "Politiche nazionali",
@@ -2087,7 +2107,8 @@
       "card": {
         "name": "Scheda nazione.",
         "body": "Compare quando selezioni una nazione: i numeri essenziali e le azioni rapide verso di lei."
-      }
+      },
+      "capital": "Accanto ai pulsanti dello zoom, «Visita la capitale» ti porta nella tua città in 3D: cresce con l'economia, l'industria, la ricerca e l'esercito, e mostra ogni megaprogetto terrestre che hai costruito."
     },
     "systems": {
       "title": "Gli otto sistemi",

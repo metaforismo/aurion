@@ -27,6 +27,18 @@ export type BuildingKind =
   | 'plant'
   | 'processor'
   | 'site'
+  // A capital on Earth.
+  | 'capitol'
+  | 'skyscraper'
+  | 'block'
+  | 'factory'
+  | 'barracks'
+  | 'datacenter'
+  | 'arcology'
+  | 'reactor'
+  | 'pylon'
+  | 'gantry'
+  | 'antenna'
   | StructureKind;
 
 export type Building = {
@@ -38,8 +50,11 @@ export type Building = {
   rot: number;
 };
 
+/** Where a base stands: a colony's world, or the player's capital on Earth. */
+export type BaseBody = ColonyBody | 'earth';
+
 export type BaseModel = {
-  body: ColonyBody;
+  body: BaseBody;
   population: number;
   capacity: number;
   buildings: Building[];
@@ -160,7 +175,84 @@ export function buildBaseModel(state: GameState, body: ColonyBody): BaseModel | 
   };
 }
 
+/** What each Earth megaproject adds to the capital. */
+const EARTH_PROJECT_BUILDINGS: Record<string, BuildingKind[]> = {
+  earth_smart_grid: ['pylon', 'pylon', 'solar'],
+  earth_quantum_net: ['datacenter', 'datacenter'],
+  earth_arcologies: ['arcology', 'arcology'],
+  earth_fusion: ['reactor'],
+  earth_spaceport: ['pad', 'gantry'],
+  earth_planetary_grid: ['antenna', 'antenna', 'antenna'],
+};
+
+/**
+ * The player's capital. It is a portrait of the nation: towers follow the
+ * size of the economy, factories its industry, labs its research, barracks
+ * its army, and every Earth megaproject leaves its mark.
+ */
+export function buildCapitalModel(state: GameState): BaseModel | null {
+  const player = state.countries[state.playerCountryId];
+  if (!player) return null;
+  const completed = state.cosmos?.completed ?? [];
+  const active = state.cosmos?.active ?? [];
+  // How much the economy has grown since the start (1 = unchanged).
+  const unit = state.cosmos?.unit ?? player.economy.gdp * 0.01;
+  const growth = unit > 0 ? player.economy.gdp / (unit * 100) : 1;
+  const count = (n: number, max: number) => Math.max(0, Math.min(max, Math.round(n)));
+
+  const wanted: BuildingKind[] = [];
+  let pad = false;
+  for (const def of COSMOS_PROJECTS) {
+    if (def.body !== 'earth' || !completed.includes(def.id)) continue;
+    const kinds = EARTH_PROJECT_BUILDINGS[def.id] ?? [];
+    if (kinds.includes('pad')) pad = true;
+    wanted.push(...kinds.filter((k) => k !== 'pad'));
+  }
+  const towers = count(5 + 7 * Math.log2(growth + 1), 26);
+  const factories = count(2 + player.economy.sectors.industry * 12 * Math.sqrt(growth), 14);
+  const labs = count(1 + player.science.researchOutput / 3, 8);
+  const barracks = count(player.military.armySize / 4000, 6);
+  // Interleave, so districts mix instead of forming one ring of each kind.
+  const groups: BuildingKind[][] = [
+    Array<BuildingKind>(towers).fill('skyscraper'),
+    Array<BuildingKind>(factories).fill('factory'),
+    Array<BuildingKind>(labs).fill('lab'),
+    Array<BuildingKind>(barracks).fill('barracks'),
+  ];
+  for (let i = 0; groups.some((g) => i < g.length); i += 1) {
+    for (const g of groups) if (i < g.length) wanted.push(g[i]!);
+  }
+  let sites = 0;
+  for (const a of active) if (COSMOS_PROJECTS.find((p) => p.id === a.projectId)?.body === 'earth') sites += 1;
+  if (state.territoryWork) sites += 1;
+  for (let i = 0; i < sites; i += 1) wanted.push('site');
+  const homes = count(10 + 6 * Math.log10(player.population + 1), 60);
+  for (let i = 0; i < homes; i += 1) wanted.push('block');
+
+  const buildings: Building[] = [
+    { kind: 'capitol', x: 0, z: 0, rot: 0 },
+    { kind: 'tower', x: 19, z: 14, rot: 0 },
+  ];
+  if (pad) buildings.push({ kind: 'pad', x: 0, z: -29, rot: 0 });
+  let outer = 0;
+  wanted.slice(0, PLOTS.length).forEach((kind, i) => {
+    const plot = PLOTS[i]!;
+    outer = Math.max(outer, plot.ring);
+    buildings.push({ kind, x: plot.x, z: plot.z, rot: plot.rot });
+  });
+  return {
+    body: 'earth',
+    population: player.population,
+    capacity: player.population,
+    buildings,
+    rings: RINGS.slice(0, outer + 1).map((r) => r.radius),
+    people: peopleShown(player.population),
+    rovers: Math.min(MAX_ROVERS, 6 + Math.round(4 * Math.log2(growth + 1))),
+    sites,
+  };
+}
+
 /** Changes whenever the base needs rebuilding on screen. */
 export function baseSignature(model: BaseModel): string {
-  return `${model.body}|${model.buildings.map((b) => b.kind.slice(0, 2)).join('')}|${model.people}|${model.rovers}`;
+  return `${model.body}|${model.buildings.map((b) => b.kind.slice(0, 3)).join('')}|${model.people}|${model.rovers}`;
 }
