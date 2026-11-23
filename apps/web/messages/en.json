@@ -739,7 +739,8 @@
     },
     "spy": {
       "typeLocked": "That operation needs a technology you do not have yet."
-    }
+    },
+    "truce": "A truce is in force after the last peace."
   },
   "play": {
     "placeholderMap": "MAP — to be implemented in Wave 2",
@@ -1728,6 +1729,11 @@
         "passed": "UN: resolution passed",
         "failed": "UN: resolution failed",
         "vetoed": "UN: resolution vetoed"
+      },
+      "peace": {
+        "white": "Peace with no winner",
+        "reparations": "{winner} collects {amount} in reparations",
+        "capitulation": "{loser} capitulates to {winner}"
       }
     },
     "age": {
@@ -2600,7 +2606,8 @@
         "notFound": "That bloc no longer exists.",
         "alreadyMember": "You are already a member of this bloc.",
         "notMember": "You are not a member of any bloc."
-      }
+      },
+      "truce": "A truce is in force after the last peace: you cannot go back to war yet."
     },
     "blocs": {
       "title": "Blocs",
@@ -2625,6 +2632,20 @@
           "title": "Leave the bloc?",
           "description": "You become unaligned: no bloc will back your UN proposals any more. You can rejoin whenever you like."
         }
+      }
+    },
+    "peace": {
+      "white": "Neither side is far enough ahead to dictate terms: a peace with no winner and no reparations, and attitude recovers by 15. A two-year truce follows.",
+      "winReparations": "You are winning: {name} pays you {amount} in reparations and your approval rises by 3. At a score of +60 you could force a capitulation. A two-year truce follows.",
+      "winCapitulation": "{name} capitulates: it pays you {amount} in reparations, hands over {gdp} of GDP and your approval rises by 6. A two-year truce follows.",
+      "loseReparations": "You are losing: peace costs you {amount} in reparations to {name} and 4 points of approval. If the score reaches −60 the terms get worse. A two-year truce follows.",
+      "loseCapitulation": "This is a capitulation: you pay {amount} in reparations to {name}, give up {gdp} of GDP and your approval falls by 10. A two-year truce follows.",
+      "short": {
+        "white": "a peace with no winner and no reparations.",
+        "winReparations": "{name} pays you {amount}.",
+        "winCapitulation": "{name} capitulates: {amount} and {gdp} of GDP for you.",
+        "loseReparations": "you pay {name} {amount}.",
+        "loseCapitulation": "you capitulate: you pay {amount} and give up {gdp} of GDP."
       }
     }
   },
@@ -2657,9 +2678,13 @@
       "noContact": "No contact: fighting only happens where both of you have troops in the same region.",
       "deployThere": "Deploy to {region}",
       "peace": "Peace",
-      "howItEnds": "A war only ends when either side makes peace. If enemy troops in your region outnumber your defenders for 26 weeks running, you lose the game.",
+      "howItEnds": "The score rises by winning battles, occupying their region and, slowly, simply by being stronger; every week of war costs both sides approval. Peace is signed on the score's terms: under 20 it is a draw, from 20 the side ahead collects reparations, from 60 the other capitulates. If enemy troops in your region outnumber your defenders for 26 weeks in a row, you lose the game.",
       "capitalThreat": "{enemy} enemy units are in your region, against {own} defenders. If they outnumber you for {limit} weeks running you lose the game.",
-      "capitalFallen": "The capital has been overrun for {weeks, plural, =1 {1 week} other {# weeks}}: at {limit} you lose the game. Recruit units or make peace."
+      "capitalFallen": "The capital has been overrun for {weeks, plural, =1 {1 week} other {# weeks}}: at {limit} you lose the game. Recruit units or make peace.",
+      "score": "War score",
+      "scoreLabel": "War score {score} on a scale from −100 to +100; 20 earns reparations, 60 a capitulation",
+      "ifPeaceNow": "If you sign now:",
+      "toll": "{weeks, plural, =0 {Just broken out} =1 {1 week of war} other {# weeks of war}} · losses: {own} yours, {foe} theirs"
     },
     "balance": {
       "title": "Balance of power",

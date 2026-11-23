@@ -256,7 +256,7 @@ export function getAvailableActions(
     if (otherId === countryId) continue;
     const ensured = ensureRelation(state, countryId, otherId);
     for (const kind of DIPLOMACY_KINDS) {
-      if (isDiplomacyAllowed(ensured.relation, kind).ok) {
+      if (isDiplomacyAllowed(ensured.relation, kind, state.tick).ok) {
         actions.push({ type: 'diplomacy', target: otherId, kind });
       }
     }

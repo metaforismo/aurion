@@ -3,6 +3,7 @@
 
 import { getAvailableActions } from '../actions/index.js';
 import type { Rng } from '../rng.js';
+import { WAR_CAPITULATION_SCORE, WAR_REPARATIONS_SCORE, warBetween, warScoreFor } from '../war/index.js';
 import type {
   Action,
   AiArchetype,
@@ -456,11 +457,20 @@ function scoreAction(
           }
           break;
         }
-        case 'sueForPeace':
-          // More eager to end wars unless we are clearly winning.
-          score += 0.4;
+        case 'sueForPeace': {
+          // Peace is made on the terms the war score dictates, so the side
+          // that is ahead presses on until it can dictate them, and the
+          // side that is behind cuts its losses before it gets worse.
+          const ours = warScoreFor(state, countryId, action.target);
+          const war = warBetween(state, countryId, action.target);
+          const weeks = war ? state.tick - war.startedAtTick : 0;
+          if (ours >= WAR_CAPITULATION_SCORE) score += 1.0;
+          else if (ours <= -WAR_REPARATIONS_SCORE) score += 0.7;
+          else if (ours >= WAR_REPARATIONS_SCORE) score += weeks > 78 ? 0.5 : -0.4;
+          else score += weeks > 52 ? 0.5 : -0.3;
           if (veryLowMoney) score += 0.6;
           break;
+        }
         case 'breakAlliance':
           score += personality.paranoia * 0.2 - 0.4;
           break;

@@ -739,7 +739,8 @@
     },
     "spy": {
       "typeLocked": "Questa operazione richiede una tecnologia che non hai ancora."
-    }
+    },
+    "truce": "C'è una tregua in vigore dopo l'ultima pace."
   },
   "play": {
     "placeholderMap": "MAPPA — sarà implementata nella Wave 2",
@@ -1728,6 +1729,11 @@
         "passed": "ONU: risoluzione approvata",
         "failed": "ONU: risoluzione respinta",
         "vetoed": "ONU: risoluzione bloccata dal veto"
+      },
+      "peace": {
+        "white": "Pace senza vincitori",
+        "reparations": "{winner} incassa {amount} di riparazioni",
+        "capitulation": "{loser} capitola davanti a {winner}"
       }
     },
     "age": {
@@ -2600,7 +2606,8 @@
         "notFound": "Questo blocco non esiste più.",
         "alreadyMember": "Fai già parte di questo blocco.",
         "notMember": "Non fai parte di alcun blocco."
-      }
+      },
+      "truce": "C'è una tregua in vigore dopo l'ultima pace: non puoi ancora tornare in guerra."
     },
     "blocs": {
       "title": "Blocchi",
@@ -2625,6 +2632,20 @@
           "title": "Lasciare il blocco?",
           "description": "Resti non allineato: nessun blocco appoggerà più le tue proposte all'ONU. Puoi rientrare quando vuoi."
         }
+      }
+    },
+    "peace": {
+      "white": "Nessuno dei due è abbastanza avanti da dettare condizioni: la pace è senza vincitori né riparazioni, e l'atteggiamento risale di 15 punti. Segue una tregua di due anni.",
+      "winReparations": "Stai vincendo: {name} ti paga {amount} di riparazioni e il tuo consenso sale di 3 punti. Portando il punteggio a +60 potresti imporre la capitolazione. Segue una tregua di due anni.",
+      "winCapitulation": "{name} capitola: ti paga {amount} di riparazioni, ti cede {gdp} di PIL e il tuo consenso sale di 6 punti. Segue una tregua di due anni.",
+      "loseReparations": "Stai perdendo: per avere la pace paghi {amount} di riparazioni a {name} e il tuo consenso scende di 4 punti. Se il punteggio arriva a −60 le condizioni peggiorano. Segue una tregua di due anni.",
+      "loseCapitulation": "È una capitolazione: paghi {amount} di riparazioni a {name}, cedi {gdp} di PIL e il tuo consenso crolla di 10 punti. Segue una tregua di due anni.",
+      "short": {
+        "white": "pace senza vincitori, nessuna riparazione.",
+        "winReparations": "{name} ti paga {amount}.",
+        "winCapitulation": "{name} capitola: {amount} e {gdp} di PIL per te.",
+        "loseReparations": "paghi {amount} a {name}.",
+        "loseCapitulation": "capitoli: paghi {amount} e cedi {gdp} di PIL."
       }
     }
   },
@@ -2657,9 +2678,13 @@
       "noContact": "Nessun contatto: si combatte solo dove entrambi avete truppe nella stessa regione.",
       "deployThere": "Schiera in {region}",
       "peace": "Pace",
-      "howItEnds": "Una guerra finisce solo quando una delle due parti firma la pace. Se le truppe nemiche nella tua regione superano i tuoi difensori per 26 settimane di fila, perdi la partita.",
+      "howItEnds": "Il punteggio sale vincendo scontri, occupando la loro regione e, piano piano, semplicemente essendo più forte; ogni settimana di guerra costa consenso a entrambi. La pace si firma alle condizioni del punteggio: sotto 20 è un pareggio, da 20 chi è avanti incassa riparazioni, da 60 l'altro capitola. Se le truppe nemiche nella tua regione superano i tuoi difensori per 26 settimane di fila, perdi la partita.",
       "capitalThreat": "{enemy} unità nemiche sono nella tua regione, contro {own} difensori. Se ti superano per {limit} settimane di fila perdi la partita.",
-      "capitalFallen": "La capitale è sopraffatta da {weeks, plural, =1 {1 settimana} other {# settimane}}: a {limit} perdi la partita. Recluta unità o firma la pace."
+      "capitalFallen": "La capitale è sopraffatta da {weeks, plural, =1 {1 settimana} other {# settimane}}: a {limit} perdi la partita. Recluta unità o firma la pace.",
+      "score": "Punteggio di guerra",
+      "scoreLabel": "Punteggio di guerra {score} su una scala da −100 a +100; a 20 si ottengono riparazioni, a 60 la capitolazione",
+      "ifPeaceNow": "Se firmi ora:",
+      "toll": "{weeks, plural, =0 {Appena scoppiata} =1 {1 settimana di guerra} other {# settimane di guerra}} · perdite: {own} tue, {foe} loro"
     },
     "balance": {
       "title": "Rapporti di forza",

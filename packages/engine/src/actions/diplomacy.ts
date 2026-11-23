@@ -9,6 +9,7 @@ import type {
   Relation,
   TreatyKind,
 } from '../types.js';
+import { concludePeace, openWar } from '../war/index.js';
 import { clamp, ensureRelation, withRelation } from './helpers.js';
 
 export type DiplomacyAction = Extract<Action, { type: 'diplomacy' }>;
@@ -31,6 +32,8 @@ function withoutTreaty(treaties: TreatyKind[], remove: TreatyKind): TreatyKind[]
 export function isDiplomacyAllowed(
   relation: Relation,
   kind: DiplomacyKind,
+  /** Current tick; when given, a truce still in force blocks a new war. */
+  tick?: number,
 ): { ok: true } | { ok: false; reason: string } {
   switch (kind) {
     case 'proposeAlliance':
@@ -63,6 +66,8 @@ export function isDiplomacyAllowed(
         return { ok: false, reason: 'errors.diplomacy.alliedCannotWar' };
       if (relation.treaties.includes('nonAggression'))
         return { ok: false, reason: 'errors.diplomacy.nonAggressionPact' };
+      if (tick !== undefined && relation.truceUntilTick !== undefined && tick < relation.truceUntilTick)
+        return { ok: false, reason: 'errors.diplomacy.truce' };
       // Require a casus belli: attitudes must be at least cool, OR sanctions in place.
       if (relation.attitude > DECLARE_WAR_ATTITUDE_THRESHOLD && !relation.treaties.includes('sanctions'))
         return { ok: false, reason: 'errors.diplomacy.attitudeTooHighForWar' };
@@ -90,7 +95,7 @@ export function applyDiplomacy(
   const ensured = ensureRelation(state, countryId, action.target);
   const stateWithRel = ensured.state;
   const relation = ensured.relation;
-  const allowed = isDiplomacyAllowed(relation, action.kind);
+  const allowed = isDiplomacyAllowed(relation, action.kind, state.tick);
   if (!allowed.ok) {
     return { state, errors: [allowed.reason] };
   }
@@ -146,14 +151,15 @@ export function applyDiplomacy(
         attitude: clamp(relation.attitude - 50, -100, 100),
       };
       break;
-    case 'sueForPeace':
-      next = {
-        ...relation,
-        atWar: false,
-        attitude: clamp(relation.attitude + 15, -100, 100),
-      };
-      break;
+    case 'sueForPeace': {
+      // The war score sets the terms: a draw, reparations or capitulation.
+      const peace = concludePeace(stateWithRel, relation, countryId, action.target);
+      return { state: withRelation(peace.state, peace.relation), errors: [] };
+    }
   }
 
+  if (action.kind === 'declareWar') {
+    return { state: openWar(withRelation(stateWithRel, next), countryId, action.target), errors: [] };
+  }
   return { state: withRelation(stateWithRel, next), errors: [] };
 }

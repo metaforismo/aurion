@@ -94,3 +94,16 @@ export { evaluateCondition as evaluateEventCondition } from './events/conditions
 export { supportMultiplier } from './tick.js';
 export { COSMOS_EVENTS } from './cosmos/events.js';
 export { tickHistory, sampleOf as historySampleOf, HISTORY_INTERVAL_TICKS, HISTORY_LIMIT } from './history.js';
+
+export {
+  WAR_CAPITULATION_GDP_SHARE,
+  WAR_CAPITULATION_SCORE,
+  WAR_REPARATIONS_SCORE,
+  WAR_REPARATION_WEEKS,
+  WAR_TRUCE_TICKS,
+  peaceTerms,
+  warBetween,
+  warKey,
+  warScoreFor,
+} from './war/index.js';
+export type { PeaceTerms } from './war/index.js';

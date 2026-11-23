@@ -44,6 +44,7 @@ import { tickNuclear } from './nuclear/index.js';
 import { tickCosmos } from './cosmos/index.js';
 import { tickPolicies } from './policies/index.js';
 import { tickHistory } from './history.js';
+import { tickWarDiplomacy, tickWars } from './war/index.js';
 import { applyStatToCountry } from './events/index.js';
 import { evaluateCondition } from './events/conditions.js';
 
@@ -121,6 +122,9 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
     difficulty,
     ctx.scenario,
   );
+
+  // 7.4. AI governments end the wars they have won, lost or tired of.
+  next = tickWarDiplomacy(next);
 
   // 7.5. Hostile intelligence: now and then a rival with a grudge sends an
   //      agent after the player. Outside the AI's own turn so the pressure
@@ -767,6 +771,7 @@ function stepMilitary(state: GameState, rng: Rng): GameState {
     }
   }
 
+  const battles: Array<{ x: CountryId; y: CountryId; xLoss: number; yLoss: number }> = [];
   // Patch deployments per country if battle resolves losses.
   const patches: Record<CountryId, MilitaryDeployment[]> = {};
   for (const country of Object.values(state.countries)) {
@@ -803,6 +808,7 @@ function stepMilitary(state: GameState, rng: Rng): GameState {
             aPatch[idx] = { ...cur, units: Math.max(0, cur.units - aLoss) };
           }
         }
+        battles.push({ x: a.countryId, y: b.countryId, xLoss: aLoss, yLoss: bLoss });
         if (bPatch) {
           const idx = bPatch.findIndex((d) => d.id === b.deployment.id);
           const cur = idx >= 0 ? bPatch[idx] : undefined;
@@ -825,7 +831,12 @@ function stepMilitary(state: GameState, rng: Rng): GameState {
       military: { ...country.military, deployedUnits: patch },
     };
   }
-  return { ...state, countries: updated };
+  // Wars keep score of what the fighting cost each side.
+  return tickWars(
+    { ...state, countries: updated },
+    battles,
+    (c) => (1 + c.military.doctrineLevel) * supportMultiplier(c),
+  );
 }
 
 /**

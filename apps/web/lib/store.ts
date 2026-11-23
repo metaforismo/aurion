@@ -105,6 +105,8 @@ export type ConfirmRequest = {
   titleKey: string;
   /** i18n key for the body description. */
   descriptionKey: string;
+  /** Values interpolated into the description. */
+  descriptionValues?: Record<string, string | number>;
   /** i18n key for the confirm button label. Defaults to "common.confirm". */
   confirmKey?: string;
   /** i18n key for the cancel button label. Defaults to "common.cancel". */
