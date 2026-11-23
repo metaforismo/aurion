@@ -105,3 +105,21 @@ describe('peace terms follow the score', () => {
     expect(later.errors).toEqual([]);
   });
 });
+
+describe('reparations', () => {
+  it('never exceed what the loser has in the treasury', () => {
+    const s = atWar(-WAR_CAPITULATION_SCORE);
+    const me = s.countries.aurion!;
+    const poor: GameState = {
+      ...s,
+      countries: { ...s.countries, aurion: { ...me, economy: { ...me.economy, treasury: 1_000 } } },
+    };
+    expect(peaceTerms(poor, 'aurion', 'borealis').reparations).toBe(1_000);
+    expect(peace(poor, 'aurion').state.countries.aurion!.economy.treasury).toBe(0);
+    const broke: GameState = {
+      ...s,
+      countries: { ...s.countries, aurion: { ...me, economy: { ...me.economy, treasury: -5_000 } } },
+    };
+    expect(peaceTerms(broke, 'aurion', 'borealis').reparations).toBe(0);
+  });
+});

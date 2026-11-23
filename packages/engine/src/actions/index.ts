@@ -18,6 +18,7 @@ import type {
 
 import { applyDeployArmy, isDeployAllowed } from './deployArmy.js';
 import { applyDeploySpy, computeSpyProbabilities } from './deploySpy.js';
+import { applySetColonyFocus } from '../cosmos/colonies.js';
 import { applyDiplomacy, isDiplomacyAllowed } from './diplomacy.js';
 import { applyInvest } from './invest.js';
 import { applyPlacateFaction, PLACATE_COST } from './placateFaction.js';
@@ -121,6 +122,9 @@ export function applyAction(
       break;
     case 'cancelProject':
       result = applyCancelProject(state, action, actor);
+      break;
+    case 'setColonyFocus':
+      result = applySetColonyFocus(state, action, actor);
       break;
     case 'enactPolicy':
       result = applyEnactPolicy(state, action, actor);

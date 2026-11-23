@@ -51,7 +51,7 @@ It runs entirely in the browser. No backend, no account, no tracking.
 | Diplomacy | Treaties, alliances, sanctions, war and peace; blocs and reputation |
 | Internal politics | Popularity, five factions, and twelve national policies with weekly trade-offs. Each faction pulls one lever: win it over for a bonus, lose it and it works against you |
 | United Nations | Propose and vote on resolutions that bind everyone |
-| Cosmos | Megaprojects, the space race and your Kardashev rating |
+| Cosmos | Megaprojects, the space race and your Kardashev rating. Bases on the Moon and Mars grow into colonies you give a mandate: science, industry or trade |
 
 **Decisions with consequences you can read.** Events stop the clock and show exactly what each choice will do before you pick — from a border skirmish to the day your colonists on Mars ask for a parliament of their own. Every action in every panel states its price and its effect first, and says why when it is unavailable.
 

@@ -514,7 +514,8 @@ export type Action =
   | { type: 'startProject'; projectId: CosmosProjectId }
   | { type: 'cancelProject'; projectId: CosmosProjectId }
   | { type: 'enactPolicy'; policyId: PolicyId }
-  | { type: 'repealPolicy'; policyId: PolicyId };
+  | { type: 'repealPolicy'; policyId: PolicyId }
+  | { type: 'setColonyFocus'; body: ColonyBody; focus: ColonyFocus };
 
 // ---------------------------------------------------------------------------
 // Top-level game state.
@@ -993,6 +994,18 @@ export type CosmosState = {
   firsts: Record<CosmosProjectId, CountryId>;
   /** Most recent completions, newest last (bounded ring). */
   log: CosmosLogEntry[];
+  /** Settlements on other worlds; absent until someone lives there. */
+  colonies?: Partial<Record<ColonyBody, ColonyState>>;
+};
+
+export type ColonyBody = 'moon' | 'mars';
+/** What a colony is asked to send home. */
+export type ColonyFocus = 'balanced' | 'science' | 'industry' | 'trade';
+
+export type ColonyState = {
+  focus: ColonyFocus;
+  focusChangedAtTick: number;
+  population: number;
 };
 
 

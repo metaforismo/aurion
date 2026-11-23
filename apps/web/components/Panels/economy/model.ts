@@ -5,6 +5,8 @@
 // the player commits. The engine stays the source of truth for the result.
 
 import {
+  colonyModifiers,
+  factionModifiers,
   policyModifiers,
   type Country,
   type FactionId,
@@ -52,6 +54,10 @@ export type IncomeBreakdown = {
   sanctionLoss: number;
   wars: number;
   warCost: number;
+  /** What the business faction's stance adds or takes away. */
+  factions: number;
+  /** Paid in by trading colonies on other worlds. */
+  colonies: number;
   /** Difficulty adjustment on the player's income (0 on Normal). */
   difficultyDelta: number;
   /** What the engine adds to the treasury each week before policies. */
@@ -90,7 +96,12 @@ export function incomeBreakdown(
   const warCost = -wars * country.military.armySize * WAR_COST_PER_UNIT;
 
   const base = Math.round(afterSanctions + warCost);
-  const income = Math.round(base * playerIncomeMultiplier);
+  // tick.ts `stepEconomy`: a loyal or hostile business faction scales a
+  // positive take before the difficulty multiplier.
+  const withFactions = base > 0 ? Math.round(base * (1 + factionModifiers(country).incomeMul)) : base;
+  const factions = withFactions - base;
+  const income = Math.round(withFactions * playerIncomeMultiplier);
+  const colonies = country.id === state.playerCountryId ? colonyModifiers(state).income : 0;
   const mods = policyModifiers(state);
   const policies = Math.round(Math.max(0, income) * (mods.incomeMul - mods.upkeep));
 
@@ -103,10 +114,12 @@ export function incomeBreakdown(
     sanctionLoss: afterSanctions - afterTrade,
     wars,
     warCost,
-    difficultyDelta: income - base,
+    factions,
+    difficultyDelta: income - withFactions,
     income,
     policies,
-    net: income + policies,
+    colonies,
+    net: income + policies + colonies,
   };
 }
 

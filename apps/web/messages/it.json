@@ -740,7 +740,11 @@
     "spy": {
       "typeLocked": "Questa operazione richiede una tecnologia che non hai ancora."
     },
-    "truce": "C'è una tregua in vigore dopo l'ultima pace."
+    "truce": "C'è una tregua in vigore dopo l'ultima pace.",
+    "colony": {
+      "cooldown": "Il mandato di questa colonia è stato cambiato da poco.",
+      "none": "Non hai ancora una colonia su questo mondo."
+    }
   },
   "play": {
     "placeholderMap": "MAPPA — sarà implementata nella Wave 2",
@@ -1419,6 +1423,29 @@
       "allies": "−{pct}% dagli alleati ({n, plural, =1 {# alleanza} other {# alleanze}}): cofinanziano i tuoi cantieri",
       "policy": "−{pct}% dal Piano industriale",
       "hint": "Ogni alleanza toglie il 4% dal prezzo dei grandi progetti, fino al 20%."
+    },
+    "colony": {
+      "title": {
+        "moon": "Colonia lunare",
+        "mars": "Colonia marziana"
+      },
+      "people": "{n} abitanti su {cap} posti",
+      "growing": "Cresce da sola verso i posti disponibili. Nuovi progetti su questo mondo ne aggiungono.",
+      "full": "È al completo: per farla crescere servono nuovi progetti su questo mondo.",
+      "mandate": "Mandato della colonia",
+      "focus": {
+        "balanced": "Equilibrio",
+        "science": "Scienza",
+        "industry": "Industria",
+        "trade": "Commercio"
+      },
+      "yield": {
+        "research": "{v} ricerca/sett.",
+        "income": "+{v}/sett.",
+        "speed": "{v}% cantieri"
+      },
+      "hint": "Il mandato decide cosa la colonia manda a casa; più è popolosa, più rende. Dopo un cambio resta fisso per 26 settimane.",
+      "locked": "Mandato appena cambiato: potrai sceglierne un altro tra {weeks, plural, =1 {1 settimana} other {# settimane}}."
     }
   },
   "globe": {
@@ -2110,7 +2137,12 @@
       "policiesHint": "Bonus e costi di quelle in vigore",
       "net": "In cassa ogni settimana",
       "noTrade": "Nessun accordo commerciale: ognuno aggiunge il {pct} alle entrate.",
-      "openDiplomacy": "Apri Diplomazia"
+      "openDiplomacy": "Apri Diplomazia",
+      "colonies": "Colonie",
+      "coloniesHint": "Quanto mandano a casa le colonie su altri mondi",
+      "factions": "Imprese",
+      "factionsHintLoyal": "Sono dalla tua parte: pagano di più",
+      "factionsHintHostile": "Sono contro di te: nascondono i soldi"
     },
     "tax": {
       "title": "Politica fiscale",
