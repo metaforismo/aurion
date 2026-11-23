@@ -508,6 +508,12 @@ function scoreAction(
     case 'deploySpy': {
       score += personality.paranoia * 0.3 + (action.op.type === 'steal_tech' ? 0.2 : 0);
       if (country.intelligence.spyCount < 1) return -1;
+      // Agents go where the grudges are, and never against an ally.
+      const targetId = action.op.targetCountryId;
+      const key = countryId < targetId ? `${countryId}::${targetId}` : `${targetId}::${countryId}`;
+      const rel = state.relations[key as keyof typeof state.relations];
+      if (rel?.treaties.includes('alliance')) return -1;
+      if (rel) score += Math.min(1, Math.max(0, -rel.attitude / 100)) * 0.25;
       break;
     }
     case 'placateFaction': {

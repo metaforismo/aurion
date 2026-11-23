@@ -1450,7 +1450,20 @@
       "peace": "Peace: {a} – {b}",
       "sanctions": "Sanctions: {a} – {b}",
       "trade": "Trade deal: {a} – {b}",
-      "warStart": "War declared: {a} – {b}"
+      "warStart": "War declared: {a} – {b}",
+      "spyDone": {
+        "completed": "Operation succeeded",
+        "failed": "Operation failed",
+        "detected": "Agent exposed"
+      },
+      "spyCaught": "Spy from {name} caught",
+      "spyHit": {
+        "steal_tech": "Technology stolen from you",
+        "sabotage": "You were sabotaged",
+        "propaganda": "Foreign propaganda",
+        "destabilize": "Factions stirred from abroad",
+        "assassinate": "Assassination"
+      }
     },
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
@@ -2938,8 +2951,10 @@
       "failed": "{op} against {name} failed: no effect, nobody noticed. The agent is home.",
       "detected": "{op} against {name} failed and was exposed: agent lost, relations −{penalty}.",
       "detectedButDone": "{op} against {name} worked but was exposed: the effect stands, the agent is lost, relations −{penalty}.",
-      "caught": "You exposed an operation by {name} against you: {op}. Relations −{penalty}.",
-      "when": "{weeks, plural, =0 {This week} =1 {1 week ago} other {# weeks ago}}"
+      "caught": "You foiled an operation by {name} against you: {op}. No damage, relations −{penalty}.",
+      "when": "{weeks, plural, =0 {This week} =1 {1 week ago} other {# weeks ago}}",
+      "caughtButDone": "{op} by {name} against you: exposed too late, the damage is done. Relations −{penalty}.",
+      "hitUnknown": "You were hit by an operation: {op}. Sender unknown. Stronger counter-intelligence would have stopped or exposed it."
     },
     "list": {
       "title": "What you know about each nation",

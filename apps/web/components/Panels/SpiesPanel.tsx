@@ -6,7 +6,7 @@
 
 import { SPY_DETECTED_ATTITUDE_PENALTY } from '@aurion/engine';
 import type { IntelLevel, SpyOperation } from '@aurion/engine';
-import { Check, Eye, ShieldAlert, UserSearch, X } from 'lucide-react';
+import { AlertTriangle, Check, Eye, ShieldAlert, UserSearch, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -69,7 +69,9 @@ export function SpiesPanel({ onErrors }: { onErrors?: (errors: string[]) => void
     .filter(
       (op) =>
         op.status !== 'active' &&
-        (op.ownerCountryId === w.player.id || (op.targetCountryId === w.player.id && op.status === 'detected')),
+        (op.ownerCountryId === w.player.id ||
+          // Foreign operations show up once caught, or once they have hit.
+          (op.targetCountryId === w.player.id && (op.status === 'detected' || op.result?.success === true))),
     )
     .sort((a, b) => b.startedAtTick + b.durationTicks - (a.startedAtTick + a.durationTicks));
 
@@ -286,8 +288,11 @@ function Report({ w, op }: { w: World; op: SpyOperation }) {
     name: w.nameOf(foreign ? op.ownerCountryId : op.targetCountryId),
     penalty: SPY_DETECTED_ATTITUDE_PENALTY,
   };
-  const verdict = foreign
-    ? t('reports.caught', args)
+  const unseen = foreign && op.status !== 'detected';
+  const verdict = unseen
+    ? t('reports.hitUnknown', args)
+    : foreign
+    ? t(op.result?.success ? 'reports.caughtButDone' : 'reports.caught', args)
     : op.status === 'completed'
       ? t('reports.completed', args)
       : op.status === 'failed'
@@ -295,8 +300,8 @@ function Report({ w, op }: { w: World; op: SpyOperation }) {
         : worked
           ? t('reports.detectedButDone', args)
           : t('reports.detected', args);
-  const Icon = foreign ? ShieldAlert : op.status === 'completed' ? Check : op.status === 'failed' ? X : Eye;
-  const tone = foreign ? 'text-[#8ad8ff]' : op.status === 'completed' ? 'text-success' : op.status === 'failed' ? 'text-fg-faint' : 'text-[#ff8a7d]';
+  const Icon = unseen ? AlertTriangle : foreign ? ShieldAlert : op.status === 'completed' ? Check : op.status === 'failed' ? X : Eye;
+  const tone = unseen ? 'text-warning' : foreign ? 'text-[#8ad8ff]' : op.status === 'completed' ? 'text-success' : op.status === 'failed' ? 'text-fg-faint' : 'text-[#ff8a7d]';
   return (
     <li>
       <Row

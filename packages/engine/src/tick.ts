@@ -21,6 +21,7 @@ import type {
   Scenario,
   ScienceState,
   SpyOperation,
+  SpyPayload,
   TechDefinition,
   TechEffect,
   VictoryConditionDef,
@@ -29,6 +30,7 @@ import type {
 } from './types.js';
 import { clamp } from './actions/helpers.js';
 import {
+  isSpyTypeUnlocked,
   SPY_DETECTED_ATTITUDE_PENALTY,
   assassinationRole,
   sabotageGdpLoss,
@@ -119,6 +121,11 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
     difficulty,
     ctx.scenario,
   );
+
+  // 7.5. Hostile intelligence: now and then a rival with a grudge sends an
+  //      agent after the player. Outside the AI's own turn so the pressure
+  //      stays steady whatever else the world is busy with.
+  next = stepHostileIntel(next, techCatalog, difficulty);
 
   // 8. Events. Random events scaled by `eventChanceMultiplier`.
   next = stepEvents(next, rng, eventPool, eventChanceMul);
@@ -457,6 +464,87 @@ function stepIntel(state: GameState, rng: Rng): GameState {
   }
 
   return next === player ? state : { ...state, countries: { ...state.countries, [player.id]: next } };
+}
+
+/** Weeks of peace at the start of a game before rivals spy on the player. */
+export const HOSTILE_INTEL_GRACE_TICKS = 26;
+/** Weeks the world waits between two covert operations against the player. */
+export const HOSTILE_INTEL_COOLDOWN_TICKS = 30;
+/** Weekly chance, once the cooldown is over, that one is launched. */
+export const HOSTILE_INTEL_CHANCE_PER_TICK = 0.045;
+
+function stepHostileIntel(
+  state: GameState,
+  techCatalog: readonly TechDefinition[],
+  difficulty?: DifficultyTuning,
+): GameState {
+  const playerId = state.playerCountryId;
+  const player = state.countries[playerId];
+  if (!player || state.tick < HOSTILE_INTEL_GRACE_TICKS) return state;
+  const busy = state.spyOperations.some(
+    (o) =>
+      o.targetCountryId === playerId &&
+      state.tick - o.startedAtTick < HOSTILE_INTEL_COOLDOWN_TICKS,
+  );
+  if (busy) return state;
+
+  // Its own stream, so the rest of the tick rolls the same dice as before.
+  const rng = createRng(`${state.rngSeed}::hostileIntel::${state.tick}`);
+  const aggression = difficulty?.modifiers.aiAggression ?? 1;
+  if (rng.next() >= HOSTILE_INTEL_CHANCE_PER_TICK * aggression) return state;
+
+  // Whoever likes the player least and has an agent to spare. Allies abstain.
+  const senders = Object.values(state.countries)
+    .filter((c) => c.id !== playerId && c.aiPersonality && c.intelligence.spyCount >= 1)
+    .map((c) => ({ c, rel: lookupRelation(state, c.id, playerId) }))
+    .filter(({ rel }) => !rel?.treaties.includes('alliance'))
+    .map(({ c, rel }) => ({ c, weight: 1 + Math.max(0, -(rel?.attitude ?? 0)) / 25 + (rel?.atWar ? 4 : 0) }));
+  if (senders.length === 0) return state;
+  let roll = rng.next() * senders.reduce((sum, s) => sum + s.weight, 0);
+  let sender = senders[0]!.c;
+  for (const s of senders) {
+    roll -= s.weight;
+    if (roll <= 0) {
+      sender = s.c;
+      break;
+    }
+  }
+
+  const sectors = player.economy.sectors;
+  const biggest = (Object.keys(sectors) as Array<keyof typeof sectors>).reduce((a, b) =>
+    sectors[b] > sectors[a] ? b : a,
+  );
+  const stealable = player.science.completedTechs.find((t) => !sender.science.completedTechs.includes(t));
+  const options: Array<{ payload: SpyPayload; duration: number }> = [
+    { payload: { kind: 'propaganda', targetFaction: null }, duration: 10 },
+    { payload: { kind: 'sabotage', targetSector: biggest }, duration: 8 },
+    { payload: { kind: 'sabotage', targetSector: 'science' }, duration: 8 },
+    { payload: { kind: 'destabilize' }, duration: 14 },
+  ];
+  if (stealable) options.push({ payload: { kind: 'steal_tech', techId: stealable }, duration: 12 });
+  const menu = options.filter((m) => isSpyTypeUnlocked(sender, m.payload.kind, techCatalog));
+  if (menu.length === 0) return state;
+  const pick = rng.pick(menu);
+
+  const result = applyAction(
+    state,
+    {
+      type: 'deploySpy',
+      op: {
+        type: pick.payload.kind,
+        ownerCountryId: sender.id,
+        targetCountryId: playerId,
+        payload: pick.payload,
+        durationTicks: pick.duration,
+        successProbability: 0,
+        detectionRisk: 0,
+      },
+    },
+    sender.id,
+    techCatalog,
+    difficulty,
+  );
+  return result.errors.length === 0 ? result.state : state;
 }
 
 function stepSpies(
