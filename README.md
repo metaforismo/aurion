@@ -46,8 +46,8 @@ It runs entirely in the browser. No backend, no account, no tracking.
 | --- | --- |
 | Economy | Treasury, taxes with their real political price, five kinds of investment with a live preview |
 | Research | Four branches of technology; the space branch gates the megaprojects |
-| Military | Forces, deployments, wars, and a nuclear arsenal where the scenario has one |
-| Intelligence | What you know about each rival, and five kinds of covert operation with odds shown up front |
+| Military | Forces, deployments and wars that keep score: win battles or simply outmatch the enemy, then sign peace as a draw, for reparations or on a capitulation. A nuclear arsenal where the scenario has one |
+| Intelligence | What you know about each rival, and five kinds of covert operation with odds shown up front. Agents come home unless caught, the target you pick changes the effect, and rivals run operations against you too |
 | Diplomacy | Treaties, alliances, sanctions, war and peace; blocs and reputation |
 | Internal politics | Popularity, five factions, and twelve national policies with weekly trade-offs |
 | United Nations | Propose and vote on resolutions that bind everyone |
