@@ -25,7 +25,9 @@ import {
   Unlink,
   type LucideIcon,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+
+import { money } from '../../lib/format';
 import { useMemo, useState } from 'react';
 import type { GameState } from '@aurion/engine';
 
@@ -109,6 +111,7 @@ const TONE_ICON: Record<Tone, string> = {
 
 export function Briefing() {
   const t = useTranslations('briefing');
+  const locale = useLocale();
   const tCosmos = useTranslations('cosmos');
   const tGlobe = useTranslations('globe');
   const worldNews = useWorldNews((s) => s.items);
@@ -170,6 +173,20 @@ export function Briefing() {
       const c = state.countries[id];
       return c ? tScenario(c.nameKey) : id;
     };
+    // On what terms a war ended, from the engine's record of the treaty.
+    const peaceDetail = (a: string, b: string, tick: number): string | undefined => {
+      const record = (state.peaceLog ?? []).find(
+        (p) => p.a === a && p.b === b && Math.abs(p.endedAtTick - tick) <= 1,
+      );
+      if (!record) return undefined;
+      if (record.tier === 'white' || !record.winner) return t('feed.peace.white');
+      const loser = record.winner === a ? b : a;
+      return t(`feed.peace.${record.tier}`, {
+        winner: nameOf(record.winner),
+        loser: nameOf(loser),
+        amount: money(record.reparations, locale),
+      });
+    };
     state.events.forEach((ev, i) => {
       const def = scenario?.eventPool.find((e) => e.id === ev.definitionId);
       if (!def) return;
@@ -207,6 +224,7 @@ export function Briefing() {
         icon: style.icon,
         tone: style.tone,
         title: tGlobe(`news.${item.kind}`, { a: nameOf(item.a), b: nameOf(item.b) }),
+        detail: item.kind === 'peace' ? peaceDetail(item.a, item.b, item.tick) : undefined,
         panel: 'diplomacy',
       });
     }
@@ -250,7 +268,7 @@ export function Briefing() {
       });
     }
     return out.sort((a, b) => b.tick - a.tick).slice(0, FEED_LIMIT);
-  }, [state, scenario, worldNews, t, tCosmos, tGlobe, tScenario]);
+  }, [state, scenario, worldNews, locale, t, tCosmos, tGlobe, tScenario]);
 
   if (!state) return null;
 

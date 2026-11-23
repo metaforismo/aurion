@@ -195,6 +195,41 @@ export type Relation = {
   attitude: number;
   treaties: TreatyKind[];
   atWar: boolean;
+  /** After a peace, the tick until which neither side may declare war again. */
+  truceUntilTick?: number;
+};
+
+// ---------------------------------------------------------------------------
+// Wars and how they end.
+// ---------------------------------------------------------------------------
+
+export type WarState = {
+  /** The two belligerents, `a` being the lexicographically smaller id. */
+  a: CountryId;
+  b: CountryId;
+  startedAtTick: number;
+  /** -100..+100: positive when `a` is winning. */
+  score: number;
+  /** Troops each side has lost in battle. */
+  lossesA: number;
+  lossesB: number;
+  /** Combined forces at the outbreak; battle losses are scored against it. */
+  scale: number;
+};
+
+export type PeaceTier = 'white' | 'reparations' | 'capitulation';
+
+export type PeaceRecord = {
+  a: CountryId;
+  b: CountryId;
+  startedAtTick: number;
+  endedAtTick: number;
+  tier: PeaceTier;
+  /** Null for a draw. */
+  winner: CountryId | null;
+  reparations: number;
+  gdpTransfer: number;
+  proposedBy: CountryId;
 };
 
 // ---------------------------------------------------------------------------
@@ -516,6 +551,10 @@ export type GameState = {
   /** Stable string fed to the seeded PRNG. */
   rngSeed: string;
   /** Engine-managed loss-condition streaks. Optional so older saves load cleanly. */
+/** Wars in progress, keyed like relations. Absent on saves from before wars kept score. */
+  wars?: Record<string, WarState>;
+  /** The most recent peace treaties, oldest first. */
+  peaceLog?: PeaceRecord[];
   _loseStreaks?: LoseStreaks;
 
   // — Phase 3 (all optional; undefined means "system not in use") —

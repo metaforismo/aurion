@@ -15,6 +15,7 @@ import { Card, Chip } from '../../ui';
 import type { SfxId } from '../../Audio';
 
 import { ActionCard, AttitudeBar, AttitudeValue, Fact, StanceChip, TargetHeader } from './parts';
+import { peaceOutlook } from './peace';
 import {
   cash,
   formatAttitude,
@@ -100,9 +101,12 @@ export function Dossier({
       void run(kind);
       return;
     }
+    // Peace is signed on the terms the war score dictates: spell them out.
+    const outlook = kind === 'sueForPeace' ? peaceOutlook(w, target) : null;
     confirm({
       titleKey: `panelDiplomacy.confirm.${kind}.title`,
-      descriptionKey: `panelDiplomacy.confirm.${kind}.description`,
+      descriptionKey: outlook ? `panelDiplomacy.peace.${outlook.stance}` : `panelDiplomacy.confirm.${kind}.description`,
+      descriptionValues: outlook?.values,
       confirmKey: `panelDiplomacy.action.${kind}`,
       cancelKey: 'common.cancel',
       tone: kind === 'sueForPeace' ? 'primary' : 'danger',

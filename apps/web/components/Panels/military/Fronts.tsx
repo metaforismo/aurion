@@ -4,14 +4,17 @@
 // contact, whether the capital is at risk, and the two ways forward — send
 // troops or make peace.
 
+import { WAR_CAPITULATION_SCORE, WAR_REPARATIONS_SCORE } from '@aurion/engine';
 import type { Country, RegionId } from '@aurion/engine';
 import { AlertTriangle, HeartHandshake, MapPin } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { compactNumber, percent } from '../../../lib/format';
+import { cn } from '../../../lib/cn';
+import { compactNumber, percent, signed } from '../../../lib/format';
 import { useGameStore } from '../../../lib/store';
 import { Button, Card } from '../../ui';
 import { AttitudeValue, CountryDot } from '../diplomacy/parts';
+import { peaceOutlook } from '../diplomacy/peace';
 import { combatPower, knowsFigures, useCommit, type World } from '../diplomacy/world';
 
 import { approx, unitsIn } from './forces';
@@ -31,6 +34,7 @@ export function Fronts({
   onDeployTo: (regionId: RegionId) => void;
 }) {
   const t = useTranslations('panelMilitary.wars');
+  const tPeace = useTranslations('panelDiplomacy.peace');
   const confirm = useGameStore((s) => s.confirm);
   const commit = useCommit(onErrors);
 
@@ -39,16 +43,20 @@ export function Fronts({
   const invaders = enemies.reduce((sum, c) => sum + unitsIn(c, home), 0);
   const occupiedWeeks = w.state._loseStreaks?.capitalOccupiedWeeks ?? 0;
 
-  const peace = (enemy: Country) =>
+  const peace = (enemy: Country) => {
+    const outlook = peaceOutlook(w, enemy);
     confirm({
       titleKey: 'panelDiplomacy.confirm.sueForPeace.title',
-      descriptionKey: 'panelDiplomacy.confirm.sueForPeace.description',
+      descriptionKey: `panelDiplomacy.peace.${outlook.stance}`,
+      descriptionValues: outlook.values,
       confirmKey: 'panelDiplomacy.action.sueForPeace',
       cancelKey: 'common.cancel',
+      tone: outlook.stance.startsWith('lose') ? 'danger' : 'primary',
       onConfirm: async () => {
         await commit({ type: 'diplomacy', target: enemy.id, kind: 'sueForPeace' }, 'sfx.treaty');
       },
     });
+  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -73,6 +81,10 @@ export function Fronts({
         const theirs = combatPower(enemy);
         const exact = knowsFigures(w.intelOn(enemy.id));
         const share = mine + theirs > 0 ? mine / (mine + theirs) : 0.5;
+        const outlook = peaceOutlook(w, enemy);
+        // The score runs -100..+100; the bar shows it from the centre out.
+        const lead = Math.min(100, Math.abs(outlook.score));
+        const ahead = outlook.score >= 0;
         // Regions where both sides have troops fight every week.
         const contested = [...new Set(w.player.military.deployedUnits.map((d) => d.regionId))]
           .map((regionId) => ({ regionId, own: unitsIn(w.player, regionId), foe: unitsIn(enemy, regionId) }))
@@ -108,6 +120,40 @@ export function Fronts({
                   {t('them', { n: exact ? compactNumber(theirs, w.locale) : approx(theirs, w.locale) })}
                 </span>
               </div>
+            </div>
+
+            <div data-testid={`military-war-score-${enemy.id}`} className="border-t border-white/10 pt-2">
+              <div className="flex items-baseline justify-between gap-2 text-[11px]">
+                <span className="text-fg-muted">{t('score')}</span>
+                <span className={cn('font-mono font-semibold', lead < 1 ? 'text-fg' : ahead ? 'text-success' : 'text-[#ff8a7d]')}>
+                  {signed(Math.round(outlook.score), w.locale, 0)}
+                </span>
+              </div>
+              <div
+                className="relative mt-1 h-2 rounded-full bg-white/10"
+                role="img"
+                aria-label={t('scoreLabel', { score: signed(Math.round(outlook.score), w.locale, 0) })}
+              >
+                <span
+                  className={cn('absolute inset-y-0 rounded-full transition-all duration-500', ahead ? 'bg-success' : 'bg-[#ff5d4d]')}
+                  style={ahead ? { left: '50%', width: `${lead / 2}%` } : { right: '50%', width: `${lead / 2}%` }}
+                />
+                {[WAR_REPARATIONS_SCORE, WAR_CAPITULATION_SCORE].flatMap((m) => [50 + m / 2, 50 - m / 2]).map((x) => (
+                  <span key={x} aria-hidden className="absolute inset-y-0 w-px bg-white/35" style={{ left: `${x}%` }} />
+                ))}
+                <span aria-hidden className="absolute -inset-y-0.5 left-1/2 w-0.5 -translate-x-1/2 rounded bg-white/70" />
+              </div>
+              <p className="mt-1.5 text-[11px] leading-snug text-fg-muted">
+                <span className="font-semibold text-fg">{t('ifPeaceNow')}</span>{' '}
+                {tPeace(`short.${outlook.stance}`, outlook.values)}
+              </p>
+              <p className="mt-1 text-[11px] leading-snug text-fg-faint">
+                {t('toll', {
+                  weeks: outlook.weeks,
+                  own: compactNumber(outlook.lossesOwn, w.locale),
+                  foe: compactNumber(outlook.lossesTheirs, w.locale),
+                })}
+              </p>
             </div>
 
             {contested.length > 0 ? (

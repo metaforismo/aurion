@@ -77,7 +77,7 @@ export function ConfirmModal() {
         </>
       }
     >
-      <p className="leading-relaxed text-fg">{t(descriptionKey)}</p>
+      <p className="leading-relaxed text-fg">{t(descriptionKey, request.descriptionValues)}</p>
     </Modal>
   );
 }
