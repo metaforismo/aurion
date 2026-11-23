@@ -102,6 +102,7 @@ export type PanelTabsProps = {
 
 export function PanelTabs({ className, onErrors }: PanelTabsProps) {
   const t = useTranslations('panels');
+  const tShort = useTranslations('panelsShort');
   const tRail = useTranslations('panelRail');
   const tIntro = useTranslations('panelIntro');
   const tGlobe = useTranslations('globe');
@@ -234,7 +235,8 @@ export function PanelTabs({ className, onErrors }: PanelTabsProps) {
                   />
                 ) : null}
               </span>
-              <span className="max-w-full truncate px-0.5">{t(id)}</span>
+              <span aria-hidden className="max-w-full truncate px-0.5">{tShort(id)}</span>
+              <span className="sr-only">{t(id)}</span>
               {/* The dot is decorative; the reason is read after the name. */}
               {badge ? <span className="sr-only"> — {badge.ariaLabel}</span> : null}
               {active ? (

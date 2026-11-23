@@ -41,6 +41,29 @@ const SPY_TYPE_BASE_DETECTION: Record<SpyOperation['type'], number> = {
   assassinate: 0.55,
 };
 
+/** Attitude lost between two countries when one catches the other's agents. */
+export const SPY_DETECTED_ATTITUDE_PENALTY = 12;
+
+/** Roles an assassination can aim at; anything else counts as the head of state. */
+export const ASSASSINATION_ROLES = ['head_of_state', 'defence_minister', 'intelligence_chief'] as const;
+export type AssassinationRole = (typeof ASSASSINATION_ROLES)[number];
+
+export function assassinationRole(roleKey: string): AssassinationRole {
+  const bare = roleKey.replace(/^role\./, '');
+  return (ASSASSINATION_ROLES as readonly string[]).includes(bare)
+    ? (bare as AssassinationRole)
+    : 'head_of_state';
+}
+
+/**
+ * Share of GDP a successful sabotage of an economic sector destroys: the
+ * bigger the sector's slice of the economy, the deeper the cut.
+ */
+export function sabotageGdpLoss(sectorShare: number): number {
+  const share = Number.isFinite(sectorShare) ? Math.min(1, Math.max(0, sectorShare)) : 0;
+  return 0.01 + 0.05 * share;
+}
+
 /** Compute success/detection for an op based on owner intel & target counter-intel. */
 export function computeSpyProbabilities(
   owner: Country,

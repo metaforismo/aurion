@@ -4,6 +4,7 @@
 // set its one parameter, read odds, length, price and consequences — then
 // commit an agent.
 
+import { SPY_DETECTED_ATTITUDE_PENALTY, sabotageGdpLoss } from '@aurion/engine';
 import type { Country, SpyOperationType } from '@aurion/engine';
 import { Crosshair, Cpu, Flame, Lock, Megaphone, Users, UserSearch, type LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -90,10 +91,25 @@ export function Composer({
           ? t('composer.pickTech')
           : null;
 
+  // Exact figures need to know the target's economy; with thin intel the
+  // sabotage line gives the range instead.
+  const informed = (w.player.intelligence.knownIntel[target.id] ?? 'none') !== 'none';
   const effect =
     type === 'sabotage'
-      ? t(`outcome.sabotage.${draft.sector === 'military' || draft.sector === 'science' ? draft.sector : 'economy'}`)
-      : t(`outcome.${type}`);
+      ? draft.sector === 'military' || draft.sector === 'science'
+        ? t(`outcome.sabotage.${draft.sector}`)
+        : informed
+          ? t('outcome.sabotage.economy', {
+              pct: percent(sabotageGdpLoss(target.economy.sectors[draft.sector]), w.locale, 1),
+            })
+          : t('outcome.sabotage.economyUnknown')
+      : type === 'propaganda'
+        ? draft.faction === 'any'
+          ? t('outcome.propaganda.any')
+          : t('outcome.propaganda.faction', { faction: t(`faction.${draft.faction}`) })
+        : type === 'assassinate'
+          ? t(`outcome.assassinate.${draft.role}`)
+          : t(`outcome.${type}`);
 
   const launch = async () => {
     if (blocked || !payload) return;
@@ -281,7 +297,7 @@ export function Composer({
               <span className="font-semibold text-success">{t('composer.ifSuccess')}</span> {effect}
             </li>
             <li>
-              <span className="font-semibold text-[#ff8a7d]">{t('composer.ifDetected')}</span> {t('composer.detectedEffect')}
+              <span className="font-semibold text-[#ff8a7d]">{t('composer.ifDetected')}</span> {t('composer.detectedEffect', { penalty: SPY_DETECTED_ATTITUDE_PENALTY })}
             </li>
             <li className="text-fg-faint">{t('composer.agentLost')}</li>
           </ul>
