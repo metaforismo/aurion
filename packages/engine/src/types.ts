@@ -520,7 +520,9 @@ export type Action =
   | { type: 'cancelProject'; projectId: CosmosProjectId }
   | { type: 'enactPolicy'; policyId: PolicyId }
   | { type: 'repealPolicy'; policyId: PolicyId }
-  | { type: 'setColonyFocus'; body: ColonyBody; focus: ColonyFocus };
+  | { type: 'setColonyFocus'; body: ColonyBody; focus: ColonyFocus }
+  | { type: 'claimSector'; body: ColonyBody; sectorId: string }
+  | { type: 'buildStructure'; body: ColonyBody; sectorId: string; structure: StructureKind };
 
 // ---------------------------------------------------------------------------
 // Top-level game state.
@@ -1001,6 +1003,26 @@ export type CosmosState = {
   log: CosmosLogEntry[];
   /** Settlements on other worlds; absent until someone lives there. */
   colonies?: Partial<Record<ColonyBody, ColonyState>>;
+  /** Who holds which sector of each world, and what stands on it. */
+  sectors?: Partial<Record<ColonyBody, Record<string, SectorHolding>>>;
+  /** The player's claims and structures under way. */
+  works?: TerritoryWork[];
+};
+
+/** What can be raised on a sector the player holds. */
+export type StructureKind = 'habitat' | 'lab' | 'mine' | 'foundry';
+
+export type SectorHolding = {
+  owner: CountryId;
+  structures: StructureKind[];
+};
+
+export type TerritoryWork = {
+  kind: 'claim' | 'build';
+  body: ColonyBody;
+  sectorId: string;
+  structure?: StructureKind;
+  remainingTicks: number;
 };
 
 export type ColonyBody = 'moon' | 'mars';

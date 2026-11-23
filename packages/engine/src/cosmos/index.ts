@@ -32,6 +32,7 @@ import type {
 } from '../types.js';
 import { policyModifiers } from '../policies/index.js';
 import { colonyModifiers, tickColonies } from './colonies.js';
+import { tickTerritory } from './territory.js';
 import { COSMOS_PROJECTS, KARDASHEV_START, getCosmosProject } from './projects.js';
 
 export { COSMOS_PROJECTS, KARDASHEV_START, getCosmosProject };
@@ -328,6 +329,7 @@ export function tickCosmos(state: GameState, ctx: CosmosTickContext = {}): GameS
   let next: GameState = state.cosmos ? state : { ...state, cosmos: initCosmos(state) };
   next = advancePlayerProjects(next);
   next = tickColonies(next);
+  next = tickTerritory(next);
   next = advanceRivals(next, ctx.rivalSpeed ?? 1);
   return next;
 }

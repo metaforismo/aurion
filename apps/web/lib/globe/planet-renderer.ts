@@ -220,13 +220,12 @@ export class PlanetRenderer {
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    if (this.body === 'earth') {
-      this.overlayCanvas = document.createElement('canvas');
-      this.overlayCanvas.width = OVERLAY_W;
-      this.overlayCanvas.height = OVERLAY_H;
-      // WebGPU refuses to upload a canvas that never acquired a context.
-      this.overlayCanvas.getContext('2d');
-    }
+    // Every body carries an overlay: borders on Earth, sectors elsewhere.
+    this.overlayCanvas = document.createElement('canvas');
+    this.overlayCanvas.width = OVERLAY_W;
+    this.overlayCanvas.height = OVERLAY_H;
+    // WebGPU refuses to upload a canvas that never acquired a context.
+    this.overlayCanvas.getContext('2d');
 
     this.buildScene();
     if (opts.interactive !== false) this.attachInput();
@@ -386,10 +385,13 @@ export class PlanetRenderer {
       const earthshine = this.body === 'moon' ? vec3(0.012, 0.016, 0.026) : vec3(0.03, 0.014, 0.01);
       const rimColor = this.body === 'mars' ? vec3(0.95, 0.5, 0.28) : vec3(0.4, 0.42, 0.5);
       const rim = rimColor.mul(fresnel).mul(this.body === 'mars' ? 0.5 : 0.08).mul(diffuse.add(0.1));
-      material.colorNode = vec4(
-        albedo.mul(diffuse.mul(1.25)).add(albedo.mul(earthshine).mul(4)).add(rim),
-        1,
-      );
+      this.overlayTexture = new THREE.CanvasTexture(this.overlayCanvas!);
+      this.overlayTexture.colorSpace = THREE.SRGBColorSpace;
+      this.overlayTexture.anisotropy = 8;
+      const lit = albedo.mul(diffuse.mul(1.25)).add(albedo.mul(earthshine).mul(4)).add(rim);
+      // Sector lines fade a little on the night side, like the ground does.
+      const overlay = texture(this.overlayTexture, uv());
+      material.colorNode = vec4(mix(lit, overlay.rgb, overlay.a.mul(diffuse.mul(0.6).add(0.4))), 1);
     }
 
     this.scene.add(new THREE.Mesh(geometry, material));

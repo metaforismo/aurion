@@ -1445,7 +1445,47 @@
         "speed": "{v}% cantieri"
       },
       "hint": "Il mandato decide cosa la colonia manda a casa; più è popolosa, più rende. Dopo un cambio resta fisso per 26 settimane.",
-      "locked": "Mandato appena cambiato: potrai sceglierne un altro tra {weeks, plural, =1 {1 settimana} other {# settimane}}."
+      "locked": "Mandato appena cambiato: potrai sceglierne un altro tra {weeks, plural, =1 {1 settimana} other {# settimane}}.",
+      "tabs": "Scheda della colonia",
+      "tab": {
+        "mandate": "Mandato",
+        "territory": "Territorio"
+      }
+    },
+    "territory": {
+      "summary": "{mine, plural, =1 {1 settore tuo} other {# settori tuoi}} · {rivals} dei rivali · {free} liberi",
+      "pick": "Tocca la superficie per scegliere un settore. I tuoi sono dorati, quelli tratteggiati in azzurro si possono rivendicare.",
+      "owner": {
+        "you": "Tuo",
+        "rival": "Di {name}",
+        "free": "Libero"
+      },
+      "structures": "Strutture del settore",
+      "emptySlot": "Spazio libero",
+      "structure": {
+        "habitat": "Habitat",
+        "lab": "Laboratorio",
+        "mine": "Miniera",
+        "foundry": "Fonderia"
+      },
+      "gain": {
+        "habitat": "+{n} posti",
+        "lab": "{v} ricerca/sett.",
+        "mine": "+{v}/sett.",
+        "foundry": "{v}% cantieri"
+      },
+      "price": "{cost} · {weeks} sett.",
+      "full": "Il settore è al completo: per costruire ancora serve altro terreno.",
+      "taken": "Un rivale è arrivato prima: questo terreno non si può più rivendicare.",
+      "claimHint": "Un settore in più dà posti alla colonia e due spazi per costruire.",
+      "claim": "Rivendica · {cost} · {weeks} sett.",
+      "notAdjacent": "Non confina con i tuoi settori: ci si espande da un terreno vicino all'altro.",
+      "busy": "C'è già un lavoro in corso su questo mondo.",
+      "cannotAfford": "Non hai abbastanza in cassa.",
+      "work": {
+        "claim": "Rivendicazione di {sector}: {weeks, plural, =1 {1 settimana} other {# settimane}}",
+        "build": "{structure} in costruzione a {sector}: {weeks, plural, =1 {1 settimana} other {# settimane}}"
+      }
     }
   },
   "globe": {
@@ -2062,6 +2102,10 @@
         "colonies": {
           "title": "Le basi diventano colonie.",
           "body": "Su Luna e Marte la popolazione cresce da sola verso i posti che i tuoi progetti offrono. A ogni colonia dai un mandato — scienza, industria o commercio — che decide cosa manda a casa ogni settimana."
+        },
+        "land": {
+          "title": "Il terreno si conquista.",
+          "body": "Luna e Marte sono divisi in venti settori. Si parte da quello della base e ci si espande in quelli vicini; su ogni settore puoi costruire due strutture — habitat, laboratorio, miniera, fonderia. Anche i rivali rivendicano terreno, e non ce n'è per tutti."
         }
       },
       "tip": "I bonus sono permanenti e si sommano: ogni progetto che alza il PIL rende più facile pagare il successivo."
