@@ -12,6 +12,7 @@ import type {
   GameState,
 } from '../types.js';
 import { COSMOS_PROJECTS } from './projects.js';
+import { STRUCTURE_YIELD, housingMultiplier, structureCount } from './territory.js';
 
 export const COLONY_BODIES: readonly ColonyBody[] = ['moon', 'mars'];
 export const COLONY_FOCUSES: readonly ColonyFocus[] = ['balanced', 'science', 'industry', 'trade'];
@@ -48,6 +49,25 @@ export function colonyCapacity(completed: readonly string[], body: ColonyBody): 
   return total;
 }
 
+/** People a colony can house: the projects' housing, stretched by land and habitats. */
+export function colonyHousing(state: GameState, body: ColonyBody): number {
+  const base = colonyCapacity(state.cosmos?.completed ?? [], body);
+  return base > 0 ? Math.round(base * housingMultiplier(state, body)) : 0;
+}
+
+/** What the labs, mines and foundries of a colony add, whatever its mandate. */
+export function structureOutput(state: GameState, body: ColonyBody): ColonyOutput {
+  const cosmos = state.cosmos;
+  const colony = cosmos?.colonies?.[body];
+  if (!cosmos || !colony) return { research: 0, income: 0, projectSpeed: 0 };
+  const size = colonySize(colony.population);
+  return {
+    research: size * STRUCTURE_YIELD.lab * structureCount(state, body, 'lab'),
+    income: Math.round(size * STRUCTURE_YIELD.mine * structureCount(state, body, 'mine') * cosmos.unit),
+    projectSpeed: size * STRUCTURE_YIELD.foundry * structureCount(state, body, 'foundry'),
+  };
+}
+
 /** A colony's weight: 2 at a hundred people, 6 at a million. */
 export function colonySize(population: number): number {
   return population > 0 ? Math.log10(population + 1) : 0;
@@ -73,9 +93,10 @@ export function colonyModifiers(state: GameState): ColonyOutput {
     const colony = cosmos.colonies[body];
     if (!colony) continue;
     const o = colonyOutput(colony.population, colony.focus, cosmos.unit);
-    out.research += o.research;
-    out.income += o.income;
-    out.projectSpeed += o.projectSpeed;
+    const built = structureOutput(state, body);
+    out.research += o.research + built.research;
+    out.income += o.income + built.income;
+    out.projectSpeed += o.projectSpeed + built.projectSpeed;
   }
   return out;
 }
@@ -87,7 +108,10 @@ export type ColonyStatus = {
   focus: ColonyFocus;
   /** Weeks until the mandate can be changed again (0 = now). */
   focusLockedFor: number;
+  /** What the mandate yields. */
   output: ColonyOutput;
+  /** What the structures add on top. */
+  structures: ColonyOutput;
 };
 
 /** The colony on a body, or null while nobody lives there. */
@@ -98,10 +122,11 @@ export function getColonyStatus(state: GameState, body: ColonyBody): ColonyStatu
   return {
     body,
     population: colony.population,
-    capacity: colonyCapacity(cosmos.completed, body),
+    capacity: colonyHousing(state, body),
     focus: colony.focus,
     focusLockedFor: Math.max(0, colony.focusChangedAtTick + COLONY_FOCUS_COOLDOWN_TICKS - state.tick),
     output: colonyOutput(colony.population, colony.focus, cosmos.unit),
+    structures: structureOutput(state, body),
   };
 }
 
@@ -115,7 +140,7 @@ export function tickColonies(state: GameState): GameState {
   let colonies = cosmos.colonies;
   let changed = false;
   for (const body of COLONY_BODIES) {
-    const capacity = colonyCapacity(cosmos.completed, body);
+    const capacity = colonyHousing(state, body);
     if (capacity <= 0) continue;
     const current = colonies?.[body];
     let next: ColonyState;

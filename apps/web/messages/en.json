@@ -1445,7 +1445,47 @@
         "speed": "{v}% build speed"
       },
       "hint": "The mandate decides what the colony sends home; the more people, the more it yields. Once changed it holds for 26 weeks.",
-      "locked": "The mandate has just changed: you can pick another in {weeks, plural, =1 {1 week} other {# weeks}}."
+      "locked": "The mandate has just changed: you can pick another in {weeks, plural, =1 {1 week} other {# weeks}}.",
+      "tabs": "Colony tab",
+      "tab": {
+        "mandate": "Mandate",
+        "territory": "Territory"
+      }
+    },
+    "territory": {
+      "summary": "{mine, plural, =1 {1 sector yours} other {# sectors yours}} · {rivals} held by rivals · {free} free",
+      "pick": "Tap the surface to pick a sector. Yours are gold; the ones dashed in blue can be claimed.",
+      "owner": {
+        "you": "Yours",
+        "rival": "Held by {name}",
+        "free": "Free"
+      },
+      "structures": "Structures in the sector",
+      "emptySlot": "Free plot",
+      "structure": {
+        "habitat": "Habitat",
+        "lab": "Laboratory",
+        "mine": "Mine",
+        "foundry": "Foundry"
+      },
+      "gain": {
+        "habitat": "+{n} room",
+        "lab": "{v} research/wk",
+        "mine": "+{v}/wk",
+        "foundry": "{v}% build speed"
+      },
+      "price": "{cost} · {weeks} wk",
+      "full": "The sector is full: building more takes more land.",
+      "taken": "A rival got here first: this land can no longer be claimed.",
+      "claimHint": "One more sector gives the colony room and two plots to build on.",
+      "claim": "Claim · {cost} · {weeks} wk",
+      "notAdjacent": "It does not border your sectors: you expand from one piece of land to the next.",
+      "busy": "A work is already under way on this world.",
+      "cannotAfford": "You cannot afford it.",
+      "work": {
+        "claim": "Claiming {sector}: {weeks, plural, =1 {1 week} other {# weeks}}",
+        "build": "{structure} going up in {sector}: {weeks, plural, =1 {1 week} other {# weeks}}"
+      }
     }
   },
   "globe": {
@@ -2062,6 +2102,10 @@
         "colonies": {
           "title": "Bases become colonies.",
           "body": "On the Moon and Mars the population grows by itself toward the room your projects provide. You give each colony a mandate — science, industry or trade — that decides what it sends home every week."
+        },
+        "land": {
+          "title": "Land has to be taken.",
+          "body": "The Moon and Mars are divided into twenty sectors. You start from the one your base stands on and expand into its neighbours; each sector takes two structures — habitat, laboratory, mine, foundry. Rivals claim land too, and there is not enough for everyone."
         }
       },
       "tip": "Bonuses are permanent and they stack: every project that lifts GDP makes the next one easier to afford."

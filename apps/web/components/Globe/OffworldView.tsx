@@ -6,14 +6,17 @@
 
 import { Check, Hammer, MapPin, Orbit } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { COSMOS_PROJECTS, getProjectStatus } from '@aurion/engine';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { COSMOS_PROJECTS, SECTOR_SLOTS, getProjectStatus, getSectorStatus, sectorAt, sectorCentre } from '@aurion/engine';
 
 import { PROJECT_SITES, type SurfaceBody } from '../../lib/globe/sites';
+import type { ScenarioId } from '../../lib/scenarios';
 import { useGameStore } from '../../lib/store';
 
 import ColonyCard from './ColonyCard';
 import { NewsPill, type MarkerTone } from './markers';
+import { STRUCTURE_ICON } from './TerritorySection';
+import { useScenarioMessages } from '../Panels/shared/useScenarioMessages';
 import PlanetView, { type PlanetMarker, type PlanetViewHandle } from './PlanetView';
 
 const START: Record<SurfaceBody, { lon: number; lat: number }> = {
@@ -24,11 +27,85 @@ const START: Record<SurfaceBody, { lon: number; lat: number }> = {
 export default function OffworldView({ body }: { body: SurfaceBody }) {
   const t = useTranslations('globe');
   const tCosmos = useTranslations('cosmos');
+  const tTerritory = useTranslations('cosmos.territory');
   const state = useGameStore((s) => s.state);
   const scenario = useGameStore((s) => s.scenario);
   const setSelectedPanel = useGameStore((s) => s.setSelectedPanel);
   const viewRef = useRef<PlanetViewHandle | null>(null);
   const [ready, setReady] = useState(false);
+
+  const [selectedSector, setSelectedSector] = useState<string | null>(null);
+  const { t: tScenario } = useScenarioMessages((scenario?.id as ScenarioId | undefined) ?? null);
+  const nameOf = useCallback(
+    (id: string) => {
+      const c = state?.countries[id];
+      return c ? tScenario(c.nameKey) : id;
+    },
+    [state?.countries, tScenario],
+  );
+
+  // Land: who holds what, what stands on it, what is being staked out.
+  const sectors = useMemo(() => (state ? getSectorStatus(state, body) : []), [state, body]);
+  const hasColony = Boolean(state?.cosmos?.colonies?.[body]);
+  const playerId = state?.playerCountryId;
+  const colorOf = useCallback((id: string) => state?.countries[id]?.color ?? '#9aa7b5', [state?.countries]);
+  const sectorSignature = useMemo(
+    () =>
+      JSON.stringify([
+        hasColony,
+        selectedSector,
+        sectors.map((s) => [s.owner, s.structures.length, s.work?.kind ?? null, s.claimable]),
+      ]),
+    [hasColony, selectedSector, sectors],
+  );
+
+  useEffect(() => {
+    if (!ready) return;
+    viewRef.current?.drawOverlay((ctx, w, h) => {
+      ctx.clearRect(0, 0, w, h);
+      if (!hasColony) return;
+      const x = (lon: number) => ((lon + 180) / 360) * w;
+      const y = (lat: number) => ((90 - lat) / 180) * h;
+      const cell = (s: (typeof sectors)[number]) =>
+        [x(s.def.lon0), y(s.def.lat1), x(s.def.lon1) - x(s.def.lon0), y(s.def.lat0) - y(s.def.lat1)] as const;
+      // The grid, faintly: the surface stays the hero.
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      for (const s of sectors) ctx.strokeRect(...cell(s));
+      for (const s of sectors) {
+        const [cx, cy, cw, ch] = cell(s);
+        if (s.owner) {
+          const mine = s.owner === playerId;
+          const color = mine ? '#f5b450' : colorOf(s.owner);
+          ctx.globalAlpha = mine ? 0.16 : 0.14;
+          ctx.fillStyle = color;
+          ctx.fillRect(cx, cy, cw, ch);
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = mine ? 5 : 3;
+          ctx.strokeRect(cx + 3, cy + 3, cw - 6, ch - 6);
+        } else if (s.work || s.claimable) {
+          ctx.setLineDash(s.work ? [18, 10] : [8, 14]);
+          ctx.strokeStyle = s.work ? 'rgba(245,180,80,0.95)' : 'rgba(140,215,255,0.7)';
+          ctx.lineWidth = s.work ? 5 : 3;
+          ctx.strokeRect(cx + 4, cy + 4, cw - 8, ch - 8);
+          ctx.setLineDash([]);
+        }
+      }
+      const picked = sectors.find((s) => s.def.id === selectedSector);
+      if (picked) {
+        const [cx, cy, cw, ch] = cell(picked);
+        ctx.shadowColor = 'rgba(255,255,255,0.9)';
+        ctx.shadowBlur = 16;
+        ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(cx + 2, cy + 2, cw - 4, ch - 4);
+        ctx.shadowBlur = 0;
+      }
+    });
+    // The signature captures every input of the draw closure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, sectorSignature]);
 
   const projects = useMemo(() => COSMOS_PROJECTS.filter((p) => p.body === body), [body]);
   const techCatalog = useMemo(() => scenario?.techTree ?? [], [scenario]);
@@ -90,8 +167,34 @@ export default function OffworldView({ body }: { body: SurfaceBody }) {
         ),
       });
     }
+    // Structures stand where they were built, two to a sector.
+    for (const sector of sectors) {
+      if (sector.owner !== playerId) continue;
+      const centre = sectorCentre(sector.def);
+      sector.structures.forEach((kind, i) => {
+        const Icon = STRUCTURE_ICON[kind];
+        const spread = (i - (SECTOR_SLOTS - 1) / 2) * 14;
+        out.push({
+          id: `structure:${sector.def.id}:${i}`,
+          lon: centre.lon + spread,
+          lat: centre.lat - 9,
+          kind: 'dot',
+          priority: 300,
+          width: 0,
+          node: (
+            <span
+              title={`${tTerritory(`structure.${kind}`)} · ${sector.def.name}`}
+              className="-ml-3 grid h-6 w-6 place-items-center rounded-md border border-[#f5b450]/60 bg-black/70 text-[#f5b450] shadow-[0_0_10px_rgba(245,180,80,0.45)]"
+            >
+              <Icon aria-hidden className="h-3.5 w-3.5" />
+              <span className="sr-only">{tTerritory(`structure.${kind}`)}</span>
+            </span>
+          ),
+        });
+      });
+    }
     return out;
-  }, [sites, t, tCosmos, setSelectedPanel]);
+  }, [sites, sectors, playerId, t, tCosmos, tTerritory, setSelectedPanel]);
 
   if (!state) return null;
   const bodyName = tCosmos(`bodies.${body}`);
@@ -108,9 +211,14 @@ export default function OffworldView({ body }: { body: SurfaceBody }) {
         initialLat={START[body].lat}
         initialDistance={3}
         sunSpeed={0.15}
+        onPick={(lon, lat) => {
+          if (!hasColony) return;
+          const id = sectorAt(body, lon, lat).id;
+          setSelectedSector((current) => (current === id ? null : id));
+        }}
         onReady={() => setReady(true)}
       />
-      <ColonyCard body={body} />
+      <ColonyCard body={body} selectedSector={selectedSector} nameOf={nameOf} />
       {!hasPresence && nextStep ? (
         <div
           className="glass-panel absolute bottom-28 z-10 w-[min(26rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl p-4 text-center lg:bottom-20"

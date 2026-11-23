@@ -123,6 +123,8 @@ export {
   COLONY_FOCUSES,
   COLONY_FOCUS_COOLDOWN_TICKS,
   colonyCapacity,
+  colonyHousing,
+  structureOutput,
   colonyModifiers,
   colonyOutput,
   colonySize,
@@ -137,3 +139,25 @@ export {
   investOutcome,
 } from './actions/invest.js';
 export type { InvestOutcome } from './actions/invest.js';
+
+export { PROJECT_SITES } from './cosmos/sites.js';
+export {
+  HABITAT_HOUSING_SHARE,
+  SECTORS,
+  SECTOR_HOUSING_SHARE,
+  SECTOR_SLOTS,
+  STRUCTURE_YIELD,
+  STRUCTURE_KINDS,
+  buildCost,
+  buildDuration,
+  claimCost,
+  claimDuration,
+  getSector,
+  getSectorStatus,
+  heldSectors,
+  sectorAt,
+  sectorCentre,
+  structureCount,
+  territoryBusy,
+} from './cosmos/territory.js';
+export type { SectorDef, SectorStatus } from './cosmos/territory.js';

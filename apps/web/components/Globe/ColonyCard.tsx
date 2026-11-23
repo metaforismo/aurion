@@ -17,7 +17,9 @@ import { Fragment, useState } from 'react';
 import { cn } from '../../lib/cn';
 import { compactNumber, money } from '../../lib/format';
 import { useGameStore } from '../../lib/store';
-import { Meter } from '../ui';
+import { Meter, Segmented } from '../ui';
+
+import TerritorySection from './TerritorySection';
 
 const ICON: Record<ColonyFocus, LucideIcon> = {
   balanced: Scale,
@@ -26,12 +28,28 @@ const ICON: Record<ColonyFocus, LucideIcon> = {
   trade: ShoppingBag,
 };
 
-export default function ColonyCard({ body }: { body: ColonyBody }) {
+export default function ColonyCard({
+  body,
+  selectedSector,
+  nameOf,
+}: {
+  body: ColonyBody;
+  /** The sector picked on the surface; picking one opens the territory tab. */
+  selectedSector: string | null;
+  nameOf: (countryId: string) => string;
+}) {
   const t = useTranslations('cosmos.colony');
   const locale = useLocale();
   const state = useGameStore((s) => s.state);
   const applyAction = useGameStore((s) => s.applyAction);
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<'mandate' | 'territory'>('mandate');
+  // Picking a sector on the surface brings its tab forward (derived state).
+  const [seen, setSeen] = useState(selectedSector);
+  if (seen !== selectedSector) {
+    setSeen(selectedSector);
+    if (selectedSector) setTab('territory');
+  }
 
   const colony = state ? getColonyStatus(state, body) : null;
   if (!state || !colony) return null;
@@ -85,6 +103,30 @@ export default function ColonyCard({ body }: { body: ColonyBody }) {
         {colony.population < colony.capacity ? t('growing') : t('full')}
       </p>
 
+      <Segmented
+        size="sm"
+        label={t('tabs')}
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'mandate' as const, label: t('tab.mandate') },
+          { value: 'territory' as const, label: t('tab.territory') },
+        ]}
+        className="mt-2.5 flex"
+      />
+
+      {tab === 'territory' ? (
+        <div className="mt-2.5">
+          <TerritorySection
+            state={state}
+            body={body}
+            population={colony.population}
+            selected={selectedSector}
+            nameOf={nameOf}
+          />
+        </div>
+      ) : (
+        <>
       <div role="radiogroup" aria-label={t('mandate')} className="mt-2.5 grid grid-cols-2 gap-1.5">
         {COLONY_FOCUSES.map((focus) => {
           const Icon = ICON[focus];
@@ -128,6 +170,8 @@ export default function ColonyCard({ body }: { body: ColonyBody }) {
       <p className="mt-2 text-[11px] leading-snug text-fg-faint">
         {locked ? t('locked', { weeks: colony.focusLockedFor }) : t('hint')}
       </p>
+        </>
+      )}
     </section>
   );
 }
