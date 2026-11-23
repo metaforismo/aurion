@@ -35,7 +35,7 @@ ENTRIES = [
     ("guide.cosmos.rule.land.title", "Il terreno si conquista.", "Land has to be taken."),
     ("guide.cosmos.rule.land.body",
      "Luna e Marte sono divisi in venti settori. Si parte da quello della base e ci si espande in quelli vicini; su ogni settore puoi costruire due strutture — habitat, laboratorio, miniera, fonderia. Anche i rivali rivendicano terreno, e non ce n'è per tutti. Con «Scendi sulla base» la vedi dal vivo: edifici, strade, persone.",
-     "The Moon and Mars are divided into twenty sectors. You start from the one your base stands on and expand into its neighbours; each sector takes two structures — habitat, laboratory, mine, foundry. Rivals claim land too, and there is not enough for everyone. "Go down to the base" shows it live: buildings, roads, people."),
+     "The Moon and Mars are divided into twenty sectors. You start from the one your base stands on and expand into its neighbours; each sector takes two structures — habitat, laboratory, mine, foundry. Rivals claim land too, and there is not enough for everyone. “Go down to the base” shows it live: buildings, roads, people."),
     ("guide.cosmos.rule.colonies.body",
      "Su Luna e Marte la popolazione cresce da sola verso i posti che i tuoi progetti offrono. A ogni colonia dai un mandato — scienza, industria o commercio — che decide cosa manda a casa ogni settimana.",
      "On the Moon and Mars the population grows by itself toward the room your projects provide. You give each colony a mandate — science, industry or trade — that decides what it sends home every week."),

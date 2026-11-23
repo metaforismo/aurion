@@ -2126,7 +2126,7 @@
         },
         "land": {
           "title": "Land has to be taken.",
-          "body": "The Moon and Mars are divided into twenty sectors. You start from the one your base stands on and expand into its neighbours; each sector takes two structures — habitat, laboratory, mine, foundry. Rivals claim land too, and there is not enough for everyone."
+          "body": "The Moon and Mars are divided into twenty sectors. You start from the one your base stands on and expand into its neighbours; each sector takes two structures — habitat, laboratory, mine, foundry. Rivals claim land too, and there is not enough for everyone. “Go down to the base” shows it live: buildings, roads, people."
         }
       },
       "tip": "Bonuses are permanent and they stack: every project that lifts GDP makes the next one easier to afford."
