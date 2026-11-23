@@ -55,6 +55,18 @@ test('a colony can be visited on the surface and left again', async ({ page }) =
     .poll(async () => base.locator('canvas').evaluate((c) => (c as HTMLCanvasElement).width), { timeout: 30_000 })
     .toBeGreaterThan(0);
 
+  // Single buildings must stand on their own plots, not all on the hub's:
+  // the renderer once drew every one-off building at the same spot.
+  const spots = await page.evaluate(() => {
+    type Pickable = { kind: string; mesh: { position: { x: number; z: number }; isInstancedMesh?: boolean } };
+    const base = (window as unknown as { __aurion: { base: { pickables: Pickable[] } } }).__aurion.base;
+    return base.pickables
+      .filter((p) => !p.mesh.isInstancedMesh)
+      .map((p) => `${p.kind}:${Math.round(p.mesh.position.x)}:${Math.round(p.mesh.position.z)}`);
+  });
+  expect(spots.length).toBeGreaterThanOrEqual(4);
+  expect(new Set(spots.map((s) => s.split(':').slice(1).join(':'))).size).toBe(spots.length);
+
   await page.getByTestId('base-leave').click();
   await expect(base).toBeHidden();
   await expect(colony).toBeVisible();

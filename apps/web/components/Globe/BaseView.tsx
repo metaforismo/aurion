@@ -15,7 +15,7 @@ import { useGameStore } from '../../lib/store';
 import { IconButton } from '../ui';
 
 /** Building kinds worth counting in the caption, in display order. */
-const COUNTED: readonly BuildingKind[] = ['housing', 'dome', 'habitat', 'lab', 'mine', 'foundry'];
+const COUNTED: readonly BuildingKind[] = ['housing', 'dome', 'habitat', 'lab', 'mine', 'foundry', 'site'];
 
 export default function BaseView({ body, onLeave }: { body: ColonyBody; onLeave: () => void }) {
   const t = useTranslations('cosmos.base');
@@ -26,6 +26,9 @@ export default function BaseView({ body, onLeave }: { body: ColonyBody; onLeave:
   const rendererRef = useRef<BaseRenderer | null>(null);
   const [ready, setReady] = useState(false);
   const [glFallback, setGlFallback] = useState(false);
+  // The building last tapped, named next to the pointer for a moment.
+  const [picked, setPicked] = useState<{ kind: BuildingKind; x: number; y: number } | null>(null);
+  const press = useRef<{ x: number; y: number } | null>(null);
 
   const model = useMemo(() => (state ? buildBaseModel(state, body) : null), [state, body]);
   const signature = model ? baseSignature(model) : '';
@@ -33,6 +36,13 @@ export default function BaseView({ body, onLeave }: { body: ColonyBody; onLeave:
   useEffect(() => {
     modelRef.current = model;
   }, [model]);
+
+  // The name fades by itself, so it never lingers over a view that has moved on.
+  useEffect(() => {
+    if (!picked) return;
+    const timer = window.setTimeout(() => setPicked(null), 2800);
+    return () => window.clearTimeout(timer);
+  }, [picked]);
 
   // One renderer per mount (and per backend, should WebGPU give up).
   useEffect(() => {
@@ -101,7 +111,36 @@ export default function BaseView({ body, onLeave }: { body: ColonyBody; onLeave:
 
   return (
     <div className="absolute inset-0 bg-black" data-testid={`base-${body}`}>
-      <div ref={canvasHost} className="absolute inset-0" role="img" aria-label={t(`label.${body}`)} />
+      <div
+        ref={canvasHost}
+        className="absolute inset-0"
+        role="img"
+        aria-label={t(`label.${body}`)}
+        onPointerDown={(e) => {
+          press.current = { x: e.clientX, y: e.clientY };
+        }}
+        onPointerUp={(e) => {
+          // A tap, not the end of a drag: name what is under it.
+          const from = press.current;
+          press.current = null;
+          if (!from || Math.hypot(e.clientX - from.x, e.clientY - from.y) > 5) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const kind = rendererRef.current?.pickAt(x, y) ?? null;
+          setPicked(kind ? { kind, x, y } : null);
+        }}
+      />
+      {picked ? (
+        <div
+          role="status"
+          data-testid="base-picked"
+          className="glass-panel pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full rounded-lg px-2.5 py-1 text-xs font-medium text-fg"
+          style={{ left: picked.x, top: picked.y - 10 }}
+        >
+          {t(`name.${picked.kind}`)}
+        </div>
+      ) : null}
 
       <div
         className="glass-panel absolute top-[4.25rem] z-10 flex -translate-x-1/2 items-center gap-3 rounded-full py-1.5 pl-2 pr-4 lg:top-[7.25rem]"

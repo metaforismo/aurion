@@ -307,6 +307,25 @@ function blueprint(kind: BuildingKind): { parts: Part[]; radius: number; height:
         height: 11,
         lights: [[-8, 11.3, -9], [2, 11.3, -9], [0, 3, 5.2], [-4.5, 3, 5.2], [4.5, 3, 5.2]],
       };
+    case 'site':
+      // Foundations, a half-raised frame and stacked materials; the crane is
+      // a separate mesh so its jib can turn.
+      return {
+        parts: [
+          box(16, 0.5, 16, 0x55595f),
+          box(0.6, 7, 0.6, ORANGE, -6, 0.5, -6),
+          box(0.6, 7, 0.6, ORANGE, 6, 0.5, -6),
+          box(0.6, 7, 0.6, ORANGE, -6, 0.5, 6),
+          box(0.6, 4, 0.6, ORANGE, 6, 0.5, 6),
+          box(12.6, 0.5, 0.6, ORANGE, 0, 7.5, -6),
+          box(0.6, 0.5, 12.6, ORANGE, -6, 7.5, 0),
+          box(3, 2, 3, GREY, 3, 0.5, 2),
+          box(2.4, 1.2, 4, STEEL, -2, 0.5, 3),
+        ],
+        radius: 11,
+        height: 8,
+        lights: [[-6, 7.9, -6], [6, 7.9, -6], [-6, 7.9, 6]],
+      };
     case 'processor':
       return {
         parts: [
@@ -344,6 +363,16 @@ export class BaseRenderer {
   private base = new THREE.Group();
   private people: THREE.InstancedMesh | null = null;
   private rovers: THREE.InstancedMesh | null = null;
+  /** Tower cranes on building sites; their jibs turn. */
+  private cranes: THREE.Object3D[] = [];
+  /** The shuttle that comes and goes from the pad. */
+  private shuttle: THREE.Object3D | null = null;
+  private flame: THREE.Mesh | null = null;
+  private padAt = new THREE.Vector3(0, 0, -29);
+  private clock = 0;
+  /** Buildings that can be picked, with what they are. */
+  private pickables: { mesh: THREE.Mesh; kind: BuildingKind }[] = [];
+  private readonly raycaster = new THREE.Raycaster();
   private walkers: Walker[] = [];
   private drivers: Rover[] = [];
   private readonly dummy = new THREE.Object3D();
@@ -452,6 +481,19 @@ export class BaseRenderer {
     this.camera.position.copy(this.controls.target).add(offset);
   }
 
+  /** What kind of building is under a point of the canvas (CSS pixels), if any. */
+  pickAt(x: number, y: number): BuildingKind | null {
+    const rect = this.canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2((x / rect.width) * 2 - 1, -(y / rect.height) * 2 + 1);
+    this.raycaster.setFromCamera(ndc, this.camera);
+    let best: { kind: BuildingKind; distance: number } | null = null;
+    for (const p of this.pickables) {
+      const hit = this.raycaster.intersectObject(p.mesh, false)[0];
+      if (hit && (!best || hit.distance < best.distance)) best = { kind: p.kind, distance: hit.distance };
+    }
+    return best?.kind ?? null;
+  }
+
   /** Back to the overview of the whole base. */
   resetView(): void {
     this.controls.target.set(0, 2, 40);
@@ -546,11 +588,18 @@ export class BaseRenderer {
   setModel(model: BaseModel): void {
     for (const child of [...this.base.children]) {
       this.base.remove(child);
-      const mesh = child as THREE.Mesh;
-      mesh.geometry?.dispose();
-      (mesh.material as THREE.Material | undefined)?.dispose();
+      // Groups (cranes, the shuttle) hold meshes of their own.
+      child.traverse((obj) => {
+        const mesh = obj as THREE.Mesh;
+        mesh.geometry?.dispose();
+        (mesh.material as THREE.Material | undefined)?.dispose();
+      });
     }
     const palette = PALETTE[this.body];
+    this.cranes = [];
+    this.pickables = [];
+    this.shuttle = null;
+    this.flame = null;
 
     // Roads: the rings, and spokes from the hub to the outermost one.
     const roadMat = new THREE.MeshStandardNodeMaterial({ color: palette.road, roughness: 1 });
@@ -572,6 +621,7 @@ export class BaseRenderer {
     const byKind = new Map<BuildingKind, Building[]>();
     for (const b of model.buildings) byKind.set(b.kind, [...(byKind.get(b.kind) ?? []), b]);
     const material = new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.78, metalness: 0.12 });
+    const craneMaterial = new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.78, metalness: 0.12 });
     const lightSpots: THREE.Vector3[] = [];
     const shadows: { x: number; z: number; r: number; h: number }[] = [];
     for (const [kind, list] of byKind) {
@@ -579,20 +629,53 @@ export class BaseRenderer {
       const geometry = mergeGeometries(plan.parts, false);
       if (!geometry) continue;
       geometry.computeVertexNormals();
-      const mesh = new THREE.InstancedMesh(geometry, material, list.length);
+      // A kind with a single building is a plain mesh. The renderer builds
+      // its instancing data once per (material, geometry layout) for
+      // instanced meshes of count 1, so several of those would all be drawn
+      // where the first one stands.
+      const single = list.length === 1;
+      const mesh: THREE.Mesh = single
+        ? new THREE.Mesh(geometry, material)
+        : new THREE.InstancedMesh(geometry, material, list.length);
       list.forEach((b, i) => {
         this.dummy.position.set(b.x, 0.2, b.z);
         this.dummy.rotation.set(0, b.rot, 0);
         this.dummy.scale.setScalar(1);
         this.dummy.updateMatrix();
-        mesh.setMatrixAt(i, this.dummy.matrix);
+        if (single) {
+          mesh.position.copy(this.dummy.position);
+          mesh.rotation.copy(this.dummy.rotation);
+        } else {
+          (mesh as THREE.InstancedMesh).setMatrixAt(i, this.dummy.matrix);
+        }
         for (const [lx, ly, lz] of plan.lights) {
           lightSpots.push(new THREE.Vector3(lx, ly, lz).applyMatrix4(this.dummy.matrix));
         }
         shadows.push({ x: b.x, z: b.z, r: plan.radius, h: plan.height });
       });
-      mesh.instanceMatrix.needsUpdate = true;
+      if (!single) (mesh as THREE.InstancedMesh).instanceMatrix.needsUpdate = true;
       this.base.add(mesh);
+      this.pickables.push({ mesh, kind });
+      if (kind === 'pad' && list[0]) this.padAt.set(list[0].x, 0, list[0].z);
+      if (kind === 'site') {
+        for (const b of list) {
+          // Mast (static) and jib (turning) of a tower crane beside the site.
+          const crane = new THREE.Group();
+          const mastGeo = mergeGeometries([box(0.8, 20, 0.8, 0xf2c230), box(2.4, 1, 2.4, DARK)], false)!;
+          mastGeo.computeVertexNormals();
+          crane.add(new THREE.Mesh(mastGeo, craneMaterial));
+          const jibGeo = mergeGeometries(
+            [box(20, 0.6, 0.6, 0xf2c230, 6, 20, 0), box(2, 1.6, 1.6, DARK, -3, 19.4, 0), box(0.15, 8, 0.15, DARK, 13, 12, 0), box(1.6, 1, 1.6, STEEL, 13, 11, 0)],
+            false,
+          )!;
+          jibGeo.computeVertexNormals();
+          const jib = new THREE.Mesh(jibGeo, craneMaterial);
+          crane.add(jib);
+          crane.position.set(b.x + Math.cos(-b.rot) * 9.5, 0.2, b.z + Math.sin(-b.rot) * 9.5);
+          this.base.add(crane);
+          this.cranes.push(jib);
+        }
+      }
     }
 
     // Lights: small glowing boxes at windows, doors and mast tops.
@@ -688,7 +771,8 @@ export class BaseRenderer {
     }
 
     this.drivers = [];
-    const fleet = Math.round(model.rovers * (this.software ? 0.5 : 1));
+    // Never a single rover: see the note on single instances above.
+    const fleet = Math.max(2, Math.round(model.rovers * (this.software ? 0.5 : 1)));
     for (let i = 0; i < fleet && model.rings.length > 0; i += 1) {
       const radius = model.rings[i % model.rings.length]!;
       this.drivers.push({ radius, angle: hash(i, 41) * Math.PI * 2, speed: (i % 2 === 0 ? 1 : -1) * (4 + hash(i, 42) * 3) });
@@ -713,6 +797,31 @@ export class BaseRenderer {
     } else {
       this.rovers = null;
     }
+
+    // The supply shuttle: comes down on the pad, sits, lifts off again.
+    const hull = mergeGeometries(
+      [
+        cyl(1.6, 2.1, 6, WHITE, 0, 1.4),
+        at(paint(new THREE.ConeGeometry(1.6, 3, 14), ORANGE), 0, 8.9, 0),
+        box(0.3, 2, 0.3, STEEL, 2.1, 0, 2.1),
+        box(0.3, 2, 0.3, STEEL, -2.1, 0, 2.1),
+        box(0.3, 2, 0.3, STEEL, 2.1, 0, -2.1),
+        box(0.3, 2, 0.3, STEEL, -2.1, 0, -2.1),
+      ],
+      false,
+    )!;
+    hull.computeVertexNormals();
+    const shuttle = new THREE.Group();
+    shuttle.add(new THREE.Mesh(hull, new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.6 })));
+    const flame = new THREE.Mesh(
+      new THREE.ConeGeometry(1.2, 5, 10).rotateX(Math.PI).translate(0, -1.4, 0),
+      new THREE.MeshBasicNodeMaterial({ color: 0xffc46b, transparent: true, opacity: 0.85 }),
+    );
+    shuttle.add(flame);
+    shuttle.position.set(this.padAt.x + 9, 0.4, this.padAt.z);
+    this.base.add(shuttle);
+    this.shuttle = shuttle;
+    this.flame = flame;
     this.animate(0);
   }
 
@@ -744,6 +853,31 @@ export class BaseRenderer {
         this.people!.setMatrixAt(i, this.dummy.matrix);
       });
       this.people.instanceMatrix.needsUpdate = true;
+    }
+    this.clock += step;
+    this.cranes.forEach((jib, i) => {
+      // Swing slowly back and forth, each crane on its own beat.
+      jib.rotation.y = Math.sin(this.clock * 0.35 + i * 1.7) * 1.3 + i;
+    });
+    if (this.shuttle && this.flame) {
+      // A 40-second round: descend, sit on the pad, climb away, stay gone.
+      const t = (this.clock % 40) / 40;
+      const TOP = 260;
+      let y: number;
+      let burning = true;
+      if (t < 0.25) y = TOP * (1 - t / 0.25) ** 2;
+      else if (t < 0.6) {
+        y = 0;
+        burning = false;
+      } else if (t < 0.85) y = TOP * ((t - 0.6) / 0.25) ** 2;
+      else {
+        y = TOP;
+        burning = false;
+      }
+      this.shuttle.visible = t < 0.85;
+      this.shuttle.position.y = 0.4 + y;
+      this.flame.visible = burning;
+      this.flame.scale.setScalar(0.8 + Math.sin(this.clock * 30) * 0.15);
     }
     if (this.rovers) {
       this.drivers.forEach((d, i) => {
