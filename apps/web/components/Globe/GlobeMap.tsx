@@ -41,6 +41,7 @@ import { useScenarioMessages } from '../Panels/shared/useScenarioMessages';
 import { IconButton } from '../ui';
 
 import { CapitalMarker, NewsPill, type MarkerTone } from './markers';
+import BaseView from './BaseView';
 import TerritoryCard from './TerritoryCard';
 import { BLOC_HEX, OverlaySwitch, computeIntelMask, type BlocColorKey, type OverlayMode } from './overlay';
 import { useWideStage, type StageInsets } from './useStageInsets';
@@ -234,6 +235,8 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
   // Land beyond the scenario's nations: protectorates, the one being
   // integrated, and what the player could take next.
   const [selectedTerritory, setSelectedTerritory] = useState<string | null>(null);
+  // Down in the capital, looking at the city itself.
+  const [inCapital, setInCapital] = useState(false);
   const land = useMemo(() => {
     if (!state || !scenario?.homeTerritories) return null;
     return {
@@ -728,6 +731,20 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
 
   if (!state) return null;
 
+  if (inCapital) {
+    return (
+      <BaseView
+        body="earth"
+        onLeave={() => {
+          // The globe mounts afresh: let it draw its overlay and refocus.
+          setReady(false);
+          didInitialFocus.current = false;
+          setInCapital(false);
+        }}
+      />
+    );
+  }
+
   return (
     <div
       className="absolute inset-0"
@@ -787,6 +804,12 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
         <IconButton icon={Plus} label={tGlobe('zoomIn')} onClick={() => viewRef.current?.zoomBy(0.78)} disabled={zoomDistance <= 1.3} />
         <IconButton icon={Minus} label={tGlobe('zoomOut')} onClick={() => viewRef.current?.zoomBy(1.28)} disabled={zoomDistance >= 4.15} />
         <IconButton icon={LocateFixed} label={tGlobe('home')} onClick={goHome} />
+        <IconButton
+          icon={Building2}
+          label={tGlobe('capital')}
+          onClick={() => setInCapital(true)}
+          data-testid="capital-visit"
+        />
       </div>
 
       {state && scenario && selectedTerritory ? (

@@ -1497,7 +1497,8 @@
     "base": {
       "label": {
         "moon": "The lunar base, seen from the surface",
-        "mars": "The Martian base, seen from the surface"
+        "mars": "The Martian base, seen from the surface",
+        "earth": "Your capital"
       },
       "leave": "Back to orbit",
       "hint": "Drag to look around, scroll or pinch to get as close as the people, tap a building to see what it is. The base grows with its population, your projects and the structures you build.",
@@ -1512,7 +1513,11 @@
         "lab": "{n, plural, =1 {laboratory} other {laboratories}}",
         "mine": "{n, plural, =1 {mine} other {mines}}",
         "foundry": "{n, plural, =1 {foundry} other {foundries}}",
-        "site": "{n, plural, =1 {building site} other {building sites}}"
+        "site": "{n, plural, =1 {building site} other {building sites}}",
+        "skyscraper": "{n, plural, =1 {tower} other {towers}}",
+        "block": "{n, plural, =1 {housing block} other {housing blocks}}",
+        "factory": "{n, plural, =1 {factory} other {factories}}",
+        "barracks": "barracks"
       },
       "name": {
         "hub": "Command hub",
@@ -1530,8 +1535,22 @@
         "habitat": "Habitat",
         "lab": "Laboratory",
         "mine": "Mine",
-        "foundry": "Foundry"
-      }
+        "foundry": "Foundry",
+        "capitol": "Government house",
+        "skyscraper": "Office tower",
+        "block": "Housing block",
+        "factory": "Factory",
+        "barracks": "Barracks",
+        "datacenter": "Quantum network node",
+        "arcology": "Arcology",
+        "reactor": "Fusion reactor",
+        "pylon": "Power grid",
+        "gantry": "Spaceport",
+        "antenna": "Planetary grid"
+      },
+      "leaveEarth": "Back to the globe",
+      "citizens": "{n} people in the country",
+      "hintEarth": "The capital is a portrait of the nation: towers follow the economy, factories its industry, labs its research, barracks its army, and every Earth megaproject leaves its mark. Drag, zoom in, tap a building."
     }
   },
   "globe": {
@@ -1645,7 +1664,8 @@
       "notAdjacent": "It does not border your land, not even across the sea: you expand from one country to the next.",
       "yoursHint": "It is part of your sphere. If you capitulate in a war, your latest protectorate goes to the winner.",
       "rivalHint": "A rival got here first. It can only change hands through a capitulation."
-    }
+    },
+    "capital": "Visit the capital"
   },
   "policies": {
     "title": "National policies",
@@ -2087,7 +2107,8 @@
       "card": {
         "name": "Nation card.",
         "body": "Appears when you select a nation: the essential numbers and quick actions towards it."
-      }
+      },
+      "capital": "Next to the zoom buttons, “Visit the capital” takes you into your city in 3D: it grows with the economy, industry, research and army, and shows every Earth megaproject you have built."
     },
     "systems": {
       "title": "The eight systems",

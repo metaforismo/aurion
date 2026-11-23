@@ -3,21 +3,38 @@
 // Down on the surface: the colony in 3D. Drag to look around, scroll or
 // pinch to go from the whole base down to the people walking through it.
 
-import type { ColonyBody } from '@aurion/engine';
 import { ArrowUp, Crosshair, Minus, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { baseSignature, buildBaseModel, type BuildingKind } from '../../lib/base/model';
+import {
+  baseSignature,
+  buildBaseModel,
+  buildCapitalModel,
+  type BaseBody,
+  type BuildingKind,
+} from '../../lib/base/model';
 import type { BaseRenderer } from '../../lib/base/base-renderer';
 import { compactNumber } from '../../lib/format';
 import { useGameStore } from '../../lib/store';
 import { IconButton } from '../ui';
 
 /** Building kinds worth counting in the caption, in display order. */
-const COUNTED: readonly BuildingKind[] = ['housing', 'dome', 'habitat', 'lab', 'mine', 'foundry', 'site'];
+const COUNTED: readonly BuildingKind[] = [
+  'housing',
+  'dome',
+  'habitat',
+  'skyscraper',
+  'block',
+  'factory',
+  'lab',
+  'barracks',
+  'mine',
+  'foundry',
+  'site',
+];
 
-export default function BaseView({ body, onLeave }: { body: ColonyBody; onLeave: () => void }) {
+export default function BaseView({ body, onLeave }: { body: BaseBody; onLeave: () => void }) {
   const t = useTranslations('cosmos.base');
   const tColony = useTranslations('cosmos.colony');
   const locale = useLocale();
@@ -30,7 +47,10 @@ export default function BaseView({ body, onLeave }: { body: ColonyBody; onLeave:
   const [picked, setPicked] = useState<{ kind: BuildingKind; x: number; y: number } | null>(null);
   const press = useRef<{ x: number; y: number } | null>(null);
 
-  const model = useMemo(() => (state ? buildBaseModel(state, body) : null), [state, body]);
+  const model = useMemo(
+    () => (state ? (body === 'earth' ? buildCapitalModel(state) : buildBaseModel(state, body)) : null),
+    [state, body],
+  );
   const signature = model ? baseSignature(model) : '';
   const modelRef = useRef(model);
   useEffect(() => {
@@ -153,13 +173,15 @@ export default function BaseView({ body, onLeave }: { body: ColonyBody; onLeave:
           className="flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-black transition-colors hover:bg-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <ArrowUp aria-hidden className="h-3.5 w-3.5" />
-          {t('leave')}
+          {t(body === 'earth' ? 'leaveEarth' : 'leave')}
         </button>
         <p className="numeric-tabular font-mono text-[11px] text-fg-muted">
-          {tColony('people', {
-            n: compactNumber(model.population, locale),
-            cap: compactNumber(model.capacity, locale),
-          })}
+          {body === 'earth'
+            ? t('citizens', { n: compactNumber(model.population, locale) })
+            : tColony('people', {
+                n: compactNumber(model.population, locale),
+                cap: compactNumber(model.capacity, locale),
+              })}
         </p>
       </div>
 
@@ -175,7 +197,7 @@ export default function BaseView({ body, onLeave }: { body: ColonyBody; onLeave:
             </li>
           ))}
         </ul>
-        <p className="mt-1.5 text-[11px] leading-snug text-fg-faint">{ready ? t('hint') : t('loading')}</p>
+        <p className="mt-1.5 text-[11px] leading-snug text-fg-faint">{ready ? t(body === 'earth' ? 'hintEarth' : 'hint') : t('loading')}</p>
       </div>
 
       <div className="absolute bottom-28 right-4 z-10 flex flex-col gap-1 lg:bottom-20" data-stage-inset="right">

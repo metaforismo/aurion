@@ -181,6 +181,7 @@ export function Codex() {
 
           <Section id="screen" title={t('screen.title')} lead={t('screen.lead')}>
             <ScreenDiagram />
+            <Tip>{t('screen.capital')}</Tip>
           </Section>
 
           <Section id="systems" title={t('systems.title')} lead={t('systems.lead')}>
