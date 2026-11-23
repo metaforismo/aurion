@@ -11,6 +11,7 @@ import {
   Check,
   ChevronRight,
   Eye,
+  Flag,
   Handshake,
   HeartHandshake,
   Landmark,
@@ -28,8 +29,9 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 
 import { money } from '../../lib/format';
+import { territoryName } from '../../lib/geo/iso';
 import { useMemo, useState } from 'react';
-import type { GameState } from '@aurion/engine';
+import { getEarthTerritory, type GameState } from '@aurion/engine';
 
 import { cn } from '../../lib/cn';
 import type { ScenarioId } from '../../lib/scenarios';
@@ -226,6 +228,20 @@ export function Briefing() {
         title: tGlobe(`news.${item.kind}`, { a: nameOf(item.a), b: nameOf(item.b) }),
         detail: item.kind === 'peace' ? peaceDetail(item.a, item.b, item.tick) : undefined,
         panel: 'diplomacy',
+      });
+    }
+    // Land changing hands on Earth.
+    for (const [id, holding] of Object.entries(state.territories ?? {})) {
+      const mine = holding.owner === state.playerCountryId;
+      const place = territoryName(id, locale, getEarthTerritory(id)?.name ?? id);
+      out.push({
+        key: `land:${id}:${holding.sinceTick}`,
+        tick: holding.sinceTick,
+        icon: Flag,
+        tone: mine ? 'accent' : 'warning',
+        title: mine
+          ? t('feed.landYou', { place })
+          : t('feed.landRival', { name: nameOf(holding.owner), place }),
       });
     }
     // Covert operations, once there is something to tell.

@@ -161,3 +161,18 @@ export {
   territoryBusy,
 } from './cosmos/territory.js';
 export type { SectorDef, SectorStatus } from './cosmos/territory.js';
+
+export { EARTH_TERRITORIES } from './territory/earthData.js';
+export type { EarthTerritory } from './territory/earthData.js';
+export {
+  claimableTerritories,
+  getEarthTerritory,
+  getTerritoryStatus,
+  heldTerritories,
+  protectorateCost,
+  protectorateDuration,
+  protectorateGdpGain,
+  protectorates,
+  territoryOwner,
+} from './territory/earth.js';
+export type { TerritoryStatus } from './territory/earth.js';

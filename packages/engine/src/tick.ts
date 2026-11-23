@@ -47,6 +47,7 @@ import { tickPolicies } from './policies/index.js';
 import { tickHistory } from './history.js';
 import { tickWarDiplomacy, tickWars } from './war/index.js';
 import { factionModifiers } from './politics/factions.js';
+import { tickEarthTerritory } from './territory/earth.js';
 import { coolInvestHeat } from './actions/invest.js';
 import { applyStatToCountry } from './events/index.js';
 import { evaluateCondition } from './events/conditions.js';
@@ -128,6 +129,10 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
 
   // 7.4. AI governments end the wars they have won, lost or tired of.
   next = tickWarDiplomacy(next);
+
+  // 7.45. Land on Earth: the player's protectorate under way, and rivals
+  //       absorbing unaligned neighbours. No-op without map data.
+  next = tickEarthTerritory(next, ctx.scenario);
 
   // 7.5. Hostile intelligence: now and then a rival with a grudge sends an
   //      agent after the player. Outside the AI's own turn so the pressure

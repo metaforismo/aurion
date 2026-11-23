@@ -744,6 +744,12 @@
     "colony": {
       "cooldown": "Il mandato di questa colonia è stato cambiato da poco.",
       "none": "Non hai ancora una colonia su questo mondo."
+    },
+    "territory": {
+      "taken": "Questo territorio è già di qualcuno.",
+      "notAdjacent": "Non confina con i tuoi territori.",
+      "busy": "C'è già un lavoro in corso.",
+      "insufficientTreasury": "Non hai abbastanza in cassa."
     }
   },
   "play": {
@@ -1600,6 +1606,26 @@
     "dock": {
       "close": "Chiudi pannello",
       "open": "Apri {name}"
+    },
+    "territory": {
+      "close": "Chiudi",
+      "status": {
+        "free": "Paese non allineato",
+        "yours": "Tuo protettorato",
+        "rival": "Protettorato di {name}",
+        "inProgress": "Integrazione in corso: {weeks, plural, =1 {1 settimana} other {# settimane}}"
+      },
+      "cost": "Costo",
+      "time": "Tempo",
+      "gain": "PIL, per sempre",
+      "weeks": "{n} sett.",
+      "claim": "Integra come protettorato",
+      "hint": "Si paga subito. I paesi confinanti non la prendono bene: −5 di atteggiamento con ciascuno. Da qui potrai poi espanderti ai suoi vicini.",
+      "busy": "Stai già integrando un altro paese: uno alla volta.",
+      "cannotAfford": "Non hai abbastanza in cassa.",
+      "notAdjacent": "Non confina con i tuoi territori, nemmeno via mare: ci si espande da un paese vicino all'altro.",
+      "yoursHint": "Fa parte della tua sfera. Se capitoli in guerra, il protettorato più recente passa al vincitore.",
+      "rivalHint": "Un rivale è arrivato prima. Può cambiare mano solo con una capitolazione."
     }
   },
   "policies": {
@@ -1822,7 +1848,9 @@
         "white": "Pace senza vincitori",
         "reparations": "{winner} incassa {amount} di riparazioni",
         "capitulation": "{loser} capitola davanti a {winner}"
-      }
+      },
+      "landYou": "{place} è ora un tuo protettorato",
+      "landRival": "{name} ha fatto di {place} un protettorato"
     },
     "age": {
       "now": "ora",
@@ -2067,7 +2095,7 @@
       },
       "diplomacy": {
         "name": "Diplomazia",
-        "what": "I rapporti con ogni nazione: accordi commerciali, alleanze, sanzioni, dichiarazioni di guerra e trattati di pace.",
+        "what": "I rapporti con ogni nazione: accordi commerciali, alleanze, sanzioni, guerra e pace. E il territorio: i paesi non allineati che confinano con i tuoi possono diventare protettorati, toccandoli sul globo.",
         "tip": "Un'alleanza si prepara: migliora prima i rapporti, e proponila solo quando l'altra nazione ti vede di buon occhio. Ogni alleato toglie anche il 4% dal prezzo dei megaprogetti."
       },
       "politics": {
