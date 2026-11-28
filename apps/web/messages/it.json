@@ -1517,7 +1517,10 @@
         "skyscraper": "{n, plural, =1 {grattacielo} other {grattacieli}}",
         "block": "{n, plural, =1 {isolato} other {isolati}}",
         "factory": "{n, plural, =1 {fabbrica} other {fabbriche}}",
-        "barracks": "{n, plural, =1 {caserma} other {caserme}}"
+        "barracks": "{n, plural, =1 {caserma} other {caserme}}",
+        "office": "{n, plural, =1 {palazzo di uffici} other {palazzi di uffici}}",
+        "apartment": "{n, plural, =1 {condominio} other {condomini}}",
+        "house": "{n, plural, =1 {casa} other {case}}"
       },
       "name": {
         "hub": "Centro di comando",
@@ -1546,7 +1549,13 @@
         "reactor": "Reattore a fusione",
         "pylon": "Rete energetica",
         "gantry": "Spazioporto",
-        "antenna": "Rete planetaria"
+        "antenna": "Rete planetaria",
+        "office": "Palazzo di uffici",
+        "apartment": "Condominio",
+        "house": "Casa",
+        "warehouse": "Magazzino",
+        "park": "Parco",
+        "solarFarm": "Parco solare"
       },
       "leaveEarth": "Torna al globo",
       "citizens": "{n} abitanti nel paese",

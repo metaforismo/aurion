@@ -6,10 +6,16 @@
 //
 // DOM/WebGL only: import dynamically from a client component.
 import * as THREE from 'three/webgpu';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 import { isSoftwareRenderer } from '../globe/planet-renderer';
+
+import { loadEarthSky, SurfaceCache } from './assets';
+import { releaseTreeMaterials, treeGeometry, treeMaterials } from './trees';
+import { buildCityScene, type CityScene } from './city-scene';
+import { lumpy } from './geometry';
 
 import type { BaseModel, Building, BuildingKind } from './model';
 
@@ -27,9 +33,15 @@ const PALETTE = {
 } as const;
 
 const SUN = new THREE.Vector3(-0.62, 0.5, 0.42).normalize();
-const TERRAIN_SIZE = 1200;
 /** Radius kept flat for the base; the land rises around it. */
 const FLAT_RADIUS = 235;
+
+/** Ground of each world: size, flat centre, relief and its photographed surface. */
+const WORLD = {
+  moon: { size: 1400, flat: FLAT_RADIUS, relief: 46, surface: 'moon_dusted_03', tile: 7, light: 0xffffff, dark: 0xa9a9ad },
+  mars: { size: 1400, flat: FLAT_RADIUS, relief: 46, surface: 'terrain_red_01', tile: 9, light: 0xffffff, dark: 0xb08f7c },
+  earth: { size: 6000, flat: 1150, relief: 130, surface: 'lawn', tile: 3.2, light: 0xffffff, dark: 0x8d9a6e },
+} as const;
 
 // ---------------------------------------------------------------------------
 // Terrain
@@ -65,10 +77,17 @@ function fbm(x: number, z: number): number {
 }
 
 /** Height of the land at a point, flat where the base stands. */
-function heightAt(x: number, z: number, craters: readonly { x: number; z: number; r: number }[]): number {
+function heightAt(
+  x: number,
+  z: number,
+  craters: readonly { x: number; z: number; r: number }[],
+  flat = FLAT_RADIUS,
+  relief = 46,
+): number {
   const r = Math.hypot(x, z);
-  const rise = THREE.MathUtils.smoothstep(r, FLAT_RADIUS, FLAT_RADIUS + 140);
-  let h = (fbm(x * 0.006 + 11, z * 0.006 + 5) - 0.45) * 46 + (fbm(x * 0.03, z * 0.03) - 0.5) * 5;
+  const rise = THREE.MathUtils.smoothstep(r, flat, flat + 140 + relief * 2);
+  const scale = 46 / relief;
+  let h = (fbm(x * 0.006 * scale + 11, z * 0.006 * scale + 5) - 0.45) * relief + (fbm(x * 0.03, z * 0.03) - 0.5) * 5;
   for (const c of craters) {
     const d = Math.hypot(x - c.x, z - c.z) / c.r;
     if (d < 1.35) {
@@ -76,39 +95,10 @@ function heightAt(x: number, z: number, craters: readonly { x: number; z: number
       h += d < 1 ? -(1 - d * d) * c.r * 0.22 : (1.35 - d) * c.r * 0.12;
     }
   }
-  // A whisper of relief stays under the base so it does not look machined.
-  return h * rise + (fbm(x * 0.08, z * 0.08) - 0.5) * 0.35 * (1 - rise);
-}
-
-/**
- * Fine grain for the ground up close: speckles and pebbles on near-white, so
- * it multiplies the vertex colours without darkening them much. Tiled.
- */
-function makeGrainTexture(): THREE.CanvasTexture {
-  const size = 256;
-  const c = document.createElement('canvas');
-  c.width = size;
-  c.height = size;
-  const g = c.getContext('2d')!;
-  g.fillStyle = '#e4e4e4';
-  g.fillRect(0, 0, size, size);
-  for (let i = 0; i < 2600; i += 1) {
-    const x = hash(i, 51) * size;
-    const y = hash(i, 52) * size;
-    const tone = hash(i, 53);
-    const r = tone > 0.97 ? 2.4 : tone > 0.8 ? 1.2 : 0.7;
-    g.fillStyle = tone > 0.5 ? `rgba(255,255,255,${0.25 + tone * 0.3})` : `rgba(70,70,70,${0.18 + tone * 0.4})`;
-    g.beginPath();
-    g.arc(x, y, r, 0, Math.PI * 2);
-    g.fill();
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(140, 140);
-  tex.anisotropy = 4;
-  return tex;
+  // A whisper of relief stays under a base so it does not look machined;
+  // a city needs its ground level for the streets.
+  const whisper = relief > 100 ? 0 : (fbm(x * 0.08, z * 0.08) - 0.5) * 0.35 * (1 - rise);
+  return h * rise + whisper;
 }
 
 // ---------------------------------------------------------------------------
@@ -490,6 +480,9 @@ function blueprint(kind: BuildingKind): { parts: Part[]; radius: number; height:
         height: 27,
         lights: [[0, 26.8, 0], [7.2, 1.6, 0], [-7.2, 1.6, 0]],
       };
+    default:
+      // Kinds that only exist in the city view.
+      return { parts: [box(6, 4, 6, GREY)], radius: 4, height: 4, lights: [] };
   }
 }
 
@@ -529,6 +522,13 @@ export class BaseRenderer {
   private walkers: Walker[] = [];
   private drivers: Rover[] = [];
   private readonly dummy = new THREE.Object3D();
+  /** The capital, when this view is of Earth. */
+  private city: CityScene | null = null;
+  private readonly surfaces = new SurfaceCache();
+  private readonly sun: THREE.DirectionalLight;
+  private readonly initialModel: BaseModel;
+  /** Bumped on every model change, so a slow rebuild never lands over a newer one. */
+  private version = 0;
   private raf = 0;
   private last = 0;
   private disposed = false;
@@ -557,40 +557,53 @@ export class BaseRenderer {
 
     const palette = PALETTE[this.body];
     this.scene.background = new THREE.Color(palette.sky);
-    if (palette.fog !== null) this.scene.fog = new THREE.Fog(palette.fog, 420, 1900);
+    if (palette.fog !== null) {
+      this.scene.fog = this.body === 'earth' ? new THREE.Fog(palette.fog, 1400, 5600) : new THREE.Fog(palette.fog, 420, 1900);
+    }
+    this.initialModel = opts.model;
 
-    const sun = new THREE.DirectionalLight(
-      this.body === 'mars' ? 0xffe2c4 : this.body === 'earth' ? 0xfff4dd : 0xffffff,
-      this.body === 'moon' ? 3 : 2.3,
+    // Real shadows; the sun is placed once the sky is known.
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.sun = new THREE.DirectionalLight(
+      this.body === 'mars' ? 0xffe2c4 : this.body === 'earth' ? 0xfff2de : 0xffffff,
+      this.body === 'moon' ? 3.2 : this.body === 'earth' ? 3 : 2.4,
     );
-    sun.position.copy(SUN).multiplyScalar(500);
-    this.scene.add(sun);
+    this.sun.castShadow = true;
+    const reach = this.body === 'earth' ? 760 : 280;
+    const sh = this.sun.shadow;
+    sh.mapSize.set(this.software ? 1024 : 4096, this.software ? 1024 : 4096);
+    sh.camera.left = -reach;
+    sh.camera.right = reach;
+    sh.camera.top = reach;
+    sh.camera.bottom = -reach;
+    sh.camera.near = 10;
+    sh.camera.far = 4000;
+    sh.bias = -0.0004;
+    sh.normalBias = this.body === 'earth' ? 0.6 : 0.2;
+    this.setSun(SUN);
+    this.scene.add(this.sun);
+    this.scene.add(this.sun.target);
     // Fill light: on the Moon it is the glare bouncing off the regolith, on
-    // Mars the dusty sky. Without it every shaded wall is a black hole.
+    // Mars the dusty sky; on Earth the sky itself lights the city (below).
     this.scene.add(
       this.body === 'mars'
-        ? new THREE.HemisphereLight(0xf0c8a8, 0x6b3f2a, 1.5)
+        ? new THREE.HemisphereLight(0xf0c8a8, 0x6b3f2a, 1.2)
         : this.body === 'earth'
-          ? new THREE.HemisphereLight(0xcfe6ff, 0x5a7a48, 1.6)
-          : new THREE.HemisphereLight(0x9aa6c0, 0x7d7f85, 1.15),
+          ? new THREE.HemisphereLight(0xcfe6ff, 0x5a6a48, 0.35)
+          : new THREE.HemisphereLight(0x9aa6c0, 0x7d7f85, 0.9),
     );
-
-    this.buildTerrain();
-    this.buildSky();
     this.scene.add(this.base);
-    this.setModel(opts.model);
 
-    this.camera.position.set(215, 150, 270);
     this.controls = new OrbitControls(this.camera, opts.canvas);
-    // Aim beside the hub, at street level, so zooming in lands on a road.
-    this.controls.target.set(0, 2, 40);
+    this.placeCamera();
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.minDistance = 4;
     // Scroll towards what is under the pointer, so you can dive at a building
     // or a road instead of always at the hub.
     this.controls.zoomToCursor = true;
-    this.controls.maxDistance = 760;
+    this.controls.maxDistance = this.body === 'earth' ? 1700 : 760;
     // Never under the ground, never quite flat on it.
     this.controls.maxPolarAngle = Math.PI * 0.485;
     this.controls.zoomSpeed = 1.1;
@@ -602,9 +615,44 @@ export class BaseRenderer {
 
   async init(): Promise<'webgpu' | 'webgl2'> {
     await this.renderer.init();
+    await this.buildWorld();
+    await this.applyModel(this.initialModel);
     this.resize();
     const backend = (this.renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'webgpu' : 'webgl2';
     return backend;
+  }
+
+  private setSun(dir: THREE.Vector3): void {
+    const d = dir.clone().normalize();
+    this.sun.position.copy(d).multiplyScalar(1800);
+    this.sun.target.position.set(0, 0, 0);
+  }
+
+  private placeCamera(): void {
+    if (this.body === 'earth') {
+      this.controls.target.set(0, 8, 30);
+      this.camera.position.set(430, 290, 620);
+    } else {
+      this.controls.target.set(0, 2, 40);
+      this.camera.position.set(215, 150, 270);
+    }
+  }
+
+  /** Ground, sky and light: everything that does not change with the game. */
+  private async buildWorld(): Promise<void> {
+    if (this.body === 'earth') {
+      const sky = await loadEarthSky();
+      this.scene.background = sky.background;
+      this.scene.environment = sky.environment;
+      this.setSun(sky.sun);
+    } else {
+      const env = await new RGBELoader().loadAsync('/base/sky/earth.hdr');
+      env.mapping = THREE.EquirectangularReflectionMapping;
+      this.scene.environment = env;
+      this.scene.environmentIntensity = this.body === 'moon' ? 0.18 : 0.4;
+    }
+    await this.buildTerrain();
+    this.buildSky();
   }
 
   start(): void {
@@ -644,6 +692,10 @@ export class BaseRenderer {
     const rect = this.canvas.getBoundingClientRect();
     const ndc = new THREE.Vector2((x / rect.width) * 2 - 1, -(y / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(ndc, this.camera);
+    if (this.city) {
+      const hit = this.raycaster.intersectObject(this.city.group, true)[0];
+      return hit ? ((this.city.nameAt(hit.point.x, hit.point.z) as BuildingKind | null) ?? null) : null;
+    }
     let best: { kind: BuildingKind; distance: number } | null = null;
     for (const p of this.pickables) {
       const hit = this.raycaster.intersectObject(p.mesh, false)[0];
@@ -654,8 +706,7 @@ export class BaseRenderer {
 
   /** Back to the overview of the whole base. */
   resetView(): void {
-    this.controls.target.set(0, 2, 40);
-    this.camera.position.set(215, 150, 270);
+    this.placeCamera();
   }
 
   dispose(): void {
@@ -671,71 +722,117 @@ export class BaseRenderer {
       else mat?.dispose();
     });
     this.renderer.dispose();
+    releaseTreeMaterials();
   }
 
   // ---- Scene -------------------------------------------------------------
 
   private readonly craters: { x: number; z: number; r: number }[] = [];
 
-  private buildTerrain(): void {
-    const palette = PALETTE[this.body];
+  private async buildTerrain(): Promise<void> {
+    const world = WORLD[this.body];
     // Craters beyond the base: plenty on the Moon, a few on Mars.
     const count = this.body === 'moon' ? 34 : this.body === 'mars' ? 10 : 0;
     for (let i = 0; i < count; i += 1) {
       const angle = hash(i, 3) * Math.PI * 2;
-      const dist = FLAT_RADIUS + 60 + hash(i, 7) * (TERRAIN_SIZE / 2 - FLAT_RADIUS - 80);
+      const dist = world.flat + 60 + hash(i, 7) * (world.size / 2 - world.flat - 80);
       this.craters.push({ x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, r: 14 + hash(i, 11) * 46 });
     }
-    const segments = this.software ? 90 : 200;
-    const geo = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, segments, segments).rotateX(-Math.PI / 2);
+    const segments = this.software ? 110 : 260;
+    const geo = new THREE.PlaneGeometry(world.size, world.size, segments, segments).rotateX(-Math.PI / 2);
     const pos = geo.getAttribute('position');
+    const uv = geo.getAttribute('uv');
     const colors = new Float32Array(pos.count * 3);
-    const light = new THREE.Color(palette.ground);
-    const dark = new THREE.Color(palette.groundDark);
+    const light = new THREE.Color(world.light);
+    const dark = new THREE.Color(world.dark);
     const c = new THREE.Color();
     for (let i = 0; i < pos.count; i += 1) {
       const x = pos.getX(i);
       const z = pos.getZ(i);
-      pos.setY(i, heightAt(x, z, this.craters));
-      // Mottled ground: broad patches plus fine grain.
-      const shade = fbm(x * 0.012 + 40, z * 0.012 + 9) * 0.75 + hash(Math.round(x * 3), Math.round(z * 3)) * 0.25;
-      c.copy(dark).lerp(light, THREE.MathUtils.clamp(shade * 1.25, 0, 1));
+      pos.setY(i, heightAt(x, z, this.craters, world.flat, world.relief) - (this.body === 'earth' ? 0.01 : 0));
+      // The photographed surface tiles at its real size; broad patches of
+      // lighter and darker ground break up the repetition.
+      uv.setXY(i, x / world.tile, -z / world.tile);
+      const shade = fbm(x * 0.006 + 40, z * 0.006 + 9) * 0.8 + fbm(x * 0.05, z * 0.05) * 0.2;
+      c.copy(dark).lerp(light, THREE.MathUtils.clamp((shade - 0.25) * 1.8, 0, 1));
       colors[i * 3] = c.r;
       colors[i * 3 + 1] = c.g;
       colors[i * 3 + 2] = c.b;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
-    const mat = new THREE.MeshStandardNodeMaterial({
-      vertexColors: true,
-      roughness: 1,
-      metalness: 0,
-      map: makeGrainTexture(),
-    });
-    this.scene.add(new THREE.Mesh(geo, mat));
+    const mat = await this.surfaces.get(world.surface, { normalScale: this.body === 'earth' ? 0.8 : 1.3, vertexColors: true });
+    const ground = new THREE.Mesh(geo, mat);
+    ground.receiveShadow = true;
+    this.scene.add(ground);
 
     if (this.body === 'earth') {
-      // Woods on the hills around the city: one instanced mesh.
-      const tree = mergeGeometries(
-        [cyl(0.5, 0.7, 3, 0x6b4a2f, 0, 0, 0, 6), at(paint(new THREE.ConeGeometry(3.2, 8, 7), 0x2f6b3a), 0, 6.5, 0), at(paint(new THREE.ConeGeometry(2.3, 6, 7), 0x3a7d45), 0, 10, 0)],
-        false,
-      )!;
-      tree.computeVertexNormals();
-      const n = this.software ? 220 : 700;
-      const woods = new THREE.InstancedMesh(tree, new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 1 }), n);
-      for (let i = 0; i < n; i += 1) {
+      // Woods on the hills around the city: mixed conifers and broadleaves.
+      const foliage = treeMaterials(this.software);
+      const coreMat = new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.95 });
+      const kinds = [treeGeometry('conifer', 3), treeGeometry('conifer', 4), treeGeometry('broad', 5), treeGeometry('broad', 6)];
+      const n = this.software ? 1200 : 4800;
+      const per = Math.ceil(n / kinds.length);
+      const meshes = kinds.flatMap((g) => {
+        const parts = [
+          new THREE.InstancedMesh(g.trunk, foliage.bark, per),
+          new THREE.InstancedMesh(g.crown, g.foliage === 'needles' ? foliage.needles : foliage.leaves, per),
+          ...(g.core ? [new THREE.InstancedMesh(g.core, coreMat, per)] : []),
+        ];
+        return [parts];
+      });
+      const placed = kinds.map(() => 0);
+      for (let i = 0; i < n * 4 && placed.some((p) => p < per); i += 1) {
         const angle = hash(i, 61) * Math.PI * 2;
-        const dist = FLAT_RADIUS + 12 + hash(i, 62) ** 0.7 * (TERRAIN_SIZE / 2 - FLAT_RADIUS - 30);
+        const dist = world.flat + 40 + hash(i, 62) ** 0.8 * (world.size / 2 - world.flat - 200);
         const x = Math.cos(angle) * dist;
         const z = Math.sin(angle) * dist;
-        this.dummy.position.set(x, heightAt(x, z, this.craters) - 0.3, z);
+        // Woods grow in patches, not evenly; conifers higher up.
+        const patch = fbm(x * 0.004 + 3, z * 0.004 + 7);
+        if (patch < 0.47) continue;
+        const k = (fbm(x * 0.01 + 11, z * 0.01) > 0.5 ? 0 : 2) + (i % 2);
+        if (placed[k]! >= per) continue;
+        this.dummy.position.set(x, heightAt(x, z, this.craters, world.flat, world.relief) - 0.3, z);
         this.dummy.rotation.set(0, hash(i, 63) * 6.28, 0);
-        this.dummy.scale.setScalar(0.8 + hash(i, 64) * 1.1);
+        this.dummy.scale.setScalar(0.85 + hash(i, 64) * 0.7);
         this.dummy.updateMatrix();
-        woods.setMatrixAt(i, this.dummy.matrix);
+        for (const m of meshes[k]!) m.setMatrixAt(placed[k]!, this.dummy.matrix);
+        placed[k]! += 1;
       }
-      woods.instanceMatrix.needsUpdate = true;
-      this.scene.add(woods);
+      meshes.forEach((parts, k) => {
+        for (const m of parts) {
+          m.count = placed[k]!;
+          m.instanceMatrix.needsUpdate = true;
+          m.castShadow = true;
+          m.receiveShadow = true;
+          this.scene.add(m);
+        }
+      });
+    } else {
+      // Rocks strewn over the plain, in the ground's own material.
+      const rockMat = await this.surfaces.get(world.surface, { normalScale: 1.6, color: this.body === 'moon' ? 0x9a9a9e : 0x9a6a50 });
+      const shapes = [0, 1, 2].map((k) => lumpy(new THREE.IcosahedronGeometry(1, 2), 0.55, k * 31).scale(1, 0.55 + k * 0.12, 1.1));
+      const per = this.software ? 120 : 360;
+      for (const [k, shape] of shapes.entries()) {
+        const rocks = new THREE.InstancedMesh(shape, rockMat, per);
+        for (let i = 0; i < per; i += 1) {
+          const angle = hash(i + k * 1000, 71) * Math.PI * 2;
+          const dist = 30 + hash(i + k * 1000, 72) * (world.size / 2 - 60);
+          const x = Math.cos(angle) * dist;
+          const z = Math.sin(angle) * dist;
+          // Big boulders only away from the base; pebbles everywhere.
+          const big = dist > 220 ? 0.6 + hash(i, k) ** 3 * 5 : 0.15 + hash(i, k) * 0.35;
+          this.dummy.position.set(x, heightAt(x, z, this.craters, world.flat, world.relief) - big * 0.25, z);
+          this.dummy.rotation.set(hash(i, 5) * 0.4, hash(i, 6) * 6.28, hash(i, 8) * 0.4);
+          this.dummy.scale.setScalar(big);
+          this.dummy.updateMatrix();
+          rocks.setMatrixAt(i, this.dummy.matrix);
+        }
+        rocks.instanceMatrix.needsUpdate = true;
+        rocks.castShadow = true;
+        rocks.receiveShadow = true;
+        this.scene.add(rocks);
+      }
     }
   }
 
@@ -768,15 +865,36 @@ export class BaseRenderer {
 
   /** Rebuild the base from a (new) model. The ground and the sky stay. */
   setModel(model: BaseModel): void {
+    void this.applyModel(model);
+  }
+
+  private async applyModel(model: BaseModel): Promise<void> {
+    const version = (this.version += 1);
+    if (model.city) {
+      const city = await buildCityScene(model.city, { software: this.software, seed: 7 });
+      if (version !== this.version || this.disposed) return;
+      this.clearBase();
+      this.city = city;
+      this.base.add(city.group);
+      this.solids = city.solids;
+      return;
+    }
+    this.clearBase();
+    this.buildColony(model);
+  }
+
+  private clearBase(): void {
+    this.city = null;
     for (const child of [...this.base.children]) {
       this.base.remove(child);
-      // Groups (cranes, the shuttle) hold meshes of their own.
       child.traverse((obj) => {
         const mesh = obj as THREE.Mesh;
         mesh.geometry?.dispose();
-        (mesh.material as THREE.Material | undefined)?.dispose();
       });
     }
+  }
+
+  private buildColony(model: BaseModel): void {
     const palette = PALETTE[this.body];
     this.cranes = [];
     this.pickables = [];
@@ -897,7 +1015,8 @@ export class BaseRenderer {
     shadowMesh.instanceMatrix.needsUpdate = true;
     this.solids = shadows;
     shadowMesh.renderOrder = 1;
-    this.base.add(shadowMesh);
+    // Real shadows now: the blob shadows are only kept as collision footprints.
+    shadowMesh.dispose();
 
     // People and rovers. Fewer of each where the picture is drawn on the CPU.
     const doors = model.buildings.filter((b) => b.kind !== 'solar' && b.kind !== 'tower');
@@ -1006,6 +1125,12 @@ export class BaseRenderer {
       this.shuttle = shuttle;
       this.flame = flame;
     }
+    this.base.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) {
+        o.castShadow = true;
+        o.receiveShadow = true;
+      }
+    });
     this.animate(0);
   }
 
@@ -1039,6 +1164,7 @@ export class BaseRenderer {
       this.people.instanceMatrix.needsUpdate = true;
     }
     this.clock += step;
+    this.city?.update(step, this.clock);
     this.cranes.forEach((jib, i) => {
       // Swing slowly back and forth, each crane on its own beat.
       jib.rotation.y = Math.sin(this.clock * 0.35 + i * 1.7) * 1.3 + i;

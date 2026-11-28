@@ -95,8 +95,9 @@ describe('base model', () => {
     );
     const plain = buildCapitalModel(start)!;
     const kinds = plain.buildings.map((b) => b.kind);
-    expect(kinds[0]).toBe('capitol');
-    for (const k of ['skyscraper', 'factory', 'lab', 'barracks', 'block'] as const) expect(kinds).toContain(k);
+    expect(kinds.filter((k) => k === 'capitol')).toHaveLength(1);
+    for (const k of ['skyscraper', 'office', 'apartment', 'house', 'factory', 'lab', 'barracks'] as const) expect(kinds).toContain(k);
+    expect(plain.city).toBeDefined();
     expect(kinds).not.toContain('pad');
     expect(kinds).not.toContain('reactor');
 
@@ -107,7 +108,8 @@ describe('base model', () => {
       cosmos: { ...start.cosmos!, completed: ['earth_smart_grid', 'earth_fusion', 'earth_spaceport'] },
     })!;
     const grownKinds = grown.buildings.map((b) => b.kind);
-    for (const k of ['pylon', 'reactor', 'pad', 'gantry'] as const) expect(grownKinds).toContain(k);
+    for (const k of ['reactor', 'gantry'] as const) expect(grownKinds).toContain(k);
+    expect(grown.city!.pylons.length).toBeGreaterThan(0);
     expect(grownKinds.filter((k) => k === 'skyscraper').length).toBeGreaterThan(
       kinds.filter((k) => k === 'skyscraper').length,
     );

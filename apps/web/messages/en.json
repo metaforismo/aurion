@@ -1517,7 +1517,10 @@
         "skyscraper": "{n, plural, =1 {tower} other {towers}}",
         "block": "{n, plural, =1 {housing block} other {housing blocks}}",
         "factory": "{n, plural, =1 {factory} other {factories}}",
-        "barracks": "barracks"
+        "barracks": "barracks",
+        "office": "{n, plural, =1 {office building} other {office buildings}}",
+        "apartment": "{n, plural, =1 {apartment block} other {apartment blocks}}",
+        "house": "{n, plural, =1 {house} other {houses}}"
       },
       "name": {
         "hub": "Command hub",
@@ -1546,7 +1549,13 @@
         "reactor": "Fusion reactor",
         "pylon": "Power grid",
         "gantry": "Spaceport",
-        "antenna": "Planetary grid"
+        "antenna": "Planetary grid",
+        "office": "Office building",
+        "apartment": "Apartment block",
+        "house": "House",
+        "warehouse": "Warehouse",
+        "park": "Park",
+        "solarFarm": "Solar farm"
       },
       "leaveEarth": "Back to the globe",
       "citizens": "{n} people in the country",
