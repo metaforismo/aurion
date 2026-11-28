@@ -64,8 +64,10 @@ test('a colony can be visited on the surface and left again', async ({ page }) =
       .filter((p) => !p.mesh.isInstancedMesh)
       .map((p) => `${p.kind}:${Math.round(p.mesh.position.x)}:${Math.round(p.mesh.position.z)}`);
   });
-  expect(spots.length).toBeGreaterThanOrEqual(4);
-  expect(new Set(spots.map((s) => s.split(':').slice(1).join(':'))).size).toBe(spots.length);
+  // A building made of several materials has a mesh for each, all in one spot.
+  const buildings = [...new Set(spots)];
+  expect(buildings.length).toBeGreaterThanOrEqual(4);
+  expect(new Set(buildings.map((s) => s.split(':').slice(1).join(':'))).size).toBe(buildings.length);
 
   await page.getByTestId('base-leave').click();
   await expect(base).toBeHidden();
@@ -90,4 +92,28 @@ test('the capital can be visited from the globe and left again', async ({ page }
   await page.getByTestId('base-leave').click();
   await expect(capital).toBeHidden();
   await waitForPlayReady(page, 'it');
+});
+
+test('a national work is built from the economy panel and seen in the capital', async ({ page }) => {
+  test.slow();
+  await startNewGame(page, { locale: 'it', scenarioId: 'quick-start', countryId: 'verm-aurelia' });
+  await waitForPlayReady(page, 'it');
+  await dismissAllEventModals(page);
+  await waitForStore(page);
+
+  const economyTab = page.getByRole('tab', { name: 'Economia' });
+  if ((await economyTab.getAttribute('aria-selected')) !== 'true') await economyTab.click();
+  const solar = page.getByTestId('work-solar');
+  await solar.scrollIntoViewIfNeeded();
+  await page.getByTestId('work-solar-build').click();
+  // The site opens: progress bar, a way to cancel, a way to go and look.
+  await expect(page.getByTestId('work-solar-cancel')).toBeVisible();
+  await page.getByTestId('work-solar-see').click();
+
+  const capital = page.getByTestId('base-earth');
+  await expect(capital).toBeVisible();
+  await expect(page.getByTestId('base-works')).toContainText('Parco solare');
+
+  await page.getByTestId('base-leave').click();
+  await expect(capital).toBeHidden();
 });

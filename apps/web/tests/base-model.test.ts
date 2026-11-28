@@ -1,8 +1,9 @@
-import { createGame, tickCosmos, type GameState, type Scenario } from '@aurion/engine';
+import { WORKS, createGame, tickCosmos, type GameState, type Scenario } from '@aurion/engine';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { layoutCity } from '../lib/base/city';
 import {
   MAX_PEOPLE,
   baseSignature,
@@ -115,5 +116,46 @@ describe('base model', () => {
     );
     const seen = new Set(grown.buildings.map((b) => `${Math.round(b.x)}:${Math.round(b.z)}`));
     expect(seen.size).toBe(grown.buildings.length);
+  });
+});
+
+describe('national works in the capital', () => {
+  it('give every work its own ground, clear of the city and of each other', () => {
+    for (const growth of [0.5, 1, 4, 16]) {
+      const layout = layoutCity({
+        growth,
+        population: 5e7,
+        industry: 0.3,
+        research: 12,
+        army: 20000,
+        projects: ['earth_fusion', 'earth_spaceport', 'earth_smart_grid', 'earth_planetary_grid'],
+        building: [],
+        extraSites: 0,
+        seed: 'works',
+        works: WORKS.map((w) => ({ id: w.id, level: 3, building: null })),
+      });
+      expect(layout.works).toHaveLength(WORKS.length);
+      const grid = (layout.radius + 0.5) * 90;
+      const boxes = [
+        ...layout.works.filter((w) => !w.inTown).map((w) => ({ id: w.id, x: w.x, z: w.z, w: w.w, d: w.d })),
+        ...layout.specials.map((s) => ({ id: s.kind, x: s.x, z: s.z, w: 240, d: 200 })),
+      ];
+      for (const b of boxes) {
+        // Inside the flat ground round the city.
+        expect(Math.hypot(Math.abs(b.x) + b.w / 2, Math.abs(b.z) + b.d / 2)).toBeLessThan(1750 + 300);
+        if (b.id === 'collider') continue; // underground: only its halls show
+        expect(Math.max(Math.abs(b.x) - b.w / 2, Math.abs(b.z) - b.d / 2), `${b.id} reaches into town`).toBeGreaterThan(grid - 1);
+      }
+      for (let i = 0; i < boxes.length; i += 1) {
+        for (let j = i + 1; j < boxes.length; j += 1) {
+          const a = boxes[i]!;
+          const b = boxes[j]!;
+          if (a.id === 'collider' || b.id === 'collider') continue;
+          const apart = Math.abs(a.x - b.x) >= (a.w + b.w) / 2 || Math.abs(a.z - b.z) >= (a.d + b.d) / 2;
+          expect(apart, `${a.id} overlaps ${b.id} at growth ${growth}`).toBe(true);
+        }
+      }
+      expect(layout.blocks.filter((b) => b.zone === 'civic')).toHaveLength(3);
+    }
   });
 });

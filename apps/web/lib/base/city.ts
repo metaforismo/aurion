@@ -29,9 +29,17 @@ export type CityStats = {
   extraSites: number;
   /** Varies the city between nations. */
   seed: string;
+  /** National works standing or going up. */
+  works?: readonly WorkState[];
 };
 
-export type Zone = 'core' | 'downtown' | 'midtown' | 'residential' | 'industrial' | 'park' | 'campus' | 'military';
+/** A national work as the city sees it: what stands, and what is being built. */
+export type WorkState = { id: string; level: number; building: number | null };
+
+/** Where a national work stands, and how big its ground is. */
+export type WorkSite = WorkState & { x: number; z: number; w: number; d: number; inTown: boolean };
+
+export type Zone = 'core' | 'downtown' | 'midtown' | 'residential' | 'industrial' | 'park' | 'campus' | 'military' | 'civic';
 
 export type LotKind =
   | 'capitol'
@@ -82,6 +90,26 @@ export type CityLayout = {
   pylons: { x: number; z: number }[];
   /** Half-size of the built-up area, outskirts included. */
   extent: number;
+  /** National works and their grounds. */
+  works: WorkSite[];
+};
+
+/** Works with a whole city block of their own, and which block. */
+const TOWN_WORKS: Record<string, [number, number]> = { exchange: [1, 0], hospital: [-1, 1], intel_hq: [-1, -1] };
+
+/**
+ * Works out of town: bearing (degrees, x east / z north), distance beyond
+ * the built edge, and the size of their grounds.
+ */
+const OUT_WORKS: Record<string, { angle: number; dist: number; w: number; d: number }> = {
+  university: { angle: 118, dist: 150, w: 190, d: 150 },
+  datacenter: { angle: 5, dist: 90, w: 160, d: 120 },
+  nuclear: { angle: -18, dist: 260, w: 260, d: 180 },
+  solar: { angle: -55, dist: 170, w: 210, d: 170 },
+  fusion_lab: { angle: -122, dist: 150, w: 180, d: 150 },
+  airport: { angle: -160, dist: 330, w: 720, d: 260 },
+  observatory: { angle: 140, dist: 290, w: 170, d: 150 },
+  collider: { angle: 40, dist: 60, w: 560, d: 560 },
 };
 
 /** Deterministic hash of a string and two numbers, 0..1. */
@@ -143,6 +171,14 @@ export function layoutCity(stats: CityStats): CityLayout {
       else if (dist <= builtR) zone = rand(seed, i * 11, j * 5) < 0.1 ? 'park' : 'residential';
       if (zone) blocks.push({ i, j, x: i * PITCH, z: j * PITCH, zone });
     }
+  }
+  // National works with a block of their own in town.
+  const worksById = new Map((stats.works ?? []).map((w) => [w.id, w]));
+  for (const [id, [i, j]] of Object.entries(TOWN_WORKS)) {
+    const w = worksById.get(id);
+    if (!w || (w.level === 0 && w.building === null)) continue;
+    const b = blocks.find((k) => k.i === i && k.j === j);
+    if (b) b.zone = 'civic';
   }
   // A park next to the seat of government, always.
   const nextToCore = blocks.find((b) => b.i === 0 && b.j === 1);
@@ -356,8 +392,46 @@ export function layoutCity(stats: CityStats): CityLayout {
     specials.push({ kind: 'dishes', x: 0, z: out + 200, site: !has('earth_planetary_grid') });
   }
 
-  const extent = Math.max(gridEdge, ...specials.map((s) => Math.max(Math.abs(s.x), Math.abs(s.z)) + 160));
-  return { radius, blocks, lots, specials, roads, pylons, extent };
+  // National works: their grounds out of town, with a road into the grid.
+  const works: WorkSite[] = [];
+  for (const w of stats.works ?? []) {
+    if (w.level === 0 && w.building === null) continue;
+    const town = TOWN_WORKS[w.id];
+    if (town) {
+      const b = blocks.find((k) => k.i === town[0] && k.j === town[1]);
+      if (b) works.push({ ...w, x: b.x, z: b.z, w: BLOCK - 2 * SIDEWALK, d: BLOCK - 2 * SIDEWALK, inTown: true });
+      continue;
+    }
+    const spot = OUT_WORKS[w.id];
+    if (!spot) continue;
+    const a = (spot.angle * Math.PI) / 180;
+    const r = out + spot.dist + Math.min(spot.w, spot.d) / 2;
+    const x = Math.round(Math.cos(a) * r);
+    const z = Math.round(Math.sin(a) * r);
+    works.push({ ...w, x, z, w: spot.w, d: spot.d, inTown: false });
+    // An access road from the nearest street at the edge of town.
+    const street = (v: number) => Math.max(-builtEdge, Math.min(builtEdge, Math.round((v - PITCH / 2) / PITCH) * PITCH + PITCH / 2));
+    if (Math.abs(x) >= Math.abs(z)) {
+      const at = street(z);
+      const gate = x - Math.sign(x) * (spot.w / 2);
+      const edge = Math.sign(x) * builtEdge;
+      roads.push({ axis: 'x', at, from: Math.min(gate, edge), to: Math.max(gate, edge), width: ROAD });
+      if (Math.abs(at - z) > spot.d / 2 - 10) roads.push({ axis: 'z', at: gate, from: Math.min(at, z), to: Math.max(at, z), width: ROAD });
+    } else {
+      const at = street(x);
+      const gate = z - Math.sign(z) * (spot.d / 2);
+      const edge = Math.sign(z) * builtEdge;
+      roads.push({ axis: 'z', at, from: Math.min(gate, edge), to: Math.max(gate, edge), width: ROAD });
+      if (Math.abs(at - x) > spot.w / 2 - 10) roads.push({ axis: 'x', at: gate, from: Math.min(at, x), to: Math.max(at, x), width: ROAD });
+    }
+  }
+
+  const extent = Math.max(
+    gridEdge,
+    ...specials.map((s) => Math.max(Math.abs(s.x), Math.abs(s.z)) + 160),
+    ...works.map((w) => Math.max(Math.abs(w.x) + w.w / 2, Math.abs(w.z) + w.d / 2) + 40),
+  );
+  return { radius, blocks, lots, specials, roads, pylons, extent, works };
 }
 
 /** Join collinear stretches that touch into one. */

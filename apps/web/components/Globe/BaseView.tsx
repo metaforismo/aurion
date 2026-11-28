@@ -15,6 +15,7 @@ import {
   type BuildingKind,
 } from '../../lib/base/model';
 import type { BaseRenderer } from '../../lib/base/base-renderer';
+import { cn } from '../../lib/cn';
 import { compactNumber } from '../../lib/format';
 import { useGameStore } from '../../lib/store';
 import { IconButton } from '../ui';
@@ -123,6 +124,20 @@ export default function BaseView({ body, onLeave }: { body: BaseBody; onLeave: (
     };
   }, [glFallback]);
 
+  // Building sites move every week: let them catch up without a rebuild.
+  const progressKey = model?.workProgress ? JSON.stringify(model.workProgress) : '';
+  useEffect(() => {
+    if (ready && model?.workProgress) rendererRef.current?.setWorkProgress(model.workProgress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the serialised progress
+  }, [ready, progressKey]);
+
+  // Asked to look at a national work: fly there once the city is up.
+  const focus = useGameStore((s) => s.capital.focus);
+  useEffect(() => {
+    if (!ready || body !== 'earth' || !focus) return;
+    rendererRef.current?.focusWork(focus);
+  }, [ready, body, focus]);
+
   // The base grew: rebuild it in place, keeping the camera where it is.
   useEffect(() => {
     const current = modelRef.current;
@@ -204,6 +219,34 @@ export default function BaseView({ body, onLeave }: { body: BaseBody; onLeave: (
             </li>
           ))}
         </ul>
+        {model.city && model.city.works.length > 0 ? (
+          <ul className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 pb-1" data-testid="base-works">
+            {model.city.works.map((w) => {
+              const progress = model.workProgress?.[w.id];
+              return (
+                <li key={w.id} className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => rendererRef.current?.focusWork(w.id)}
+                    className={cn(
+                      'whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] transition-colors',
+                      w.building !== null
+                        ? 'border-accent/50 bg-accent/10 text-fg hover:bg-accent/20'
+                        : 'border-white/10 bg-white/[0.04] text-fg-muted hover:text-fg',
+                    )}
+                  >
+                    {t(`name.work_${w.id}`)}{' '}
+                    <span className="numeric-tabular font-mono text-fg-faint">
+                      {w.building !== null
+                        ? t('workSite', { level: w.building, pct: Math.round((progress ?? 0) * 100) })
+                        : t('workLevel', { level: w.level })}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
         <p className="mt-1.5 text-[11px] leading-snug text-fg-faint">{ready ? t(body === 'earth' ? 'hintEarth' : 'hint') : t('loading')}</p>
       </div>
 

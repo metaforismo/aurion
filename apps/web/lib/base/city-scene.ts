@@ -15,6 +15,7 @@ import { FACADES, makeFacade, SurfaceCache, type Facade } from './assets';
 import { BLOCK, PITCH, ROAD, SIDEWALK, lotAt, rand, type CityLayout, type Lot } from './city';
 import { Batch, hash, tint } from './geometry';
 import { treeGeometry, treeMaterials, type TreeKind } from './trees';
+import { buildWorksLayer, type WorksLayer } from './works-scene';
 
 export type CityScene = {
   group: THREE.Group;
@@ -24,6 +25,8 @@ export type CityScene = {
   nameAt(x: number, z: number): string | null;
   /** Footprints the camera must stay above. */
   solids: { x: number; z: number; r: number; h: number }[];
+  /** National works: progress of the ones being built, and where each stands. */
+  works: Pick<WorksLayer, 'setProgress' | 'focus'>;
 };
 
 const SURFACE_TILE = 2.4;
@@ -147,7 +150,7 @@ function latticeTower(height: number, base: number, top: number, color: number):
   return tint(mergeGeometries(parts, false)!, color);
 }
 
-function solarTexture(): THREE.CanvasTexture {
+export function solarTexture(): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = 256;
   c.height = 256;
@@ -240,7 +243,7 @@ export async function buildCityScene(layout: CityLayout, opts: { software: boole
     const y = slabH + 0.01;
     if (b.zone === 'residential' || b.zone === 'park' || b.zone === 'campus') {
       batch(grass).flat(b.x, b.z, inner, inner, y, 3.2);
-    } else if (b.zone === 'core') {
+    } else if (b.zone === 'core' || b.zone === 'civic') {
       batch(plaza).flat(b.x, b.z, inner, inner, y, SURFACE_TILE);
     } else if (b.zone === 'industrial') {
       batch(gravelYard).flat(b.x, b.z, inner, inner, y, SURFACE_TILE);
@@ -668,6 +671,35 @@ export async function buildCityScene(layout: CityLayout, opts: { software: boole
     }
   }
 
+  // ---- National works ------------------------------------------------------
+  const works = await buildWorksLayer(layout.works, {
+    software: opts.software,
+    seed: opts.seed,
+    facades,
+    asphalt,
+    concrete,
+    pavement,
+    plaza,
+    grass,
+    gravel: roofGravel,
+    sandstone,
+    paint,
+    metal,
+    darkMetal,
+    whitePanel,
+    redSteel,
+    copper,
+    glass: glassDome,
+    solar,
+    water,
+    craneGeo,
+    jibGeo,
+    craneMat,
+    latticeTower,
+  });
+  group.add(works.group);
+  solids.push(...works.solids);
+
   // Power line: pylons and sagging cables.
   if (layout.pylons.length > 1) {
     const pylons = new THREE.InstancedMesh(pylonGeo, new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.5, metalness: 0.6 }), layout.pylons.length);
@@ -786,6 +818,7 @@ export async function buildCityScene(layout: CityLayout, opts: { software: boole
       }
     }
   }
+  for (const [x, y, z] of works.trees) broad.push(m4(x, y, z, 0.9 + hash(x, z) * 0.3, 0.9 + hash(z, x) * 0.3, 0.9 + hash(x, z) * 0.3, hash(x, z) * 6.28));
   const foliage = treeMaterials(opts.software);
   const coreMat = new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.95 });
   const plant = (kind: TreeKind, list: THREE.Matrix4[], variants: number) => {
@@ -898,6 +931,7 @@ export async function buildCityScene(layout: CityLayout, opts: { software: boole
 
   const dummy = new THREE.Object3D();
   const update = (dt: number, time: number) => {
+    works.update(dt, time);
     cars.forEach((c, i) => {
       const len = c.to - c.from;
       c.s = (c.s + dt * c.speed) % len;
@@ -955,6 +989,8 @@ export async function buildCityScene(layout: CityLayout, opts: { software: boole
   update(0, 0);
 
   const nameAt = (x: number, z: number): string | null => {
+    const work = works.nameAt(x, z);
+    if (work) return work;
     const lot = lotAt(layout, x, z);
     if (lot) return NAME_OF[lot.kind];
     for (const n of names) if (Math.hypot(x - n.x, z - n.z) < n.r) return n.name;
@@ -963,5 +999,5 @@ export async function buildCityScene(layout: CityLayout, opts: { software: boole
     return null;
   };
 
-  return { group, update, nameAt, solids };
+  return { group, update, nameAt, solids, works };
 }

@@ -7,6 +7,8 @@ import { layoutCity, type CityLayout, type LotKind } from './city';
 import {
   COSMOS_PROJECTS,
   STRUCTURE_KINDS,
+  WORKS,
+  workProgress,
   colonyHousing,
   heldSectors,
   structureCount,
@@ -74,6 +76,8 @@ export type BaseModel = {
   sites: number;
   /** For the capital: the city plan the 3D view is built from. */
   city?: CityLayout;
+  /** For the capital: how far along each national work being built is (0..1). */
+  workProgress?: Record<string, number>;
 };
 
 /** Ring roads: radius, and how many plots each one has along it. */
@@ -222,7 +226,14 @@ export function buildCapitalModel(state: GameState): BaseModel | null {
     building: active.map((a) => a.projectId).filter(earth),
     extraSites: state.territoryWork ? 1 : 0,
     seed: player.id,
+    works: WORKS.map((w) => ({
+      id: w.id,
+      level: state.works?.levels[w.id] ?? 0,
+      building: state.works?.active.find((b) => b.workId === w.id)?.toLevel ?? null,
+    })),
   });
+  const workProgressById: Record<string, number> = {};
+  for (const b of state.works?.active ?? []) workProgressById[b.workId] = workProgress(b);
   const buildings: Building[] = city.lots.map((l) => ({ kind: LOT_KIND[l.kind], x: l.x, z: l.z, rot: 0 }));
   for (const s of city.specials) {
     buildings.push({
@@ -242,10 +253,12 @@ export function buildCapitalModel(state: GameState): BaseModel | null {
     rovers: 0,
     sites: buildings.filter((b) => b.kind === 'site').length,
     city,
+    workProgress: workProgressById,
   };
 }
 
 /** Changes whenever the base needs rebuilding on screen. */
 export function baseSignature(model: BaseModel): string {
-  return `${model.body}|${model.buildings.map((b) => b.kind.slice(0, 3)).join('')}|${model.people}|${model.rovers}`;
+  const works = model.city?.works.map((w) => `${w.id}${w.level}${w.building ?? ''}`).join(',') ?? '';
+  return `${model.body}|${model.buildings.map((b) => b.kind.slice(0, 3)).join('')}|${model.people}|${model.rovers}|${works}`;
 }

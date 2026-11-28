@@ -43,6 +43,7 @@ import { tickEra } from './era/index.js';
 import { recordTechCompletion, tickSpace } from './space/index.js';
 import { tickNuclear } from './nuclear/index.js';
 import { tickCosmos } from './cosmos/index.js';
+import { tickWorks } from './works/index.js';
 import { tickPolicies } from './policies/index.js';
 import { tickHistory } from './history.js';
 import { tickWarDiplomacy, tickWars } from './war/index.js';
@@ -182,6 +183,9 @@ export function tick(state: GameState, ctx: TickContext = {}): GameState {
 
   // 13.6. Cosmos: megaproject construction + the rival space race.
   next = tickCosmos(next, { rivalSpeed: aiResearchMul });
+
+  // 13.65. National works under construction at home.
+  next = tickWorks(next);
 
   // 13.7. Nuclear tick step. Keeps `mad` flag in sync with warhead count and
   //       handles auto-warhead production (1/50 ticks) for countries that
