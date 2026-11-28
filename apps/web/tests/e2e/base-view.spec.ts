@@ -81,10 +81,10 @@ test('the capital can be visited from the globe and left again', async ({ page }
   await page.getByTestId('capital-visit').click();
   const capital = page.getByTestId('base-earth');
   await expect(capital).toBeVisible();
-  // The city is a portrait of the nation: towers, homes, factories.
+  // The city is a portrait of the nation: towers, houses, factories.
   const counts = page.getByTestId('base-counts');
   await expect(counts).toContainText('grattacieli');
-  await expect(counts).toContainText('isolati');
+  await expect(counts).toContainText('case');
   await expect(counts).toContainText('fabbriche');
 
   await page.getByTestId('base-leave').click();

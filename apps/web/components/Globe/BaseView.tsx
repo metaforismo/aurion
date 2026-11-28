@@ -25,7 +25,9 @@ const COUNTED: readonly BuildingKind[] = [
   'dome',
   'habitat',
   'skyscraper',
-  'block',
+  'office',
+  'apartment',
+  'house',
   'factory',
   'lab',
   'barracks',
@@ -53,6 +55,8 @@ export default function BaseView({ body, onLeave }: { body: BaseBody; onLeave: (
   );
   const signature = model ? baseSignature(model) : '';
   const modelRef = useRef(model);
+  // What the renderer currently shows, so the same city is never built twice.
+  const applied = useRef('');
   useEffect(() => {
     modelRef.current = model;
   }, [model]);
@@ -69,6 +73,7 @@ export default function BaseView({ body, onLeave }: { body: BaseBody; onLeave: (
     const host = canvasHost.current;
     const first = modelRef.current;
     if (!host || !first) return;
+    applied.current = baseSignature(first);
     let renderer: BaseRenderer | null = null;
     let cancelled = false;
     // A fresh canvas each time: a canvas keeps the first context it was given.
@@ -121,7 +126,9 @@ export default function BaseView({ body, onLeave }: { body: BaseBody; onLeave: (
   // The base grew: rebuild it in place, keeping the camera where it is.
   useEffect(() => {
     const current = modelRef.current;
-    if (ready && current) rendererRef.current?.setModel(current);
+    if (!ready || !current || applied.current === signature) return;
+    applied.current = signature;
+    rendererRef.current?.setModel(current);
   }, [ready, signature]);
 
   if (!model) return null;
