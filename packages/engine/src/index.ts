@@ -176,3 +176,17 @@ export {
   territoryOwner,
 } from './territory/earth.js';
 export type { TerritoryStatus } from './territory/earth.js';
+
+export {
+  WORKS,
+  WORK_SLOTS,
+  WORK_CANCEL_REFUND,
+  getWork,
+  workCost,
+  workDuration,
+  workLevel,
+  workProgress,
+  workStatus,
+  tickWorks,
+} from './works/index.js';
+export type { WorkStatus } from './works/index.js';

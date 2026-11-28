@@ -14,6 +14,7 @@ import { isSoftwareRenderer } from '../globe/planet-renderer';
 
 import { loadEarthSky, SurfaceCache } from './assets';
 import { releaseTreeMaterials, treeGeometry, treeMaterials } from './trees';
+import { colonyMaterials, type ColonyMaterials } from './colony-materials';
 import { buildCityScene, type CityScene } from './city-scene';
 import { lumpy } from './geometry';
 
@@ -40,7 +41,7 @@ const FLAT_RADIUS = 235;
 const WORLD = {
   moon: { size: 1400, flat: FLAT_RADIUS, relief: 46, surface: 'moon_dusted_03', tile: 7, light: 0xffffff, dark: 0xa9a9ad },
   mars: { size: 1400, flat: FLAT_RADIUS, relief: 46, surface: 'terrain_red_01', tile: 9, light: 0xffffff, dark: 0xb08f7c },
-  earth: { size: 6000, flat: 1150, relief: 130, surface: 'lawn', tile: 3.2, light: 0xffffff, dark: 0x8d9a6e },
+  earth: { size: 6000, flat: 1750, relief: 130, surface: 'lawn', tile: 3.2, light: 0xffffff, dark: 0x8d9a6e },
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -109,7 +110,7 @@ type Part = THREE.BufferGeometry;
 
 function paint(geo: THREE.BufferGeometry, color: number): Part {
   const g = geo.index ? geo.toNonIndexed() : geo;
-  g.deleteAttribute('uv');
+  if (!g.getAttribute('uv')) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.getAttribute('position').count * 2), 2));
   const c = new THREE.Color(color);
   const count = g.getAttribute('position').count;
   const colors = new Float32Array(count * 3);
@@ -119,18 +120,20 @@ function paint(geo: THREE.BufferGeometry, color: number): Part {
     colors[i * 3 + 2] = c.b;
   }
   g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  // What the part is made of decides its material in the colonies.
+  g.userData.role = color === GLASS ? 'glass' : color === BLUE ? 'solar' : color === GREEN ? 'green' : 'body';
   return g;
 }
 const at = (g: THREE.BufferGeometry, x: number, y: number, z: number) => g.translate(x, y, z);
 const box = (w: number, h: number, d: number, color: number, x = 0, y = 0, z = 0) =>
   at(paint(new THREE.BoxGeometry(w, h, d), color), x, y + h / 2, z);
-const cyl = (rTop: number, rBottom: number, h: number, color: number, x = 0, y = 0, z = 0, seg = 14) =>
+const cyl = (rTop: number, rBottom: number, h: number, color: number, x = 0, y = 0, z = 0, seg = 32) =>
   at(paint(new THREE.CylinderGeometry(rTop, rBottom, h, seg), color), x, y + h / 2, z);
-const dome = (r: number, color: number, x = 0, y = 0, z = 0, seg = 16) =>
-  at(paint(new THREE.SphereGeometry(r, seg, 8, 0, Math.PI * 2, 0, Math.PI / 2), color), x, y, z);
+const dome = (r: number, color: number, x = 0, y = 0, z = 0, seg = 40) =>
+  at(paint(new THREE.SphereGeometry(r, seg, Math.round(seg / 3), 0, Math.PI * 2, 0, Math.PI / 2), color), x, y, z);
 /** A pressurised module lying on its side. */
 const tube = (r: number, len: number, color: number, x = 0, y = 0, z = 0) =>
-  at(paint(new THREE.CapsuleGeometry(r, len, 4, 10).rotateZ(Math.PI / 2), color), x, y + r * 0.9, z);
+  at(paint(new THREE.CapsuleGeometry(r, len, 8, 28).rotateZ(Math.PI / 2), color), x, y + r * 0.9, z);
 
 const WHITE = 0xe9ecef;
 const GREY = 0x9aa0a8;
@@ -622,10 +625,56 @@ export class BaseRenderer {
     return backend;
   }
 
+  private readonly sunDir = new THREE.Vector3(0, 1, 0);
+  /** Colony materials (Moon and Mars), made with the world. */
+  private colonyMats: ColonyMaterials | null = null;
+  private roadMaterial: THREE.Material = new THREE.MeshStandardNodeMaterial({ color: 0x777777, roughness: 1 });
+  private shadowReach = 0;
+
   private setSun(dir: THREE.Vector3): void {
-    const d = dir.clone().normalize();
-    this.sun.position.copy(d).multiplyScalar(1800);
-    this.sun.target.position.set(0, 0, 0);
+    this.sunDir.copy(dir).normalize();
+    this.followSun();
+  }
+
+  /**
+   * Keep the shadow map over what the camera looks at, sized to the view:
+   * crisp shadows up close, the whole city from afar.
+   */
+  private followSun(): void {
+    const target = this.controls?.target ?? new THREE.Vector3();
+    const distance = this.camera.position.distanceTo(target);
+    const base = this.body === 'earth' ? 760 : 280;
+    const reach = THREE.MathUtils.clamp(Math.round((distance * 1.1) / 40) * 40, 120, this.body === 'earth' ? 1400 : 420);
+    const centre = this.body === 'earth' ? target : new THREE.Vector3();
+    this.sun.target.position.set(centre.x, 0, centre.z);
+    this.sun.position.copy(this.sun.target.position).addScaledVector(this.sunDir, 1800);
+    const r = this.body === 'earth' ? reach : base;
+    if (r !== this.shadowReach) {
+      this.shadowReach = r;
+      const cam = this.sun.shadow.camera;
+      cam.left = -r;
+      cam.right = r;
+      cam.top = r;
+      cam.bottom = -r;
+      cam.updateProjectionMatrix();
+      // Coarser texels need more bias, or broad surfaces shadow themselves.
+      const texel = (2 * r) / this.sun.shadow.mapSize.x;
+      this.sun.shadow.normalBias = Math.max(0.2, texel * 1.4);
+      this.sun.shadow.bias = -0.0002 - texel * 0.00004;
+    }
+  }
+
+  /** How far along the national works being built are (capital only). */
+  setWorkProgress(progress: Record<string, number>): void {
+    this.city?.works.setProgress(progress);
+  }
+
+  /** Fly to a national work in the capital; false if it is not there. */
+  focusWork(id: string): boolean {
+    const spot = this.city?.works.focus(id);
+    if (!spot) return false;
+    this.lookAt(spot.x, spot.z, Math.max(140, spot.r * 1.1));
+    return true;
   }
 
   private placeCamera(): void {
@@ -650,6 +699,11 @@ export class BaseRenderer {
       env.mapping = THREE.EquirectangularReflectionMapping;
       this.scene.environment = env;
       this.scene.environmentIntensity = this.body === 'moon' ? 0.18 : 0.4;
+      this.colonyMats = colonyMaterials(this.body === 'moon' ? 'moon' : 'mars', this.software);
+      this.roadMaterial = await this.surfaces.get(this.body === 'moon' ? 'moon_track_01' : 'red_sand', {
+        color: this.body === 'moon' ? 0x8a8a8e : 0xa8664a,
+        normalScale: 1.2,
+      });
     }
     await this.buildTerrain();
     this.buildSky();
@@ -877,6 +931,7 @@ export class BaseRenderer {
       this.city = city;
       this.base.add(city.group);
       this.solids = city.solids;
+      city.works.setProgress(model.workProgress ?? {});
       return;
     }
     this.clearBase();
@@ -895,67 +950,99 @@ export class BaseRenderer {
   }
 
   private buildColony(model: BaseModel): void {
-    const palette = PALETTE[this.body];
     this.cranes = [];
     this.pickables = [];
     this.shuttle = null;
     this.flame = null;
 
-    // Roads: the rings, and spokes from the hub to the outermost one.
-    const roadMat = new THREE.MeshStandardNodeMaterial({ color: palette.road, roughness: 1 });
+    // Roads: the rings, and spokes from the hub to the outermost one, in
+    // regolith packed by wheels (texture in metres, laid in world space).
+    const roadMat = this.roadMaterial;
+    const worldUv = (g: THREE.BufferGeometry, tile: number) => {
+      const p = g.getAttribute('position');
+      const uv = g.getAttribute('uv');
+      const v = new THREE.Vector3();
+      for (let i = 0; i < p.count; i += 1) {
+        v.fromBufferAttribute(p, i);
+        uv.setXY(i, v.x / tile, -v.z / tile);
+      }
+      uv.needsUpdate = true;
+      return g;
+    };
     for (const radius of model.rings) {
-      const ring = new THREE.Mesh(new THREE.RingGeometry(radius - 1.6, radius + 1.6, 72).rotateX(-Math.PI / 2), roadMat);
+      const ring = new THREE.Mesh(worldUv(new THREE.RingGeometry(radius - 1.8, radius + 1.8, 120, 2).rotateX(-Math.PI / 2), 6), roadMat);
       ring.position.y = 0.22;
       this.base.add(ring);
     }
     const reach = model.rings[model.rings.length - 1] ?? 34;
     for (let i = 0; i < 4; i += 1) {
-      const spoke = new THREE.Mesh(new THREE.PlaneGeometry(reach, 3).rotateX(-Math.PI / 2), roadMat);
       const angle = (i / 4) * Math.PI * 2 + 0.4;
-      spoke.position.set((Math.cos(angle) * reach) / 2, 0.21, (Math.sin(angle) * reach) / 2);
-      spoke.rotation.y = -angle;
-      this.base.add(spoke);
+      const spoke = new THREE.PlaneGeometry(reach, 3.4)
+        .rotateX(-Math.PI / 2)
+        .rotateY(-angle)
+        .translate((Math.cos(angle) * reach) / 2, 0, (Math.sin(angle) * reach) / 2);
+      const mesh = new THREE.Mesh(worldUv(spoke, 6), roadMat);
+      mesh.position.y = 0.21;
+      this.base.add(mesh);
     }
 
     // Buildings: one instanced mesh per kind.
     const byKind = new Map<BuildingKind, Building[]>();
     for (const b of model.buildings) byKind.set(b.kind, [...(byKind.get(b.kind) ?? []), b]);
-    const material = new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.78, metalness: 0.12 });
+    const materials = this.colonyMats ?? colonyMaterials(this.body === 'mars' ? 'mars' : 'moon', this.software);
     const craneMaterial = new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.78, metalness: 0.12 });
     const lightSpots: THREE.Vector3[] = [];
     const shadows: { x: number; z: number; r: number; h: number }[] = [];
+    const domeTrees: THREE.Matrix4[] = [];
     for (const [kind, list] of byKind) {
       const plan = blueprint(kind);
-      const geometry = mergeGeometries(plan.parts, false);
-      if (!geometry) continue;
-      geometry.computeVertexNormals();
-      // A kind with a single building is a plain mesh. The renderer builds
-      // its instancing data once per (material, geometry layout) for
-      // instanced meshes of count 1, so several of those would all be drawn
-      // where the first one stands.
-      const single = list.length === 1;
-      const mesh: THREE.Mesh = single
-        ? new THREE.Mesh(geometry, material)
-        : new THREE.InstancedMesh(geometry, material, list.length);
-      list.forEach((b, i) => {
+      // One geometry per material: hull plating, glass, solar cells, crops.
+      const byRole = new Map<string, THREE.BufferGeometry[]>();
+      for (const part of plan.parts) {
+        const role = (part.userData.role as string | undefined) ?? 'body';
+        byRole.set(role, [...(byRole.get(role) ?? []), part]);
+      }
+      const placements = list.map((b) => {
         this.dummy.position.set(b.x, 0.2, b.z);
         this.dummy.rotation.set(0, b.rot, 0);
         this.dummy.scale.setScalar(1);
         this.dummy.updateMatrix();
-        if (single) {
-          mesh.position.copy(this.dummy.position);
-          mesh.rotation.copy(this.dummy.rotation);
-        } else {
-          (mesh as THREE.InstancedMesh).setMatrixAt(i, this.dummy.matrix);
-        }
-        for (const [lx, ly, lz] of plan.lights) {
-          lightSpots.push(new THREE.Vector3(lx, ly, lz).applyMatrix4(this.dummy.matrix));
-        }
-        shadows.push({ x: b.x, z: b.z, r: plan.radius, h: plan.height });
+        return this.dummy.matrix.clone();
       });
-      if (!single) (mesh as THREE.InstancedMesh).instanceMatrix.needsUpdate = true;
-      this.base.add(mesh);
-      this.pickables.push({ mesh, kind });
+      for (const [role, parts] of byRole) {
+        const geometry = mergeGeometries(parts, false);
+        if (!geometry) continue;
+        geometry.computeVertexNormals();
+        const material = materials[role as keyof typeof materials] ?? materials.body;
+        // A kind with a single building is a plain mesh. The renderer builds
+        // its instancing data once per (material, geometry layout) for
+        // instanced meshes of count 1, so several of those would all be drawn
+        // where the first one stands.
+        const single = list.length === 1;
+        const mesh: THREE.Mesh = single ? new THREE.Mesh(geometry, material) : new THREE.InstancedMesh(geometry, material, list.length);
+        placements.forEach((m, i) => {
+          if (single) m.decompose(mesh.position, mesh.quaternion, mesh.scale);
+          else (mesh as THREE.InstancedMesh).setMatrixAt(i, m);
+        });
+        if (!single) (mesh as THREE.InstancedMesh).instanceMatrix.needsUpdate = true;
+        if (role === 'glass') mesh.renderOrder = 2;
+        this.base.add(mesh);
+        this.pickables.push({ mesh, kind });
+      }
+      placements.forEach((m, i) => {
+        const b = list[i]!;
+        for (const [lx, ly, lz] of plan.lights) lightSpots.push(new THREE.Vector3(lx, ly, lz).applyMatrix4(m));
+        shadows.push({ x: b.x, z: b.z, r: plan.radius, h: plan.height });
+        // A garden under every dome.
+        if (kind === 'dome') {
+          for (let k = 0; k < 9; k += 1) {
+            const a = hash(i * 13 + k, 5) * Math.PI * 2;
+            const d = 2.5 + hash(k, i * 7 + 3) * 7.5;
+            const s = 0.45 + hash(k, i) * 0.25;
+            domeTrees.push(new THREE.Matrix4().compose(new THREE.Vector3(b.x + Math.cos(a) * d, 1.8, b.z + Math.sin(a) * d), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), a), new THREE.Vector3(s, s, s)));
+          }
+        }
+      });
       if (kind === 'pad' && list[0]) this.padAt.set(list[0].x, 0, list[0].z);
       if (kind === 'site') {
         for (const b of list) {
@@ -975,6 +1062,17 @@ export class BaseRenderer {
           this.base.add(crane);
           this.cranes.push(jib);
         }
+      }
+    }
+
+    if (domeTrees.length > 1) {
+      const foliage = treeMaterials(this.software);
+      const g = treeGeometry('small', 2);
+      for (const [geo, mat] of [[g.trunk, foliage.bark], [g.crown, foliage.leaves], ...(g.core ? [[g.core, new THREE.MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.95 })] as const] : [])] as const) {
+        const mesh = new THREE.InstancedMesh(geo, mat, domeTrees.length);
+        domeTrees.forEach((m, i) => mesh.setMatrixAt(i, m));
+        mesh.instanceMatrix.needsUpdate = true;
+        this.base.add(mesh);
       }
     }
 
@@ -1226,6 +1324,7 @@ export class BaseRenderer {
     this.animate(Math.min(0.1, elapsed / 1000));
     this.controls.update();
     this.keepOutOfBuildings();
+    this.followSun();
     this.renderer.render(this.scene, this.camera);
   };
 }

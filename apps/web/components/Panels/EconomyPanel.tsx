@@ -24,6 +24,7 @@ import { IncomeBreakdownCard } from './economy/IncomeBreakdownCard';
 import { IncomeTrend } from './economy/IncomeTrend';
 import { InvestCard } from './economy/InvestCard';
 import { TaxCard } from './economy/TaxCard';
+import { WorksSection } from './economy/WorksSection';
 import { useIncomeHistory } from './economy/history';
 import {
   SERVICES_SECTOR_BONUS,
@@ -182,6 +183,9 @@ export function EconomyPanel({ onErrors }: { onErrors?: (errors: string[]) => vo
           onInvest={(target, amount) => run({ type: 'invest', target, amount }, 'sfx.coin')}
         />
       </section>
+
+      {/* ---- National works -------------------------------------------- */}
+      <WorksSection run={run} />
 
       {/* ---- Sector mix -------------------------------------------------- */}
       <section aria-label={t('sectors.title')} className="flex flex-col gap-2">

@@ -201,6 +201,8 @@ export type GameStoreState = {
   panelOpen: boolean;
   /** Which world the central stage is showing. */
   mapView: MapView;
+  /** Whether the Earth view is down in the capital, and what to look at there. */
+  capital: { open: boolean; focus: string | null };
   /**
    * Most recent achievement that has been unlocked but not yet acknowledged
    * by the UI. The toast component reads this and clears it via
@@ -270,6 +272,8 @@ export type GameStoreState = {
   /** After a win: reopen the run as an endless Odyssey. */
   continueAsOdyssey: () => void;
   setMapView: (view: MapView) => void;
+  /** Go down into the capital (optionally looking at a national work) or back up. */
+  setCapital: (open: boolean, focus?: string | null) => void;
   /** Open a generic confirmation modal. */
   confirm: (request: ConfirmRequest) => void;
   /** Clear any pending confirmation request without invoking its callback. */
@@ -384,6 +388,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   selectedPanel: getInitialPanel(),
   panelOpen: true,
   mapView: 'earth',
+  capital: { open: false, focus: null },
   pendingAchievementToast: null,
   unlockedAchievementIds: new Set<AchievementId>(),
   pendingVictoryToast: null,
@@ -707,6 +712,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     });
   },
   setMapView: (view) => set({ mapView: view }),
+  setCapital: (open, focus = null) => set(open ? { capital: { open, focus }, mapView: 'earth' } : { capital: { open, focus: null } }),
 
   setSelectedPanel: (panel) => {
     set({ selectedPanel: panel, panelOpen: true });

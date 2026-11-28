@@ -236,7 +236,8 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
   // integrated, and what the player could take next.
   const [selectedTerritory, setSelectedTerritory] = useState<string | null>(null);
   // Down in the capital, looking at the city itself.
-  const [inCapital, setInCapital] = useState(false);
+  const inCapital = useGameStore((s) => s.capital.open);
+  const setCapital = useGameStore((s) => s.setCapital);
   const land = useMemo(() => {
     if (!state || !scenario?.homeTerritories) return null;
     return {
@@ -739,7 +740,7 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
           // The globe mounts afresh: let it draw its overlay and refocus.
           setReady(false);
           didInitialFocus.current = false;
-          setInCapital(false);
+          setCapital(false);
         }}
       />
     );
@@ -807,7 +808,7 @@ export default function GlobeMap({ insets }: { insets: StageInsets | undefined }
         <IconButton
           icon={Building2}
           label={tGlobe('capital')}
-          onClick={() => setInCapital(true)}
+          onClick={() => setCapital(true)}
           data-testid="capital-visit"
         />
       </div>

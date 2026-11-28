@@ -750,6 +750,16 @@
       "notAdjacent": "It does not border your land.",
       "busy": "A work is already under way.",
       "insufficientTreasury": "You cannot afford it."
+    },
+    "works": {
+      "playerOnly": "Only the player builds national works.",
+      "unknown": "Unknown work.",
+      "alreadyBuilding": "This work is already being built.",
+      "maxed": "This work is already at its top level.",
+      "locked": "Another work is needed first.",
+      "noFreeSlot": "Every works site is busy.",
+      "insufficientTreasury": "Not enough in the treasury.",
+      "notBuilding": "This work is not being built."
     }
   },
   "play": {
@@ -1555,11 +1565,24 @@
         "house": "House",
         "warehouse": "Warehouse",
         "park": "Park",
-        "solarFarm": "Solar farm"
+        "solarFarm": "Solar farm",
+        "work_university": "University",
+        "work_hospital": "Hospital",
+        "work_datacenter": "Data centre",
+        "work_exchange": "Stock exchange",
+        "work_airport": "Airport",
+        "work_solar": "Solar park",
+        "work_nuclear": "Nuclear plant",
+        "work_fusion_lab": "Experimental fusion reactor",
+        "work_observatory": "Observatory",
+        "work_collider": "Particle collider",
+        "work_intel_hq": "Intelligence headquarters"
       },
       "leaveEarth": "Back to the globe",
       "citizens": "{n} people in the country",
-      "hintEarth": "The capital is a portrait of the nation: towers follow the economy, factories its industry, labs its research, barracks its army, and every Earth megaproject leaves its mark. Drag, zoom in, tap a building."
+      "hintEarth": "The capital is a portrait of the nation: towers follow the economy, factories its industry, labs its research, barracks its army, and every Earth megaproject leaves its mark. Drag, zoom in, tap a building.",
+      "workSite": "· building lv. {level} {pct}%",
+      "workLevel": "· lv. {level}"
     }
   },
   "globe": {
@@ -3484,5 +3507,71 @@
     "politics": "Politics",
     "un": "UN",
     "cosmos": "Cosmos"
+  },
+  "works": {
+    "title": "National works",
+    "intro": "Facilities you build at home with treasury money. Each level costs and takes more, and once finished it shows in the capital.",
+    "slots": "sites {used}/{total}",
+    "perLevel": "Per level:",
+    "fx": {
+      "research": "+{n} research/wk",
+      "gdp": "+{n}% GDP",
+      "popularity": "+{n} popularity",
+      "spies": "+{n} spy",
+      "kardashev": "energy (Kardashev)"
+    },
+    "build": "Build · {price} · {weeks} wk",
+    "upgrade": "Level {level} · {price} · {weeks} wk",
+    "building": "Level {level} going up: {weeks, plural, =1 {1 week} other {# weeks}}",
+    "cancel": "Cancel",
+    "locked": "Needs {name} at level {level}",
+    "maxed": "Top level",
+    "see": "See in the capital",
+    "items": {
+      "university": {
+        "name": "University",
+        "blurb": "Trains engineers and researchers: every level adds faculties to the campus."
+      },
+      "hospital": {
+        "name": "Hospital",
+        "blurb": "Better care, happier citizens. It grows taller, with a helipad."
+      },
+      "datacenter": {
+        "name": "Data centre",
+        "blurb": "Computing power for research and business."
+      },
+      "exchange": {
+        "name": "Stock exchange",
+        "blurb": "Draws capital: the financial district rises round the old building."
+      },
+      "airport": {
+        "name": "Airport",
+        "blurb": "Trade and tourism. New terminals, then a second runway."
+      },
+      "solar": {
+        "name": "Solar park",
+        "blurb": "Clean, cheap energy, field after field."
+      },
+      "nuclear": {
+        "name": "Nuclear plant",
+        "blurb": "Plenty of power for industry: a reactor and a cooling tower per level."
+      },
+      "fusion_lab": {
+        "name": "Experimental fusion reactor",
+        "blurb": "A tokamak that lights plasma: research into the energy of the future."
+      },
+      "observatory": {
+        "name": "Observatory",
+        "blurb": "Optical telescopes and, at the third level, a great radio telescope."
+      },
+      "collider": {
+        "name": "Particle collider",
+        "blurb": "Ever larger underground rings hunting for dark matter."
+      },
+      "intel_hq": {
+        "name": "Intelligence headquarters",
+        "blurb": "Trains spies and guards against foreign services."
+      }
+    }
   }
 }

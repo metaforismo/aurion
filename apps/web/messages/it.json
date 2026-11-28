@@ -750,6 +750,16 @@
       "notAdjacent": "Non confina con i tuoi territori.",
       "busy": "C'è già un lavoro in corso.",
       "insufficientTreasury": "Non hai abbastanza in cassa."
+    },
+    "works": {
+      "playerOnly": "Solo il giocatore costruisce opere nazionali.",
+      "unknown": "Opera sconosciuta.",
+      "alreadyBuilding": "Questa opera è già in costruzione.",
+      "maxed": "Questa opera è già al livello massimo.",
+      "locked": "Prima serve un'altra opera.",
+      "noFreeSlot": "Tutti i cantieri delle opere sono occupati.",
+      "insufficientTreasury": "Tesoreria insufficiente.",
+      "notBuilding": "Questa opera non è in costruzione."
     }
   },
   "play": {
@@ -1555,11 +1565,24 @@
         "house": "Casa",
         "warehouse": "Magazzino",
         "park": "Parco",
-        "solarFarm": "Parco solare"
+        "solarFarm": "Parco solare",
+        "work_university": "Università",
+        "work_hospital": "Ospedale",
+        "work_datacenter": "Data center",
+        "work_exchange": "Borsa",
+        "work_airport": "Aeroporto",
+        "work_solar": "Parco solare",
+        "work_nuclear": "Centrale nucleare",
+        "work_fusion_lab": "Reattore a fusione sperimentale",
+        "work_observatory": "Osservatorio",
+        "work_collider": "Collisore di particelle",
+        "work_intel_hq": "Quartier generale dei servizi"
       },
       "leaveEarth": "Torna al globo",
       "citizens": "{n} abitanti nel paese",
-      "hintEarth": "La capitale è il ritratto della nazione: i grattacieli seguono l'economia, le fabbriche l'industria, i laboratori la ricerca, le caserme l'esercito, e ogni megaprogetto terrestre lascia il segno. Trascina, avvicinati, tocca un edificio."
+      "hintEarth": "La capitale è il ritratto della nazione: i grattacieli seguono l'economia, le fabbriche l'industria, i laboratori la ricerca, le caserme l'esercito, e ogni megaprogetto terrestre lascia il segno. Trascina, avvicinati, tocca un edificio.",
+      "workSite": "· cantiere liv. {level} {pct}%",
+      "workLevel": "· liv. {level}"
     }
   },
   "globe": {
@@ -3484,5 +3507,71 @@
     "politics": "Politica",
     "un": "ONU",
     "cosmos": "Cosmo"
+  },
+  "works": {
+    "title": "Opere nazionali",
+    "intro": "Strutture che costruisci in patria con i soldi del tesoro. Ogni livello costa di più e dura di più, e quando è finito si vede nella capitale.",
+    "slots": "cantieri {used}/{total}",
+    "perLevel": "Per livello:",
+    "fx": {
+      "research": "+{n} ricerca/sett.",
+      "gdp": "+{n}% PIL",
+      "popularity": "+{n} popolarità",
+      "spies": "+{n} spia",
+      "kardashev": "energia (Kardashev)"
+    },
+    "build": "Costruisci · {price} · {weeks} sett.",
+    "upgrade": "Livello {level} · {price} · {weeks} sett.",
+    "building": "Livello {level} in costruzione: {weeks, plural, =1 {1 settimana} other {# settimane}}",
+    "cancel": "Annulla",
+    "locked": "Serve {name} al livello {level}",
+    "maxed": "Livello massimo",
+    "see": "Vedi nella capitale",
+    "items": {
+      "university": {
+        "name": "Università",
+        "blurb": "Forma ingegneri e ricercatori: ogni livello aggiunge facoltà al campus."
+      },
+      "hospital": {
+        "name": "Ospedale",
+        "blurb": "Cure migliori, cittadini più contenti. Cresce in altezza, con l'eliporto."
+      },
+      "datacenter": {
+        "name": "Data center",
+        "blurb": "Potenza di calcolo per la ricerca e le imprese."
+      },
+      "exchange": {
+        "name": "Borsa",
+        "blurb": "Attira capitali: il distretto finanziario si alza attorno al palazzo storico."
+      },
+      "airport": {
+        "name": "Aeroporto",
+        "blurb": "Commerci e turismo. Nuovi terminal, poi una seconda pista."
+      },
+      "solar": {
+        "name": "Parco solare",
+        "blurb": "Energia pulita ed economica, campo dopo campo."
+      },
+      "nuclear": {
+        "name": "Centrale nucleare",
+        "blurb": "Tanta energia per l'industria: un reattore e una torre di raffreddamento per livello."
+      },
+      "fusion_lab": {
+        "name": "Reattore a fusione sperimentale",
+        "blurb": "Un tokamak che accende il plasma: ricerca sull'energia del futuro."
+      },
+      "observatory": {
+        "name": "Osservatorio",
+        "blurb": "Telescopi ottici e, al terzo livello, un grande radiotelescopio."
+      },
+      "collider": {
+        "name": "Collisore di particelle",
+        "blurb": "Anelli sotterranei sempre più grandi a caccia di materia oscura."
+      },
+      "intel_hq": {
+        "name": "Quartier generale dei servizi",
+        "blurb": "Addestra spie e protegge dai servizi stranieri."
+      }
+    }
   }
 }

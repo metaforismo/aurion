@@ -536,7 +536,9 @@ export type Action =
   | { type: 'setColonyFocus'; body: ColonyBody; focus: ColonyFocus }
   | { type: 'claimTerritory'; territoryId: string }
   | { type: 'claimSector'; body: ColonyBody; sectorId: string }
-  | { type: 'buildStructure'; body: ColonyBody; sectorId: string; structure: StructureKind };
+  | { type: 'buildStructure'; body: ColonyBody; sectorId: string; structure: StructureKind }
+  | { type: 'buildWork'; workId: WorkId }
+  | { type: 'cancelWork'; workId: WorkId };
 
 // ---------------------------------------------------------------------------
 // Top-level game state.
@@ -610,6 +612,8 @@ export type GameState = {
   eraState?: EraRuntimeState;
   /** Megaprojects, off-world expansion and Kardashev rating. */
   cosmos?: CosmosState;
+  /** National works the player builds at home (universities, plants, labs). */
+  works?: WorksState;
   /** Standing national policies. */
   policies?: PolicyState;
   /** Sampled history of the player's run, oldest first. */
@@ -939,6 +943,61 @@ export type EraRuntimeState = {
 // ---------------------------------------------------------------------------
 
 export type CosmosProjectId = string;
+
+/** A national work: a facility the player builds and upgrades at home. */
+export type WorkId =
+  | 'university'
+  | 'hospital'
+  | 'datacenter'
+  | 'exchange'
+  | 'airport'
+  | 'solar'
+  | 'nuclear'
+  | 'fusion_lab'
+  | 'observatory'
+  | 'collider'
+  | 'intel_hq';
+
+export type WorkEffects = {
+  /** One-off multiplier on GDP when a level is finished. */
+  gdpMul?: number;
+  /** Flat bonus to weekly research output. */
+  research?: number;
+  popularity?: number;
+  kardashev?: number;
+  spies?: number;
+  counterIntel?: number;
+};
+
+export type WorkDef = {
+  id: WorkId;
+  /** Cost of the first level, in cosmos units (1% of the starting GDP). */
+  cost: number;
+  /** Weeks the first level takes to build. */
+  durationTicks: number;
+  maxLevel: number;
+  /** What each finished level adds. */
+  effects: WorkEffects;
+  /** Another work that must stand at a level first. */
+  requires?: { work: WorkId; level: number };
+};
+
+export type WorkBuild = {
+  workId: WorkId;
+  /** The level being built. */
+  toLevel: number;
+  startedAtTick: number;
+  totalTicks: number;
+  remainingTicks: number;
+  paid: number;
+};
+
+export type WorksState = {
+  levels: Partial<Record<WorkId, number>>;
+  active: WorkBuild[];
+  /** The most recently finished, newest last (for the city view and news). */
+  finished: { workId: WorkId; level: number; tick: number }[];
+};
 
 /** Where a megaproject physically lives. Drives the map / system views. */
 export type CosmosBodyId =
